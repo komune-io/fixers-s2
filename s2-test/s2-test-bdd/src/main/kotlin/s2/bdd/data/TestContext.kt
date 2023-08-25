@@ -21,6 +21,7 @@ open class TestContext {
         entityLists.values.forEach(TestEntities<*, *>::reset)
         errors.reset()
         events.clear()
+        authedUser = null
     }
 
     open fun resetEnv() {}
