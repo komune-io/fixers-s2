@@ -19,12 +19,6 @@ plugins {
 allprojects {
 	group = "io.komune.s2"
 	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
-	repositories {
-		mavenCentral()
-		maven { url = uri("https://oss.sonatype.org/service/local/repositories/releases/content") }
-		maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
-		mavenLocal()
-	}
 }
 
 

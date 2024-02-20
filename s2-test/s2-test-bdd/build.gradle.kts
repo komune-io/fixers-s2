@@ -5,9 +5,9 @@ plugins {
 }
 
 dependencies {
-	Dependencies.Fixers.i2(::api)
 
 	Dependencies.Spring.dataCommons(::implementation)
+	Dependencies.Fixers.f2Auth(::implementation)
 
 	Dependencies.cucumber(::api)
 	Dependencies.Fixers.f2Http(::api)

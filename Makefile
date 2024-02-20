@@ -6,8 +6,16 @@ STORYBOOK_LATEST		:= ${STORYBOOK_NAME}:latest
 libs: package-kotlin
 docs: package-storybook
 
-package-kotlin:
-	@gradle clean build publishToMavenLocal publish -x test
+package-kotlin: build-libs publish-libs
+
+build-libs:
+	./gradlew build -x test
+
+test-libs:
+	./gradlew test
+
+publish-libs: build-libs
+	VERSION=${VERSION} ./gradlew publishToMavenLocal publish
 
 package-storybook:
 	@docker build --no-cache --build-arg CI_NPM_AUTH_TOKEN=${CI_NPM_AUTH_TOKEN} -f ${STORYBOOK_DOCKERFILE} -t ${STORYBOOK_IMG} .

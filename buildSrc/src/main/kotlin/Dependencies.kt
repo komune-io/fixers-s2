@@ -23,7 +23,6 @@ object Versions {
 
 	val ssm = FixersPluginVersions.fixers
 	val f2 = FixersPluginVersions.fixers
-	val i2 = FixersPluginVersions.fixers
 	val coroutines = FixersVersions.Kotlin.coroutines
 	val slf4j = FixersVersions.Logging.slf4j
 }
@@ -35,9 +34,8 @@ object Dependencies {
 
 		fun f2Http(scope: Scope) = scope.add(
 			"io.komune.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
-		)
-		fun i2(scope: Scope) = scope.add(
-			"io.komune.i2:i2-spring-boot-starter-auth:${Versions.i2}",
+		)fun f2Auth(scope: Scope) = scope.add(
+			"io.komune.f2:f2-spring-boot-starter-auth:${Versions.f2}",
 		)
 	}
 
@@ -54,6 +52,9 @@ object Dependencies {
 	object Spring {
 		fun dataCommons(scope: Scope) = FixersDependencies.Jvm.Spring.dataCommons(scope)
 		fun autoConfigure(scope: Scope, ksp: Scope) = FixersDependencies.Jvm.Spring.autoConfigure(scope, ksp)
+		fun security(scope: Scope) = scope.add(
+				"org.springframework.boot:spring-boot-starter-security:${FixersVersions.Spring.security}"
+		)
 
 		fun redis(scope: Scope) = scope.add(
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
