@@ -9,7 +9,7 @@ interface Props {
 export const DidHttpClientProvider = ({children}: Props) => {
     const [client, setClient] = useState<DidAggregateJsClient>()
     useEffect(() => {
-        didClient(city.smartb.s2.client.ktor.HTTP, "localhost", 8080, null).then((it: DidAggregateJsClient) => {
+        didClient(io.komune.s2.client.ktor.HTTP, "localhost", 8080, null).then((it: DidAggregateJsClient) => {
             setClient(it)
         })
     })

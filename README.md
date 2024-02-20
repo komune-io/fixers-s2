@@ -36,7 +36,7 @@ and domain-driven development, developers can create robust, reliable software s
 
 * import kotlin multiplatform dependency
 ```kotlin
-implementation("city.smartb.s2:s2-automate-dsl:${Versions.s2}")
+implementation("io.komune.s2:s2-automate-dsl:${Versions.s2}")
 ```
 
 * Define state

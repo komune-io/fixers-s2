@@ -7,17 +7,17 @@ plugins {
 	id("dev.petuska.npm.publish") version PluginVersions.npmPublish apply false
 	id("com.moowork.node" ) version "1.2.0"
 
-	id("city.smartb.fixers.gradle.config") version PluginVersions.fixers
-	id("city.smartb.fixers.gradle.sonar") version PluginVersions.fixers
-	id("city.smartb.fixers.gradle.d2") version PluginVersions.d2
+	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
+	id("io.komune.fixers.gradle.sonar") version PluginVersions.fixers
+	id("io.komune.fixers.gradle.d2") version PluginVersions.d2
 
-	id("city.smartb.fixers.gradle.kotlin.mpp") version PluginVersions.fixers apply false
-	id("city.smartb.fixers.gradle.kotlin.jvm") version PluginVersions.fixers apply false
-	id("city.smartb.fixers.gradle.publish") version PluginVersions.fixers apply false
+	id("io.komune.fixers.gradle.kotlin.mpp") version PluginVersions.fixers apply false
+	id("io.komune.fixers.gradle.kotlin.jvm") version PluginVersions.fixers apply false
+	id("io.komune.fixers.gradle.publish") version PluginVersions.fixers apply false
 }
 
 allprojects {
-	group = "city.smartb.s2"
+	group = "io.komune.s2"
 	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
 	repositories {
 		mavenCentral()
@@ -31,7 +31,7 @@ allprojects {
 subprojects {
 	plugins.withType(dev.petuska.npm.publish.NpmPublishPlugin::class.java).whenPluginAdded {
 		the<dev.petuska.npm.publish.extension.NpmPublishExtension>().apply {
-			organization.set("smartb")
+			organization.set("komune")
 			registries {
 				register("npmjs") {
 					uri.set(uri("https://registry.npmjs.org"))
@@ -62,6 +62,6 @@ fixers {
 		id = "s2"
 		name = "S2"
 		description = "Wrapper around SSM"
-		url = "https://gitlab.smartb.city/fixers/s2"
+		url = "https://github.com/komune-io/fixers-s2"
 	}
 }

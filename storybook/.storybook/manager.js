@@ -6,7 +6,7 @@ addons.setConfig({
     theme: create({
         base: 'light',
         brandTitle: 'SmartB S2',
-        brandUrl: 'https://docs.smartb.city/s2',
+        brandUrl: 'https://docs.komune.io/s2',
         brandImage: logo,
     }),
 });

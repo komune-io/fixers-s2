@@ -9,7 +9,7 @@ interface Props {
 export const DidRSocketClientProvider = ({children}: Props) => {
     const [client, setClient] = useState<DidAggregateJsClient>()
     useEffect(() => {
-        didClient(city.smartb.s2.client.ktor.WS, "localhost", 7000, null).then((it: DidAggregateJsClient) => {
+        didClient(io.komune.s2.client.ktor.WS, "localhost", 7000, null).then((it: DidAggregateJsClient) => {
             setClient(it)
         })
     })

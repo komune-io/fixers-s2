@@ -1,8 +1,8 @@
-import city.smartb.gradle.dependencies.FixersDependencies
-import city.smartb.gradle.dependencies.FixersPluginVersions
-import city.smartb.gradle.dependencies.FixersVersions
-import city.smartb.gradle.dependencies.Scope
-import city.smartb.gradle.dependencies.add
+import io.komune.gradle.dependencies.FixersDependencies
+import io.komune.gradle.dependencies.FixersPluginVersions
+import io.komune.gradle.dependencies.FixersVersions
+import io.komune.gradle.dependencies.Scope
+import io.komune.gradle.dependencies.add
 
 object PluginVersions {
 	val fixers = FixersPluginVersions.fixers
@@ -34,10 +34,10 @@ object Dependencies {
 	object Fixers {
 
 		fun f2Http(scope: Scope) = scope.add(
-			"city.smartb.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
+			"io.komune.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
 		)
 		fun i2(scope: Scope) = scope.add(
-			"city.smartb.i2:i2-spring-boot-starter-auth:${Versions.i2}",
+			"io.komune.i2:i2-spring-boot-starter-auth:${Versions.i2}",
 		)
 	}
 

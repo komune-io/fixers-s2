@@ -1,6 +1,6 @@
 package s2.bdd
 
-import city.smartb.i2.spring.boot.auth.config.WebSecurityConfig
+import io.komune.i2.spring.boot.auth.config.WebSecurityConfig
 import f2.dsl.cqrs.exception.F2Exception
 import io.cucumber.core.backend.CucumberInvocationTargetException
 import io.cucumber.datatable.CucumberDataTableException
