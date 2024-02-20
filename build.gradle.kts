@@ -8,7 +8,7 @@ plugins {
 	id("com.moowork.node" ) version "1.2.0"
 
 	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
-	id("io.komune.fixers.gradle.sonar") version PluginVersions.fixers
+//	id("io.komune.fixers.gradle.check") version PluginVersions.fixers
 	id("io.komune.fixers.gradle.d2") version PluginVersions.d2
 
 	id("io.komune.fixers.gradle.kotlin.mpp") version PluginVersions.fixers apply false
@@ -19,12 +19,6 @@ plugins {
 allprojects {
 	group = "io.komune.s2"
 	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
-	repositories {
-		mavenCentral()
-		maven { url = uri("https://oss.sonatype.org/service/local/repositories/releases/content") }
-		maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
-		mavenLocal()
-	}
 }
 
 
