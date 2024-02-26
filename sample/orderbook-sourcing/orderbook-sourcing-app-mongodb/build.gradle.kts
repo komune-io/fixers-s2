@@ -1,5 +1,5 @@
 plugins {
-	id("city.smartb.fixers.gradle.kotlin.jvm")
+	id("io.komune.fixers.gradle.kotlin.jvm")
 	id("org.springframework.boot") version PluginVersions.springBoot
 	kotlin("plugin.spring")
 	kotlin("plugin.serialization")

@@ -1,6 +1,6 @@
 plugins {
-	id("city.smartb.fixers.gradle.kotlin.jvm")
-	id("city.smartb.fixers.gradle.publish")
+	id("io.komune.fixers.gradle.kotlin.jvm")
+	id("io.komune.fixers.gradle.publish")
 	kotlin("kapt")
 }
 
@@ -9,6 +9,6 @@ dependencies {
 
 	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
 
-	api("city.smartb.ssm:ssm-data-spring-boot-starter:${Versions.ssm}")
-	api("city.smartb.ssm:ssm-tx-spring-boot-starter:${Versions.ssm}")
+	api("io.komune.ssm:ssm-data-spring-boot-starter:${Versions.ssm}")
+	api("io.komune.ssm:ssm-tx-spring-boot-starter:${Versions.ssm}")
 }

@@ -1,13 +1,13 @@
 plugins {
-	id("city.smartb.fixers.gradle.kotlin.jvm")
+	id("io.komune.fixers.gradle.kotlin.jvm")
 	kotlin("plugin.spring")
-	id("city.smartb.fixers.gradle.publish")
+	id("io.komune.fixers.gradle.publish")
 }
 
 dependencies {
-	Dependencies.Fixers.i2(::api)
 
 	Dependencies.Spring.dataCommons(::implementation)
+	Dependencies.Fixers.f2Auth(::implementation)
 
 	Dependencies.cucumber(::api)
 	Dependencies.Fixers.f2Http(::api)

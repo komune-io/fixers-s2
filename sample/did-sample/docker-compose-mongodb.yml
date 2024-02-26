@@ -12,7 +12,7 @@ services:
   #    volumes:
   #      - ./infra/dev/mongodb/data/db/:/data/db/
 #  keycloak:
-#    image: smartbcity/keycloak:next
+#    image: komunecity/keycloak:next
 #    container_name: keycloak-auth
 #    environment:
 #      DB_VENDOR: POSTGRES
@@ -21,8 +21,8 @@ services:
 #      DB_DATABASE: keycloack_colisactiv
 #      DB_USER: admin
 #      DB_PASSWORD: admin
-#      KEYCLOAK_USER: smartb
-#      KEYCLOAK_PASSWORD: smartb
+#      KEYCLOAK_USER: komune
+#      KEYCLOAK_PASSWORD: komune
 #      KEYCLOAK_HOSTNAME: localhost
 #      PROXY_ADDRESS_FORWARDING: "true"
 #      JDBC_PARAMS: "ssl=false"

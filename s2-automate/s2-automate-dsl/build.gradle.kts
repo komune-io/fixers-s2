@@ -1,11 +1,11 @@
 
 plugins {
-	id("city.smartb.fixers.gradle.kotlin.mpp")
-	id("city.smartb.fixers.gradle.publish")
+	id("io.komune.fixers.gradle.kotlin.mpp")
+	id("io.komune.fixers.gradle.publish")
 	kotlin("plugin.serialization")
 //	id("dev.petuska.npm.publish")
 }
 
 dependencies {
-    commonMainApi("city.smartb.ssm:ssm-chaincode-dsl:${Versions.ssm}")
+    commonMainApi("io.komune.ssm:ssm-chaincode-dsl:${Versions.ssm}")
 }
