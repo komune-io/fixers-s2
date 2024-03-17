@@ -9,13 +9,8 @@ test: test-libs
 package: package-libs
 
 libs: package-kotlin
-docs: package-storybook
 
 package-kotlin: build-libs publish-libs
-
-package-storybook:
-	@docker build --no-cache --build-arg CI_NPM_AUTH_TOKEN=${CI_NPM_AUTH_TOKEN} -f ${STORYBOOK_DOCKERFILE} -t ${STORYBOOK_IMG} .
-	@docker push ${STORYBOOK_IMG}
 
 lint-libs:
 	echo 'No Lint'
@@ -30,12 +25,6 @@ test-libs:
 
 package-libs: build-libs
 	./gradlew publishToMavenLocal publish
-
-package-storybook:
-	@docker build --build-arg CI_NPM_AUTH_TOKEN=${CI_NPM_AUTH_TOKEN} -f ${STORYBOOK_DOCKERFILE} -t ${STORYBOOK_IMG} .
-
-push-storybook:
-	@docker push ${STORYBOOK_IMG}
 
 version:
 	@VERSION=$$(cat VERSION); \
