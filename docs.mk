@@ -1,7 +1,7 @@
 DOCKER_REPOSITORY = ghcr.io/
 
 STORYBOOK_DOCKERFILE	:= ./infra/docker/storybook/Dockerfile
-STORYBOOK_NAME	   	 	:= ${DOCKER_REPOSITORY}komune/f2-storybook
+STORYBOOK_NAME	   	 	:= ${DOCKER_REPOSITORY}komune-io/s2-storybook
 STORYBOOK_IMG	    	:= ${STORYBOOK_NAME}:${VERSION}
 STORYBOOK_LATEST		:= ${STORYBOOK_NAME}:latest
 

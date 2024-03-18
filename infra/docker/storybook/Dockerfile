@@ -22,7 +22,7 @@ RUN if [ ! -d "./storybook-static" ]; then \
 
 FROM nginx:1.25.4-alpine
 
-LABEL org.opencontainers.image.source="https://github.com/komune-io/fixers-f2"
+LABEL org.opencontainers.image.source="https://github.com/komune-io/fixers-s2"
 
 COPY --from=build /app/storybook/storybook-static /var/www
 COPY infra/docker/storybook/nginx.conf /etc/nginx/nginx.conf
