@@ -6,4 +6,3 @@ infra/bc1
 docker-compose*
 makefile%
 **/node_module
-**/storybook-static
