@@ -4,18 +4,17 @@ module.exports = {
     "../**/*.stories.@(js|jsx|ts|tsx)",
   ],
   addons: [
-    {
-      name: "@storybook/addon-docs",
-      options: {
-        configureJSX: true,
-        transcludeMarkdown: true,
-      },
-    },
+    "@storybook/addon-docs",
     "@storybook/addon-links",
     "@storybook/addon-essentials",
     "storybook-react-i18next",
   ],
   features: {
-    emotionAlias: false,
+    storyStoreV7: true,
+    buildStoriesJson: true,
+  },
+  framework: {
+    name: "@storybook/react-webpack5",
+    options: {},
   },
 };

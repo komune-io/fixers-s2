@@ -1,5 +1,5 @@
-import { ThemeContextProvider } from "@komune/g2-themes";
-import { StorybookCanvas } from "@komune/g2-storybook-documentation";
+import { ThemeContextProvider } from "@komune-io/g2-themes";
+import { StorybookCanvas } from "@komune-io/g2-storybook-documentation";
 
 import "./default.css";
 
@@ -17,18 +17,6 @@ const defaultTheme = {
 };
 
 export const parameters = {
-  options: {
-    storySort: {
-      order: [
-        "Getting started",
-        "SSM-TX",
-        ["General", "Configuration", "SSM", "Session"],
-        "SSM-CHAINCODE",
-        "SSM-COUCHDB",
-        ["General", "Configuration", "Model", "Query functions"],
-      ]
-    }
-  },
   docs: {
     container: StorybookCanvas
   }
