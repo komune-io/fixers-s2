@@ -17,14 +17,14 @@ lint-libs:
 	#./gradlew detekt
 
 build-libs:
-	./gradlew build --scan -x test
+	./gradlew build -x test publishToMavenLocal
 
 test-libs:
 	echo 'No Tests'
 #	./gradlew test
 
 package-libs: build-libs
-	./gradlew publishToMavenLocal publish
+	./gradlew  publish
 
 version:
 	@VERSION=$$(cat VERSION); \
