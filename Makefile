@@ -20,7 +20,7 @@ lint-libs:
 	#./gradlew detekt
 
 build-libs:
-	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
+	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal --refresh-dependencies -x test
 
 test-libs:
 	echo 'No Tests'
