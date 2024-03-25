@@ -3,10 +3,13 @@ STORYBOOK_NAME	   	 	:= komune/s2-storybook
 STORYBOOK_IMG	    	:= ${STORYBOOK_NAME}:${VERSION}
 STORYBOOK_LATEST		:= ${STORYBOOK_NAME}:latest
 
+VERSION = $(shell cat VERSION)
+
 lint: lint-libs
 build: build-libs
 test: test-libs
-package: package-libs
+publish: publish-libs
+promote: promote-libs
 
 libs: package-kotlin
 
@@ -23,11 +26,14 @@ test-libs:
 	echo 'No Tests'
 #	./gradlew test
 
-package-libs: build-libs
-	./gradlew  publish
+publish-libs: build-libs
+	PKG_MAVEN_REPO=github ./gradlew publish
 
+promote-libs: build-libs
+	PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
+
+.PHONY: version
 version:
-	@VERSION=$$(cat VERSION); \
 	echo "$$VERSION"
 
 ## DEV ENVIRONMENT
