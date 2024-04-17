@@ -44,7 +44,7 @@ EVENT: WithS2Id<ID> {
         return persist(id, event)
     }
 
-    private suspend fun persist(id: ID, event: EVENT): ENTITY {
+    private suspend fun persist(id: ID & Any, event: EVENT): ENTITY {
         val entity = automateSourcingPersisterSnapChannel?.let { snapPersistChannel ->
             return snapPersistChannel.addToPersistQueue(id, event, ::persistSnap)
         } ?:  persistSnap(id, event)
@@ -52,7 +52,7 @@ EVENT: WithS2Id<ID> {
         eventStore.persist(event)
         return entity
     }
-    private suspend fun persistSnap(id: ID, event: EVENT): ENTITY {
+    private suspend fun persistSnap(id: ID & Any, event: EVENT): ENTITY {
         val entityMutated = projectionLoader.loadAndEvolve(id, flowOf(event))
             ?: throw ERROR_ENTITY_NOT_FOUND(event.s2Id().toString()).asException()
         return snapRepository?.save(entityMutated) ?: entityMutated

@@ -14,11 +14,11 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 ENTITY: WithS2Id<ID> {
 
-	override suspend fun load(id: ID): ENTITY? {
+	override suspend fun load(id: ID & Any): ENTITY? {
 		return snapRepository.get(id) ?: viewLoader.load(id)
 	}
 
-	override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
+	override suspend fun loadAndEvolve(id: ID & Any, news: Flow<EVENT>): ENTITY? {
 		return load(id).let { entity ->
 			viewLoader.evolve(news, entity)
 		}
