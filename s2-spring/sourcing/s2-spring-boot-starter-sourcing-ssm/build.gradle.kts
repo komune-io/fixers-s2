@@ -9,6 +9,6 @@ dependencies {
 
 	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
 
-	api("io.komune.ssm:ssm-data-spring-boot-starter:${Versions.ssm}")
-	api("io.komune.ssm:ssm-tx-spring-boot-starter:${Versions.ssm}")
+	api("io.komune.c2:ssm-data-spring-boot-starter:${Versions.ssm}")
+	api("io.komune.c2:ssm-tx-spring-boot-starter:${Versions.ssm}")
 }
