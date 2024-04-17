@@ -12,7 +12,7 @@ class SourcingViewExecutorImpl< EVENT, ENTITY, ID>(
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
-	suspend fun evolve(id: ID, msg: EVENT){
+	suspend fun evolve(id: ID & Any, msg: EVENT){
 		val entity = viewRepository.get(id) ?: viewBuilder.load(id)
 		evolver.evolve(msg, entity)
 	}

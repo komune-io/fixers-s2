@@ -25,7 +25,7 @@ open class ViewLoader<EVENT, ENTITY, ID>(
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
-	override suspend fun load(id: ID): ENTITY? {
+	override suspend fun load(id: ID & Any): ENTITY? {
 		return eventRepository.load(id).let { events ->
 			load(events)
 		}
@@ -35,7 +35,7 @@ EVENT: WithS2Id<ID> {
 		return evolve(events, null)
 	}
 
-	override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
+	override suspend fun loadAndEvolve(id: ID & Any, news: Flow<EVENT>): ENTITY? {
 		return eventRepository.load(id).let { events ->
 			load(events)
 		}.let { entity ->
