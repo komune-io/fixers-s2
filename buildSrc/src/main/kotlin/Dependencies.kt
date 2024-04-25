@@ -3,6 +3,8 @@ import io.komune.gradle.dependencies.FixersPluginVersions
 import io.komune.gradle.dependencies.FixersVersions
 import io.komune.gradle.dependencies.Scope
 import io.komune.gradle.dependencies.add
+import org.gradle.api.artifacts.dsl.RepositoryHandler
+import java.net.URI
 
 object PluginVersions {
 	val fixers = FixersPluginVersions.fixers
@@ -25,6 +27,12 @@ object Versions {
 	val f2 = FixersPluginVersions.fixers
 	val coroutines = FixersVersions.Kotlin.coroutines
 	val slf4j = FixersVersions.Logging.slf4j
+}
+
+fun RepositoryHandler.defaultRepo() {
+	mavenCentral()
+	maven { url = URI("https://s01.oss.sonatype.org/content/repositories/snapshots") }
+	maven { url = URI("https://repo.spring.io/milestone") }
 }
 
 object Dependencies {
