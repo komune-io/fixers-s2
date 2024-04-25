@@ -1,5 +1,13 @@
 rootProject.name = "fixers-s2"
 
+pluginManagement {
+	repositories {
+		gradlePluginPortal()
+		mavenCentral()
+		maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots") }
+	}
+}
+
 include(
 	"s2-automate:s2-automate-core",
 	"s2-automate:s2-automate-documenter",
