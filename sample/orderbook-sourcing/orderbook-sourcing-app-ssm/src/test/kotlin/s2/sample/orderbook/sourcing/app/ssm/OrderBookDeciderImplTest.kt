@@ -54,8 +54,10 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 
 	@Test
 	fun `should create order book`(): Unit = runBlocking {
-		val event = orderBookDeciderImpl.orderBookCreateDecider().invoke(OrderBookCreateCommand("TheNewOrderBook"))
- 		orderBookDeciderImpl.orderBookUpdateDecider().invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
+		val event = orderBookDeciderImpl.orderBookCreateDecider()
+			.invoke(OrderBookCreateCommand("TheNewOrderBook"))
+ 		orderBookDeciderImpl.orderBookUpdateDecider()
+			 .invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
 		orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
 		val events = eventStore.load(event.id).toList()
