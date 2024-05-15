@@ -34,7 +34,8 @@ class S2DidHttpAppTest {
 	fun testBasicAggregateFnc() = runBlocking<Unit> {
 		val id = UUID.randomUUID().toString()
 		val client = httpClientBuilder().build("http://localhost:${port}")
-		val result: Flow<DidCreatedEvent> = client.function<DidCreateCommand, DidCreatedEvent>("createDid").invoke(flowOf( DidCreateCommand(
+		val result: Flow<DidCreatedEvent> = client.function<DidCreateCommand, DidCreatedEvent>("createDid")
+			.invoke(flowOf( DidCreateCommand(
 			id = id
 		)))
 		Assertions.assertThat(result.first().id).isEqualTo(id)
