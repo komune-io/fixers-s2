@@ -1,40 +1,30 @@
-STORYBOOK_DOCKERFILE	:= infra/docker/storybook/Dockerfile
-STORYBOOK_NAME	   	 	:= komune/s2-storybook
-STORYBOOK_IMG	    	:= ${STORYBOOK_NAME}:${VERSION}
-STORYBOOK_LATEST		:= ${STORYBOOK_NAME}:latest
-
 VERSION = $(shell cat VERSION)
 
-lint: lint-libs
-build: build-libs
-test: test-libs
-publish: publish-libs
-promote: promote-libs
+.PHONY: lint build test publish promote
 
-libs: package-kotlin
+## New
+lint:
+	@make -f libs.mk lint
+	@make -f docs.mk lint
 
-package-kotlin: build-libs publish-libs
+build:
+	@make -f libs.mk build
+	@make -f docs.mk build
 
-lint-libs:
-	echo 'No Lint'
-	#./gradlew detekt
+test-pre:
+	@make -f libs.mk test-pre
 
-build-libs:
-	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal --refresh-dependencies -x test
+test:
+	@make -f libs.mk test
+	@make -f docs.mk test
 
-test-libs:
-	echo 'No Tests'
-#	./gradlew test
+publish:
+	@make -f libs.mk publish
+	@make -f docs.mk publish
 
-publish-libs:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=github ./gradlew publish --info
-
-promote-libs:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
-
-.PHONY: version
-version:
-	@echo "$(VERSION)"
+promote:
+	@make -f libs.mk promote
+	@make -f docs.mk promote
 
 ## DEV ENVIRONMENT
 include infra/docker-compose/dev-compose.mk
