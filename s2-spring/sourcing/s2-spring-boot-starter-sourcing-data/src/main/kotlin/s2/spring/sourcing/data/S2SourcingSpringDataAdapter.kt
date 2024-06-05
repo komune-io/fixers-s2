@@ -1,5 +1,6 @@
 package s2.spring.sourcing.data
 
+import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.core.support.ReactiveRepositoryFactorySupport
 import s2.dsl.automate.Evt
@@ -30,7 +31,9 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
 	override fun eventStore(): EventPersisterData<EVENT, ID> {
 		val eventRepository = springDataEventRepository()
-		return EventPersisterData(eventRepository, entityType())
+		return EventPersisterData(eventRepository, entityType()).also {
+			it.json = json()
+		}
 	}
 
 	open fun springDataEventRepository(): SpringDataEventRepository<EVENT, ID> {
@@ -38,4 +41,8 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 				as SpringDataEventRepository<EVENT, ID>
 	}
 
+	open fun json(): Json = Json {
+		ignoreUnknownKeys = true
+
+	}
 }

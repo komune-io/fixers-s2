@@ -1,0 +1,11 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/orderbook-sourcing
+    username: admin
+    password: admin
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 10
+
+debug: true

@@ -31,6 +31,7 @@ include(
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb",
+	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-r2dbc",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-ssm",
 )
 
@@ -48,6 +49,7 @@ include(
 include(
 	"sample:orderbook-sourcing",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-mongodb",
+	"sample:orderbook-sourcing:orderbook-sourcing-app-r2dbc",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm-permissive",
 	"sample:orderbook-sourcing:orderbook-sourcing-domain"

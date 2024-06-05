@@ -4,7 +4,6 @@ plugins {
 
 	kotlin("kapt") version PluginVersions.kotlin apply false
 
-	id("dev.petuska.npm.publish") version PluginVersions.npmPublish apply false
 	id("com.moowork.node" ) version "1.2.0"
 
 	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
