@@ -16,11 +16,11 @@ import org.springframework.data.annotation.Version
 @Entity
 @MappedSuperclass
 @EntityListeners
-class EventSourcing<EVENT, ID>(
+class EventSourcing<ID>(
 	@Id
 	val id: String,
 	val objId: ID,
-	val event: EVENT,
+	val event: String,
 	@CreatedBy
 	var createdBy: String? = null,
 	@CreatedDate

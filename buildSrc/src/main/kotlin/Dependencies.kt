@@ -12,7 +12,6 @@ object PluginVersions {
 	const val ksp = FixersPluginVersions.ksp
 	const val kotlin = FixersPluginVersions.kotlin
 	const val springBoot = FixersPluginVersions.springBoot
-	const val npmPublish = FixersPluginVersions.npmPublish
 }
 
 object Versions {
@@ -20,13 +19,14 @@ object Versions {
 
 	const val springBoot = FixersVersions.Spring.boot
 	const val springframework = FixersVersions.Spring.framework
-	const val testcontainers = "1.18.3"
-//	const val testcontainers = FixersVersions.Test.testcontainers
+	const val testcontainers = FixersVersions.Test.testcontainers
 
 	val ssm = FixersPluginVersions.fixers
 	val f2 = FixersPluginVersions.fixers
-	val coroutines = FixersVersions.Kotlin.coroutines
 	val slf4j = FixersVersions.Logging.slf4j
+
+	const val postgresql = "42.7.3"
+	const val r2dbc = "1.0.5.RELEASE"
 }
 
 fun RepositoryHandler.defaultRepo() {
@@ -74,15 +74,32 @@ object Dependencies {
 			"org.springframework.boot:spring-boot-starter-data-mongodb-reactive:${Versions.springBoot}"
 		)
 
+		fun r2dbc(scope: Scope) = scope.add(
+			"org.springframework.boot:spring-boot-starter-data-r2dbc:${Versions.springBoot}",
+		)
+
 		fun tx(scope: Scope) = scope.add(
 			"org.springframework:spring-tx:${Versions.springframework}"
 		)
 	}
 
 	fun testcontainers(scope: Scope) = scope.add(
+		"org.springframework.boot:spring-boot-testcontainers:${Versions.springBoot}",
 		"org.testcontainers:junit-jupiter:${Versions.testcontainers}",
 		"org.testcontainers:mongodb:${Versions.testcontainers}",
 	)
+
+	fun testcontainersPostgres(scope: Scope, runtimeOnly: Scope) = scope.add(
+		"org.testcontainers:postgresql:${Versions.testcontainers}",
+		"org.testcontainers:r2dbc:${Versions.testcontainers}",
+		"com.redis:testcontainers-redis:2.2.2",
+	).also { testcontainers(scope) }
+		.also {
+			runtimeOnly.add(
+				"org.postgresql:postgresql:${Versions.postgresql}",
+				"org.postgresql:r2dbc-postgresql:${Versions.r2dbc}"
+			)
+		}
 
 	fun springTest(scope: Scope) = scope.add(
 		"org.springframework.boot:spring-boot-starter-test:${Versions.springBoot}",

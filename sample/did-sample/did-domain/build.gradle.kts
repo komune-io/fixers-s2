@@ -3,7 +3,6 @@ plugins {
 	id("io.komune.fixers.gradle.publish")
 
 	kotlin("plugin.serialization")
-//	id("dev.petuska.npm.publish")
 }
 
 dependencies {
