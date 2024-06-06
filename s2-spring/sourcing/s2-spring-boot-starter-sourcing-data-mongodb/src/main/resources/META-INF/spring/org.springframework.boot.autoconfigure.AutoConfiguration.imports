@@ -1,1 +1,1 @@
-s2.spring.sourcing.data.mongodb.MongodbReactiveMongoRepositoryConfig
+s2.spring.sourcing.data.mongodb.MongoEventRepositoryFactoryConfiguration
