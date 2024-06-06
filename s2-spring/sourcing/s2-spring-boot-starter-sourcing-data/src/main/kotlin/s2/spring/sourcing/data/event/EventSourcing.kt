@@ -24,7 +24,7 @@ class EventSourcing<ID>(
 	@CreatedBy
 	var createdBy: String? = null,
 	@CreatedDate
-	@Temporal(TemporalType.TIMESTAMP) var creationDate: Date? = null,
+	@Temporal(TemporalType.TIMESTAMP) var createdDate: Date? = null,
 	@LastModifiedBy
 	var lastModifiedBy: String? = null,
 	@LastModifiedDate

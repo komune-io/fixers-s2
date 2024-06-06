@@ -1,1 +1,1 @@
-s2.spring.sourcing.data.r2dbc.R2dbcReactiveRepositoryConfig
+s2.spring.sourcing.data.r2dbc.R2dbcEventRepositoryFactoryConfiguration

@@ -18,15 +18,9 @@ class ContainersConfig {
     @Bean
     @ServiceConnection
     fun postgres(): PostgreSQLContainer<*> {
-        val container = PostgreSQLContainer(POSTGRES_IMAGE)
+        return PostgreSQLContainer(POSTGRES_IMAGE)
             .withUsername( "admin" )
             .withPassword( "admin" )
-            .withDatabaseName("admin")
-            .withEnv( "POSTGRES_MULTIPLE_DATABASES","orderbook-sourcing")
-            .withCopyFileToContainer(
-            MountableFile.forClasspathResource(
-                "create-multiple-databases.sh"), "/docker-entrypoint-initdb.d/"
-        )
-        return container
+            .withDatabaseName("orderbook-sourcing")
     }
 }

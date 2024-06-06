@@ -67,6 +67,9 @@ EVENT: WithS2Id<ID>
 			.toEvents()
 	}
 
+	override suspend fun createTable() {
+	}
+
 	override suspend fun persist(event: EVENT): EVENT {
 		val sessionName = buildSessionName(event)
 		val iteration = getIteration(sessionName)
