@@ -3,6 +3,8 @@ package s2.spring.automate.ssm.persister
 import com.fasterxml.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import f2.dsl.fnc.invokeWith
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -85,7 +87,7 @@ ENTITY : WithS2Id<ID> {
 			session = SsmSession(
 				ssm = automate.name,
 				session = entity.s2Id().toString(),
-				roles = mapOf(agentSigner.name to automate.transitions[0].role.name!!),
+				roles = mapOf(agentSigner.name to automate.transitions[0].role.name),
 				public = objectMapper.writeValueAsString(entity),
 				private = mapOf()
 			),
@@ -108,4 +110,16 @@ ENTITY : WithS2Id<ID> {
 		sessionName = sessionId,
 		ssmUri = chaincodeUri.toSsmUri(automateContext.automate.name)
 	).invokeWith(dataSsmSessionGetQueryFunction)
+
+	override suspend fun persistInitFlow(
+		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<ENTITY> = transitionContext.map {
+		persist(it)
+	}
+
+	override suspend fun persistFlow(
+		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<ENTITY> = transitionContext.map {
+		persist(it)
+	}
 }

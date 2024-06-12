@@ -1,5 +1,9 @@
 package s2.spring.automate.data.persister
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.reactive.asPublisher
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
@@ -35,5 +39,17 @@ ENTITY : WithS2Id<ID> {
 		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
 	): ENTITY {
 		return repository.save(transitionContext.entity).awaitSingle()
+	}
+
+	override suspend fun persistInitFlow(
+		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<ENTITY> {
+		return repository.saveAll(transitionContext.map { it.entity }.asPublisher()).asFlow()
+	}
+
+	override suspend fun persistFlow(
+		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<ENTITY> {
+		return repository.saveAll(transitionContext.map { it.entity }.asPublisher()).asFlow()
 	}
 }

@@ -1,5 +1,6 @@
 package s2.spring.automate.sourcing
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import s2.automate.core.S2AutomateExecutor
@@ -38,15 +39,6 @@ ENTITY : WithS2State<STATE> {
 		this.eventStore = eventStore
 	}
 
-	override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
-		return automateExecutor.create(command) {
-			val event = buildEvent()
-			val entity = projectionLoader.evolve(flowOf(event))!!
-			entity to event
-		}.second
-			.also(publisher::publish)
-	}
-
 	override suspend fun <EVENT_OUT : EVENT> transition(
 		command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
 	): EVENT_OUT {
@@ -57,6 +49,17 @@ ENTITY : WithS2State<STATE> {
 		}.second
 			.also(publisher::publish)
 	}
+
+
+	override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
+		return automateExecutor.create(command) {
+			val event = buildEvent()
+			val entity = projectionLoader.evolve(flowOf(event))!!
+			entity to event
+		}.second
+			.also(publisher::publish)
+	}
+
 
 	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> init(
 		fnc: suspend (t: COMMAND) -> EVENT_OUT
@@ -69,6 +72,25 @@ ENTITY : WithS2State<STATE> {
 			}
 		}
 
+	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> initDecide(
+		fnc: suspend (t: COMMAND) -> EVENT_OUT
+	): Decide<COMMAND, EVENT_OUT> = Decide { msgs ->
+			initFlow(msgs) { msg ->
+				fnc(msg)
+			}
+		}
+
+	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> initFlow(
+		commands: Flow<COMMAND>, buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
+	): Flow<EVENT_OUT> {
+		return automateExecutor.createInit(commands) { cmd ->
+			val event = buildEvent(cmd)
+			val entity = projectionLoader.evolve(flowOf(event))!!
+			entity to event
+		}.map { it.second }
+			.also(publisher::publish)
+	}
+
 	fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT)
 			: Decide<COMMAND, EVENT_OUT> = Decide { msg ->
 		msg.map { cmd ->
@@ -80,6 +102,18 @@ ENTITY : WithS2State<STATE> {
 
 	suspend fun loadAll() = eventStore.loadAll()
 	suspend fun load(id: ID) = eventStore.load(id)
+
+	override suspend fun <EVENT_OUT : EVENT> transitionFlow(
+		command: Flow<S2Command<ID>>,
+		exec: suspend ENTITY.() -> EVENT_OUT
+	): Flow<EVENT_OUT> {
+		return automateExecutor.doTransition(command) {
+			val event = exec(this)
+			val entity = projectionLoader.evolve(flowOf(event), this)!!
+			entity to event
+		}.map { it.second }
+			.also(publisher::publish)
+	}
 
 	override suspend fun replayHistory() {
 		projectionLoader.reloadHistory()

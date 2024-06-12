@@ -1,6 +1,7 @@
 package s2.automate.core
 
 import kotlin.js.JsName
+import kotlinx.coroutines.flow.Flow
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
@@ -14,8 +15,18 @@ STATE : S2State {
 		command: S2InitCommand, decide: suspend () -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Pair<ENTITY_OUT, EVENT_OUT>
 
+	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> createInit(
+		command: Flow<COMMAND>,
+		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
+	): Flow<Pair<ENTITY_OUT, EVENT_OUT>>
+
 	suspend fun <ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
 		command: S2Command<ID>,
 		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Pair<ENTITY_OUT, EVENT_OUT>
+
+	suspend fun <ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
+		command: Flow<S2Command<ID>>,
+		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
+	): Flow<Pair<ENTITY_OUT, EVENT_OUT>>
 }

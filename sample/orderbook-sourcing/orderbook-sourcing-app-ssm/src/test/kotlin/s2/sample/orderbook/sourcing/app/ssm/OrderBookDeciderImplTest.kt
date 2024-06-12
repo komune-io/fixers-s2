@@ -1,7 +1,10 @@
 package s2.sample.orderbook.sourcing.app.ssm
 
 import f2.dsl.fnc.invoke
+import f2.dsl.fnc.invokeWith
 import java.util.UUID
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -75,6 +78,28 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 		val entity = builder.load(events)
 		Assertions.assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
 		Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
+	}
+
+	@Test
+	fun `should flow event to build entity`(): Unit = runBlocking {
+		val all = flowOf(
+			OrderBookCreateCommand("TheNewOrderBook"),
+			OrderBookCreateCommand("TheNewOrderBook1"),
+			OrderBookCreateCommand("TheNewOrderBook2"),
+			OrderBookCreateCommand("TheNewOrderBook3"),
+			OrderBookCreateCommand("TheNewOrderBook4"),
+		)
+
+		val events = create.invoke(all).toList()
+		Assertions.assertThat(events).hasSize(5)
+		events.map { event ->
+			val event = eventStore.load(event.id)
+			val entity = builder.load(event)
+			Assertions.assertThat(entity?.name).startsWith("TheNewOrderBook")
+			Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Created)
+		}
+//		val events = eventStore.load(event.id)
+
 	}
 
 	@Test

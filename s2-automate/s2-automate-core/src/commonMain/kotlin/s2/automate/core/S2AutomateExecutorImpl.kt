@@ -1,6 +1,10 @@
 package s2.automate.core
 
 import f2.dsl.cqrs.Message
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.appevent.AutomateSessionStarted
@@ -68,8 +72,15 @@ ENTITY : WithS2Id<ID> {
 			event = event,
 			entity = entity
 		)
-		guardExecutor.verifyInitTransition(initTransitionPersistContext)
-		persister.persist(initTransitionPersistContext)
+		persist(flowOf(initTransitionPersistContext))
+	}
+	private suspend fun persist(contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>) {
+		contexts.map {
+			guardExecutor.verifyInitTransition(it)
+			it
+		}.let {
+			persister.persistInitFlow(it)
+		}.collect()
 	}
 
 	override suspend fun <ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
@@ -193,5 +204,58 @@ ENTITY : WithS2Id<ID> {
 		)
 		return Pair(entity, transitionContext)
 	}
+
+	override suspend fun <COMMAND: S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInit(
+		commands: Flow<COMMAND>,
+		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
+	): Flow<Pair<ENTITY_OUT, EVENT_OUT>> {
+		return commands.map { command ->
+			prepareCreationContext(decide, command)
+		}.let { persistContext ->
+			@Suppress("UNCHECKED_CAST")
+			persist(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
+			persistContext
+		}.map { it
+			sentEndCreateEvent(it.msg, it.entity)
+			it.entity to it.event
+		}
+	}
+
+	private suspend fun <COMMAND: S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> prepareCreationContext(
+		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>,
+		command: COMMAND
+	): InitTransitionAppliedContext<STATE, ID, ENTITY_OUT, EVENT_OUT, S2Automate> {
+		try {
+			val (entity, event) = decide(command)
+			val initTransitionContext = initTransitionContext(command)
+			guardExecutor.evaluateInit(initTransitionContext)
+			val initTransitionPersistContext = InitTransitionAppliedContext(
+				automateContext = automateContext,
+				msg = command,
+				event = event,
+				entity = entity
+			)
+			return initTransitionPersistContext
+
+		} catch (e: AutomateException) {
+			throw e
+		} catch (e: Exception) {
+			publisher.automateTransitionError(
+				AutomateTransitionError(
+					msg = command,
+					exception = e
+				)
+			)
+			throw e
+		}
+	}
+
+	override suspend fun <ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
+		command: Flow<S2Command<ID>>,
+		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
+	): Flow<Pair<ENTITY_OUT, EVENT_OUT>> = command.map {
+		doTransition(it, exec)
+	}
+
 
 }

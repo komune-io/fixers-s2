@@ -10,7 +10,6 @@ import kotlinx.serialization.serializer
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
-import s2.spring.sourcing.data.event.EventRepositoryFactory
 import s2.spring.sourcing.data.event.EventSourcing
 
 class MongoEventRepository<EVENT, ID>(
@@ -28,6 +27,23 @@ EVENT: WithS2Id<ID>
 
 	override suspend fun loadAll(): Flow<EVENT> {
 		return eventRepository.findAll().toEvents()
+	}
+
+	@OptIn(InternalSerializationApi::class)
+	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> {
+		val toSave: Flow<EventSourcing<ID>>  = events.map { event ->
+			val encoded: String=  json.encodeToString(eventType.serializer(), event)
+			EventSourcing(
+				id = UUID.randomUUID().toString(),
+				objId = event.s2Id(),
+				event = encoded
+			)
+		}
+		return eventRepository.saveAll(
+			toSave
+		).map {
+			json.decodeFromString(eventType.serializer(), it.event)
+		}
 	}
 
 	override suspend fun createTable() {
