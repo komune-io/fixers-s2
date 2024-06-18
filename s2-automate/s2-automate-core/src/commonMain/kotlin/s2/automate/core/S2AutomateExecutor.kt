@@ -16,17 +16,17 @@ STATE : S2State {
 	): Pair<ENTITY_OUT, EVENT_OUT>
 
 	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> createInit(
-		command: Flow<COMMAND>,
+		commands: Flow<COMMAND>,
 		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Flow<Pair<ENTITY_OUT, EVENT_OUT>>
+	): Flow<EVENT_OUT>
 
 	suspend fun <ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
 		command: S2Command<ID>,
 		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Pair<ENTITY_OUT, EVENT_OUT>
 
-	suspend fun <ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
-		command: Flow<S2Command<ID>>,
-		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Flow<Pair<ENTITY_OUT, EVENT_OUT>>
+	suspend fun <COMMAND:S2Command<ID>, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
+		commands: Flow<COMMAND>,
+		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
+	): Flow<EVENT_OUT>
 }

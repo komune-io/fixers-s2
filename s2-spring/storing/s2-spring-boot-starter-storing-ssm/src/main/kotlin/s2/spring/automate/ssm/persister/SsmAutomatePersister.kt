@@ -80,6 +80,12 @@ ENTITY : WithS2Id<ID> {
 	override suspend fun persist(
 		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
 	): ENTITY {
+		return persistInternal(transitionContext).first
+	}
+
+	private suspend fun persistInternal(
+		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
+	): Pair<ENTITY, EVENT> {
 		val entity = transitionContext.entity
 		val automate = transitionContext.automateContext.automate
 
@@ -95,7 +101,7 @@ ENTITY : WithS2Id<ID> {
 			chaincodeUri = chaincodeUri
 		)
 		ssmSessionStartFunction.invoke(ssmStart)
-		return entity
+		return entity to transitionContext.event
 	}
 
 	private suspend fun getIteration(automateContext: AutomateContext<S2Automate>, sessionId: SessionName): Int {
@@ -113,13 +119,14 @@ ENTITY : WithS2Id<ID> {
 
 	override suspend fun persistInitFlow(
 		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<ENTITY> = transitionContext.map {
-		persist(it)
+	): Flow<EVENT> = transitionContext.map {
+		persistInternal(it).second
 	}
 
 	override suspend fun persistFlow(
 		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<ENTITY> = transitionContext.map {
+	): Flow<EVENT> = transitionContext.map {
 		persist(it)
+		it.event
 	}
 }

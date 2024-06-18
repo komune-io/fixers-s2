@@ -40,7 +40,8 @@ ENTITY : WithS2State<STATE> {
 	}
 
 	override suspend fun <EVENT_OUT : EVENT> transition(
-		command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
+		command: S2Command<ID>,
+		exec: suspend (ENTITY) -> EVENT_OUT
 	): EVENT_OUT {
 		return automateExecutor.doTransition(command) {
 			val event = exec(this)
@@ -81,38 +82,46 @@ ENTITY : WithS2State<STATE> {
 		}
 
 	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> initFlow(
-		commands: Flow<COMMAND>, buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
+		commands: Flow<COMMAND>,
+		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
 		return automateExecutor.createInit(commands) { cmd ->
 			val event = buildEvent(cmd)
 			val entity = projectionLoader.evolve(flowOf(event))!!
 			entity to event
-		}.map { it.second }
-			.also(publisher::publish)
+		}.also(publisher::publish)
 	}
 
-	fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT)
-			: Decide<COMMAND, EVENT_OUT> = Decide { msg ->
+	fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(
+		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
+	): Decide<COMMAND, EVENT_OUT> = Decide { msg ->
 		msg.map { cmd ->
 			transition(cmd) { model ->
 				fnc(cmd, model)
 			}
 		}
 	}
+	fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decideFlow(
+		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
+	) : Decide<COMMAND, EVENT_OUT> = Decide { msgs ->
+
+		transitionFlow(msgs) { command, entity ->
+			fnc(command, entity)
+		}
+	}
 
 	suspend fun loadAll() = eventStore.loadAll()
 	suspend fun load(id: ID) = eventStore.load(id)
 
-	override suspend fun <EVENT_OUT : EVENT> transitionFlow(
-		command: Flow<S2Command<ID>>,
-		exec: suspend ENTITY.() -> EVENT_OUT
+	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> transitionFlow(
+		commands: Flow<COMMAND>,
+		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransition(command) {
-			val event = exec(this)
-			val entity = projectionLoader.evolve(flowOf(event), this)!!
-			entity to event
-		}.map { it.second }
-			.also(publisher::publish)
+		return automateExecutor.doTransitionFlow(commands) { command, entity ->
+			val event = exec(command, entity)
+			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
+			entityUpdated to event
+		}.also(publisher::publish)
 	}
 
 	override suspend fun replayHistory() {

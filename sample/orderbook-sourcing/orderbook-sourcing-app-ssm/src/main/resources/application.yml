@@ -17,3 +17,5 @@ ssm:
     serviceName: s2-sample-did
   chaincode:
     url: http://localhost:9090
+  chunking:
+    size: 6

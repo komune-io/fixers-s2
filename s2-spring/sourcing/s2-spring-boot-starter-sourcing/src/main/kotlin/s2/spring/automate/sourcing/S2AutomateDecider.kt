@@ -9,13 +9,17 @@ import s2.dsl.automate.model.WithS2State
 interface S2AutomateDecider<ENTITY : WithS2State<STATE>, STATE : S2State, EVENT: Any, ID> {
 
 	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> initFlow(
-		command: Flow<COMMAND>,
+		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT>
-	suspend fun <EVENT_OUT: EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT
 
-	suspend fun <EVENT_OUT: EVENT> transitionFlow(
-		command: Flow<S2Command<ID>>, exec: suspend ENTITY.() -> EVENT_OUT
+	suspend fun <EVENT_OUT: EVENT> init(
+		command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT
+	): EVENT_OUT
+
+	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> transitionFlow(
+		commands: Flow<COMMAND>,
+		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT>
 
 	suspend fun <EVENT_OUT: EVENT> transition(

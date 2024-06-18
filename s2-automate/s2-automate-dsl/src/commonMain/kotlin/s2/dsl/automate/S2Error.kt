@@ -10,6 +10,7 @@ interface S2Error {
 	val description: String
 	val date: String
 	val payload: Map<String, String>
+	val cause: Throwable?
 }
 
 @JsExport
@@ -19,6 +20,7 @@ class S2ErrorBase(
 	override val description: String,
 	override val date: String,
 	override val payload: Map<String, String>,
+	override val cause: Throwable? = null
 ) : S2Error {
 
 	override fun toString(): String {
@@ -26,12 +28,18 @@ class S2ErrorBase(
 	}
 }
 
-fun s2error(code: String, description: String, payload: Map<String, String>): S2ErrorBase {
+fun s2error(
+	code: String,
+	description: String,
+	payload: Map<String, String> = emptyMap(),
+	cause: Throwable? = null
+): S2ErrorBase {
 	return S2ErrorBase(
 		type = code,
 		description = description,
 		date = "",
-		payload = payload
+		payload = payload,
+		cause = cause
 	)
 }
 

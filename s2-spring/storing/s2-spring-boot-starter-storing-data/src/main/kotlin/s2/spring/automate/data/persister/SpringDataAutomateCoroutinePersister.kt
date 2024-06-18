@@ -2,6 +2,7 @@ package s2.spring.automate.data.persister
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.transform
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -37,18 +38,27 @@ ENTITY : WithS2Id<ID> {
 
 	override suspend fun persistInitFlow(
 		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<ENTITY> {
-		return repository.saveAll(
-			transitionContext.map { it.entity }
-		)
+	): Flow<EVENT> {
+		return transitionContext.map {
+			repository.save(it.entity)
+			it.event
+		}
+//		return repository.saveAll(
+//			transitionContext.map { it.entity }
+//		).transform {
+//
+//		}
 	}
 
 	override suspend fun persistFlow(
 		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<ENTITY> {
-		return repository.saveAll(
-			transitionContext.map { it.entity }
-		)
+	): Flow<EVENT> {
+		val eventsFlow: Flow<EVENT> = transitionContext.map { it.event }
+
+		val entitiesFlow: Flow<ENTITY> = transitionContext.map { it.entity }
+		repository.saveAll(entitiesFlow)
+
+		return eventsFlow
 	}
 
 }

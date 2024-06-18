@@ -37,14 +37,20 @@ class GuardExecutorImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 		return GuardResult.error(errors.toList())
 	}
 
-	override suspend fun verifyInitTransition(context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>) {
+	override suspend fun verifyInitTransition(
+		context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+	): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
 		val result = guards.map { it.verifyInitTransition(context) }.flatten()
 		handleResult(result, context.msg)
+		return context
 	}
 
-	override suspend fun verifyTransition(context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>) {
+	override suspend fun verifyTransition(
+		context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+	): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
 		val result = guards.map { it.verifyTransition(context) }.flatten()
 		handleResult(result, context.msg, context.from)
+		return context
 	}
 
 	private fun handleResult(

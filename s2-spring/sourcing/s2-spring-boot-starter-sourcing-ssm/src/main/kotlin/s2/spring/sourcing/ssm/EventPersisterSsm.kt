@@ -6,9 +6,11 @@ import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.toList
@@ -76,29 +78,37 @@ EVENT: WithS2Id<ID>
 			.toEvents()
 	}
 
-	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> {
-		val eventsList = events.toList()
+	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> = flow {
+		val toCreate = mutableListOf<EVENT>()
+		val toUpdate = mutableListOf<EVENT>()
+		val processedIds = mutableSetOf<ID & Any>()
 
-		val toCreacte = eventsList.filter { event ->
+		events.collect { event ->
+			val eventId = event.s2Id()
+			require(eventId !in processedIds){
+				"Duplicate ID detected: $eventId. Multiple events with the same ID cannot be processed due to SSM limitations."
+			}
+			processedIds.add(eventId)
+
 			val sessionName = buildSessionName(event)
 			val iteration = getIteration(sessionName)
-			iteration == null
+			if (iteration == null) {
+				toCreate.add(event)
+			} else {
+				toUpdate.add(event)
+			}
 		}
-
-
-		val toUpdate = eventsList.filterNot { event ->
-			val sessionName = buildSessionName(event)
-			val iteration = getIteration(sessionName)
-			iteration != null
+		if(toCreate.isNotEmpty()) {
+			toCreate.asFlow().initFlow().collect()
 		}
-		toCreacte.asFlow().initFlow().collect()
-		toUpdate.asFlow().updateFlow().collect()
-
-		return eventsList.asFlow()
+		if(toUpdate.isNotEmpty()) {
+			toUpdate.asFlow().updateFlow().collect()
+		}
+		emitAll(toCreate.asFlow())
+		emitAll(toUpdate.asFlow())
 	}
 
-	override suspend fun createTable() {
-	}
+	override suspend fun createTable() {}
 
 	override suspend fun persist(event: EVENT): EVENT {
 		val sessionName = buildSessionName(event)
