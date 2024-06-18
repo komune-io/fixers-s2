@@ -4,12 +4,10 @@ import f2.dsl.cqrs.Message
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
-import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateEntered
@@ -234,38 +232,12 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-//	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
-//		commands: Flow<COMMAND>,
-//		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
-//	): Flow<EVENT_OUT> {
-//		return commands.map { command ->
-//			val (entity, transitionContext) = loadTransitionContext(command)
-//			guardExecutor.evaluateTransition(transitionContext)
-//			val fromState = entity.s2State()
-//			val (entityMutated, result) = exec(command, entity)
-//			TransitionAppliedContext(
-//				automateContext = automateContext,
-//				from = fromState,
-//				msg = command,
-//				event = result,
-//				entity = entityMutated
-//			)
-//		}.let { transitionContextFlow ->
-//			@Suppress("UNCHECKED_CAST")
-//			persistFlow(transitionContextFlow as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>).map {
-//				it as EVENT_OUT
-//			}
-//		}
-//	}
-
 	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT> {
-		// Collect all transition contexts in a list
 		val transitionContexts = mutableListOf<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
 
-		// Collect all commands and execute them
 		commands.collect { command ->
 			val (entity, transitionContext) = loadTransitionContext(command)
 			guardExecutor.evaluateTransition(transitionContext)
@@ -283,13 +255,10 @@ ENTITY : WithS2Id<ID> {
 			)
 		}
 
-		// Create a flow from the collected transition contexts
 		val transitionContextFlow = transitionContexts.asFlow()
 
-		// Persist the flow
 		val persistedEvents = persistFlow(transitionContextFlow)
 
-		// Call sendEndDoTransitionEvent for each context after persistence
 		return persistedEvents.map { event ->
 			val context = transitionContexts.find { it.event == event }!!
 			sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
