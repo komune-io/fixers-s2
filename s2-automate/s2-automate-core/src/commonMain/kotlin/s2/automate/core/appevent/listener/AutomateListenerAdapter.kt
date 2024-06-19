@@ -38,5 +38,5 @@ open class AutomateListenerAdapter<STATE, ID, ENTITY, AUTOMATE> : AutomateListen
 
 	override fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>) {}
 
-	override fun automateSessionError(event: AutomateSessionError<AUTOMATE>) {}
+	override fun automateSessionError(event: AutomateSessionError) {}
 }

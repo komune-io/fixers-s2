@@ -61,7 +61,7 @@ where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 		publisher.publish(event)
 	}
 
-	override fun automateSessionError(event: AutomateSessionError<AUTOMATE>) {
+	override fun automateSessionError(event: AutomateSessionError) {
 		publisher.publish(event)
 	}
 }

@@ -4,6 +4,13 @@ import s2.dsl.automate.S2Error
 import s2.dsl.automate.s2error
 
 @Suppress("FunctionName")
+fun ERROR_UNKNOWN(e: Exception) =
+	s2error("ERROR_UNKNOWN",
+		"An unknown error has occurred.",
+			cause = e
+		)
+
+@Suppress("FunctionName")
 fun ERROR_INVALID_TRANSITION(state: String, command: String) =
 	s2error("ERROR_INVALID_TRANSITION",
 		"Not available transition from $state with command $command",

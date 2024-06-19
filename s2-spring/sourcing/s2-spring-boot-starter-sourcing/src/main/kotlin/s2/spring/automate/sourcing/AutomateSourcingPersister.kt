@@ -1,6 +1,8 @@
 package s2.spring.automate.sourcing
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -46,19 +48,51 @@ EVENT: WithS2Id<ID> {
 
     private suspend fun persist(id: ID & Any, event: EVENT): ENTITY {
         val entity = automateSourcingPersisterSnapChannel?.let { snapPersistChannel ->
-            return snapPersistChannel.addToPersistQueue(id, event, ::persistSnap)
+            return snapPersistChannel.addToPersistQueue(id, event, ::persistSnap).first
         } ?:  persistSnap(id, event)
 
         eventStore.persist(event)
-        return entity
+        return entity.first
     }
-    private suspend fun persistSnap(id: ID & Any, event: EVENT): ENTITY {
+    private suspend fun persist(events: Flow<EVENT>): Flow<Pair<ENTITY, EVENT>> {
+        return  eventStore
+            .persistFlow(events)
+            .map { event ->
+                val tt: Pair<ENTITY, EVENT>? = automateSourcingPersisterSnapChannel?.let { snapPersistChannel ->
+                    snapPersistChannel.addToPersistQueue(event.s2Id(), event, ::persistSnap)
+                }
+                val ttt: Pair<ENTITY, EVENT> = persistSnap(event.s2Id(), event)
+                tt ?: ttt
+            }
+    }
+    private suspend fun persistSnap(id: ID & Any, event: EVENT): Pair<ENTITY, EVENT> {
         val entityMutated = projectionLoader.loadAndEvolve(id, flowOf(event))
             ?: throw ERROR_ENTITY_NOT_FOUND(event.s2Id().toString()).asException()
-        return snapRepository?.save(entityMutated) ?: entityMutated
+        val entity = snapRepository?.save(entityMutated) ?: entityMutated
+        return entity to event
     }
 
     override suspend fun load(automateContext: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
         return projectionLoader.load(id)
+    }
+
+    override suspend fun persistInitFlow(
+        transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): Flow<EVENT> {
+        return transitionContext.map {
+            it.event
+        }.let {
+            persist(it)
+        }.map { it.second }
+    }
+
+    override suspend fun persistFlow(
+        transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): Flow<EVENT> {
+        return transitionContext.map {
+            it.event
+        }.let {
+            persist(it)
+        }.map { it.second }
     }
 }

@@ -94,5 +94,5 @@ interface AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 	 * @param stateMachine the state machine
 	 * @param exception the exception
 	 */
-	fun automateSessionError(event: AutomateSessionError<AUTOMATE>)
+	fun automateSessionError(event: AutomateSessionError)
 }

@@ -52,6 +52,21 @@ EVENT: WithS2Id<ID>
 			.flow().toEvents()
 	}
 
+	@OptIn(InternalSerializationApi::class)
+	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> {
+		return events.map { event ->
+			val encoded =  json.encodeToString(eventType.serializer(), event)
+			r2dbcEntityTemplate.insert(EventSourcing::class.java)
+				.into(tableName)
+				.using(EventSourcing(
+					id = UUID.randomUUID().toString(),
+					objId = event.s2Id(),
+					event = encoded
+				)).toEvent().awaitSingle()
+		}
+
+	}
+
 	override suspend fun createTable() {
 		val createScript = """
 			CREATE TABLE IF NOT EXISTS ${tableName} (

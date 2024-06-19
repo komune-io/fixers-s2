@@ -5,6 +5,15 @@ import f2.dsl.fnc.invokeWith
 import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -27,7 +36,9 @@ import ssm.data.dsl.features.query.DataSsmSessionLogListQueryFunction
 import ssm.data.dsl.model.DataSsmSessionDTO
 import ssm.data.dsl.model.DataSsmSessionStateDTO
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
+import ssm.tx.dsl.features.ssm.SsmSessionPerformActionResult
 import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
+import ssm.tx.dsl.features.ssm.SsmSessionStartResult
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 
@@ -67,8 +78,37 @@ EVENT: WithS2Id<ID>
 			.toEvents()
 	}
 
-	override suspend fun createTable() {
+	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> = flow {
+		val toCreate = mutableListOf<EVENT>()
+		val toUpdate = mutableListOf<EVENT>()
+		val processedIds = mutableSetOf<ID & Any>()
+
+		events.collect { event ->
+			val eventId = event.s2Id()
+			require(eventId !in processedIds){
+				"Duplicate ID detected: $eventId. Multiple events with the same ID cannot be processed due to SSM limitations."
+			}
+			processedIds.add(eventId)
+
+			val sessionName = buildSessionName(event)
+			val iteration = getIteration(sessionName)
+			if (iteration == null) {
+				toCreate.add(event)
+			} else {
+				toUpdate.add(event)
+			}
+		}
+		if(toCreate.isNotEmpty()) {
+			toCreate.asFlow().initFlow().collect()
+		}
+		if(toUpdate.isNotEmpty()) {
+			toUpdate.asFlow().updateFlow().collect()
+		}
+		emitAll(toCreate.asFlow())
+		emitAll(toUpdate.asFlow())
 	}
+
+	override suspend fun createTable() {}
 
 	override suspend fun persist(event: EVENT): EVENT {
 		val sessionName = buildSessionName(event)
@@ -92,6 +132,43 @@ EVENT: WithS2Id<ID>
 			ssmSessionPerformActionFunction.invoke(context)
 		}
 		return event
+	}
+
+	suspend fun Flow<EVENT>.initFlow( ): Flow<SsmSessionStartResult> = map { event ->
+		@OptIn(InternalSerializationApi::class)
+		SsmSessionStartCommand(
+			session = SsmSession(
+				ssm = s2Automate.name,
+				session = buildSessionName(event),
+				roles = mapOf(agentSigner.name to s2Automate.transitions[0].role.name),
+				public = json.encodeToString(eventType.serializer(), event),
+				private = mapOf()
+			),
+			signerName = agentSigner.name,
+			chaincodeUri = chaincodeUri
+		)
+	}.let {
+		ssmSessionStartFunction.invoke(it)
+	}
+
+	suspend fun Flow<EVENT>.updateFlow(): Flow<SsmSessionPerformActionResult> = map { event ->
+		val sessionName = buildSessionName(event)
+		val iteration = getIteration(sessionName)!!
+		val action = event::class.simpleName!!
+		@OptIn(InternalSerializationApi::class)
+		SsmSessionPerformActionCommand(
+			action = action,
+			context = SsmContext(
+				session = sessionName,
+				public = json.encodeToString(eventType.serializer(), event),
+				private = mapOf(),
+				iteration = iteration,
+			),
+			signerName = agentSigner.name,
+			chaincodeUri = chaincodeUri
+		)
+	}.let { toUpdated ->
+		ssmSessionPerformActionFunction.invoke(toUpdated)
 	}
 
 	suspend fun init(event: EVENT): EVENT {

@@ -2,13 +2,18 @@ package s2.sample.orderbook.sourcing.app.ssm
 
 import f2.dsl.fnc.invoke
 import java.util.UUID
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import s2.sample.orderbook.sourcing.app.ssm.config.SpringTestBase
@@ -53,7 +58,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 	lateinit var orderBookDeciderImpl: OrderBookDeciderImpl
 
 	@Test
-	fun `should create order book`(): Unit = runBlocking {
+	fun `should create order book`(): Unit = runTest {
 		val event = orderBookDeciderImpl.orderBookCreateDecider()
 			.invoke(OrderBookCreateCommand("TheNewOrderBook"))
  		orderBookDeciderImpl.orderBookUpdateDecider()
@@ -63,18 +68,92 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 		val events = eventStore.load(event.id).toList()
 		Assertions.assertThat(events.toList()).hasSize(4)
 	}
+	@Test
+	fun `should create flow(24-6) of order book`(): Unit = runTest {
+		(0..24).asFlow().map {
+			OrderBookCreateCommand("TheNewOrderBook$it")
+		}.let {
+			orderBookDeciderImpl.orderBookCreateDecider().invoke(it)
+		}.map { event ->
+			OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2")
+		}.let {
+			orderBookDeciderImpl.orderBookUpdateDecider().invoke(it)
+		}.map { event ->
+			OrderBookPublishCommand(id = event.id)
+		}.let {
+			orderBookDeciderImpl.orderBookPublishDecider().invoke(it)
+		}.map { event ->
+			OrderBookCloseCommand(id = event.id)
+		}.let {
+			orderBookDeciderImpl.orderBookCloseDecider().invoke(it)
+		}.map { event ->
+			val events = eventStore.load(event.id).toList()
+			Assertions.assertThat(events.toList()).hasSize(4)
+		}
+	}
 
 	@Test
-	fun `should replay event to build entity`(): Unit = runBlocking {
-		val event = create(OrderBookCreateCommand("TheNewOrderBook"))
-		update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
-		publish(OrderBookPublishCommand(id = event.id))
-		close(OrderBookCloseCommand(id = event.id))
+	fun `should create flow(4-6) of order book`(): Unit = runTest {
+		(0..4).asFlow().map {
+			OrderBookCreateCommand("TheNewOrderBook$it")
+		}.let {
+			orderBookDeciderImpl.orderBookCreateDecider().invoke(it)
+		}.map { event ->
+			OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2")
+		}.let {
+			orderBookDeciderImpl.orderBookUpdateDecider().invoke(it)
+		}.map { event ->
+			OrderBookPublishCommand(id = event.id)
+		}.let {
+			orderBookDeciderImpl.orderBookPublishDecider().invoke(it)
+		}.map { event ->
+			OrderBookCloseCommand(id = event.id)
+		}.let {
+			orderBookDeciderImpl.orderBookCloseDecider().invoke(it)
+		}.map { event ->
+			val events = eventStore.load(event.id).toList()
+			Assertions.assertThat(events.toList()).hasSize(4)
+		}.toList()
+	}
 
-		val events = eventStore.load(event.id)
-		val entity = builder.load(events)
-		Assertions.assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
-		Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
+	@Test
+	fun `should replay event to build entity`(): Unit = runTest {
+		var exception: Exception? = null
+		try {
+			val event = create(OrderBookCreateCommand("TheNewOrderBook"))
+			val updateCommand = (0..12).map {
+				OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook$it")
+			}.asFlow()
+			update.invoke(updateCommand).collect()
+		} catch (e: Exception) {
+			exception = e
+		}
+
+		assertThat(exception)
+			.isNotNull()
+			.hasMessageContaining("Multiple events with the same ID cannot be processed due to SSM limitations.")
+	}
+
+	@Test
+	fun `should flow event to build entity`(): Unit = runTest {
+		val all = flowOf(
+			OrderBookCreateCommand("TheNewOrderBook"),
+			OrderBookCreateCommand("TheNewOrderBook1"),
+			OrderBookCreateCommand("TheNewOrderBook2"),
+			OrderBookCreateCommand("TheNewOrderBook3"),
+			OrderBookCreateCommand("TheNewOrderBook4"),
+		)
+
+		val events = create.invoke(all).toList()
+		Assertions.assertThat(events).hasSize(5)
+		events.map { event ->
+			val event = eventStore.load(event.id)
+			val entity = builder.load(event)
+			Assertions.assertThat(entity?.name).startsWith("TheNewOrderBook")
+			Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Created)
+		}
+//		val events = eventStore.load(event.id)
+
 	}
 
 	@Test

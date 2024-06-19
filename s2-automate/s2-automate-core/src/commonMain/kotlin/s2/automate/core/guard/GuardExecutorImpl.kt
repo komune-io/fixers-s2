@@ -9,6 +9,7 @@ import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.dsl.automate.Msg
+import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
@@ -36,14 +37,20 @@ class GuardExecutorImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 		return GuardResult.error(errors.toList())
 	}
 
-	override suspend fun verifyInitTransition(context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>) {
+	override suspend fun verifyInitTransition(
+		context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+	): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
 		val result = guards.map { it.verifyInitTransition(context) }.flatten()
 		handleResult(result, context.msg)
+		return context
 	}
 
-	override suspend fun verifyTransition(context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>) {
+	override suspend fun verifyTransition(
+		context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+	): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
 		val result = guards.map { it.verifyTransition(context) }.flatten()
 		handleResult(result, context.msg, context.from)
+		return context
 	}
 
 	private fun handleResult(
