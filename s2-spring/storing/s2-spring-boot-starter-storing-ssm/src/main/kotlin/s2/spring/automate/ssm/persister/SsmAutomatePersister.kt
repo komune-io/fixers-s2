@@ -4,7 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import f2.dsl.fnc.invokeWith
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -124,9 +129,39 @@ ENTITY : WithS2Id<ID> {
 	}
 
 	override suspend fun persistFlow(
-		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = transitionContext.map {
-		persist(it)
-		it.event
+		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<EVENT> = flow {
+		val commandsAndEvents = transitionContexts.map { transitionContext ->
+			val entity = transitionContext.entity
+			val automate = transitionContext.automateContext.automate
+
+			val ssmStartCommand = SsmSessionStartCommand(
+				session = SsmSession(
+					ssm = automate.name,
+					session = entity.s2Id().toString(),
+					roles = mapOf(agentSigner.name to automate.transitions[0].role.name),
+					public = objectMapper.writeValueAsString(entity),
+					private = mapOf()
+				),
+				signerName = agentSigner.name,
+				chaincodeUri = chaincodeUri
+			)
+
+			// Add the command and corresponding event to the list
+			ssmStartCommand to transitionContext.event
+		}.toList()
+
+		// Create a flow from the collected commands
+		val commandFlow = commandsAndEvents.asFlow().map { it.first }
+
+		// Invoke the function with the flow of commands
+		ssmSessionStartFunction.invoke(commandFlow)
+
+		// Emit the corresponding events
+		commandsAndEvents.forEach { (_, event) ->
+			emit(event)
+		}
 	}
+
+
 }

@@ -16,11 +16,11 @@ ENTITY : WithS2Id<ID> {
 	suspend fun persist(transitionContext: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>): ENTITY
 
 	suspend fun persistInitFlow(
-		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
 	suspend fun persistFlow(
-		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
 	suspend fun load(automateContext: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
