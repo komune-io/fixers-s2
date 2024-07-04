@@ -29,7 +29,7 @@ class OrderBookAutomateConfig(orderBookS2Aggregate: OrderBookS2Aggregate)
 		OrderBookId,
 		OrderBookS2Aggregate
 		>(orderBookS2Aggregate, OrderBookModelView()) {
-	override fun automate() = orderBookAutomate
+	override fun automate() = orderBookAutomate("sourcing-ssm-permissive")
 
 	override fun entityType(): KClass<OrderBookEvent> {
 		return OrderBookEvent::class

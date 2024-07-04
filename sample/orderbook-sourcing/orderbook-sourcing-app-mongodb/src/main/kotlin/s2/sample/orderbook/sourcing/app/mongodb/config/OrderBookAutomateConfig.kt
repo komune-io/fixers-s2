@@ -19,7 +19,7 @@ class OrderBookAutomateConfig(
 ): S2SourcingSpringDataAdapter<OrderBook, OrderBookState, OrderBookEvent, OrderBookId, OrderBookS2Aggregate>(
 	orderBookS2Aggregate, OrderBookModelView(), orderBookSnapView
 ) {
-	override fun automate() = orderBookAutomate
+	override fun automate() = orderBookAutomate("sourcing-mongodb")
 	override fun entityType() = OrderBookEvent::class
 }
 

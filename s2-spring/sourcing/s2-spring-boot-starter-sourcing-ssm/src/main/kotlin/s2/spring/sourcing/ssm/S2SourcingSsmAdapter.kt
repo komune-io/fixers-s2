@@ -56,22 +56,24 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
 	override fun eventStore(): EventRepository<EVENT, ID> = runBlocking {
 		val automate = automate()
+		val signer = signerAgent()
+		val chaincodeUri = chaincodeUri()
 		EventPersisterSsm(automate, entityType()).also { ee ->
 			ee.ssmSessionStartFunction = ssmSessionStartFunction
 			ee.dataSsmSessionLogFunction = dataSsmSessionLogFunction
 			ee.ssmSessionPerformActionFunction = ssmSessionPerformActionFunction
 			ee.dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction
 			ee.dataSsmSessionListQueryFunction = dataSsmSessionListQueryFunction
-			ee.chaincodeUri = chaincodeUri()
-			ee.agentSigner = signerAgent()
+			ee.chaincodeUri = chaincodeUri
+			ee.agentSigner = signer
 			ee.json = json()
 			ee.versioning = versioning
 			ssmTxInitFunction.invoke(
 				SsmInitCommand(
-					signerName = signerAgent().name,
+					signerName = signer.name,
 					ssm = automate.toSsm(permisive),
 					agent = ee.agentSigner,
-					chaincodeUri = chaincodeUri()
+					chaincodeUri = chaincodeUri
 				)
 			)
 		}

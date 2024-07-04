@@ -22,8 +22,8 @@ enum class OrderBookState(override var position: Int): S2State {
     Closed(2)
 }
 
-val orderBookAutomate = s2 {
-    name = "S2OrderBook"
+fun orderBookAutomate(unique: String) = s2 {
+    name = "S2OrderBook-$unique"
     transaction<OrderBookCreateCommand> {
         to = OrderBookState.Created
         role = Role

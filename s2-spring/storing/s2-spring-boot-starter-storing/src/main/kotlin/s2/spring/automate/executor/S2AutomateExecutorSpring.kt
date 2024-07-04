@@ -1,5 +1,7 @@
 package s2.spring.automate.executor
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import s2.automate.core.S2AutomateExecutorImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.dsl.automate.Evt
@@ -50,7 +52,9 @@ ENTITY : WithS2Id<ID> {
 		command: S2Command<ID>,
 		exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
 	): EVENT_OUT {
-		return doTransition(command.id, command, exec)
+		val (_, event) = automateExecutor.doTransition(command, exec)
+		publisher.publish(event)
+		return event
 	}
 
 	override suspend fun <EVENT_OUT : Evt> doTransition(
@@ -58,9 +62,25 @@ ENTITY : WithS2Id<ID> {
 		command: S2Command<ID>,
 		exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
 	): EVENT_OUT {
-		val (_, event) = automateExecutor.doTransition(command, exec)
-		publisher.publish(event)
-		return event
+		return doTransition(command, exec)
+	}
+
+	override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> createWithEventFlow(
+		commands: Flow<COMMAND>,
+		build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
+	): Flow<EVENT_OUT> {
+		return automateExecutor.createInit(commands, build).onEach { event ->
+			publisher.publish(event)
+		}
+	}
+
+	override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> doTransitionFlow(
+		command: Flow<COMMAND>,
+		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
+	): Flow<EVENT_OUT> {
+		return automateExecutor.doTransitionFlow(command, exec).onEach {
+			publisher.publish(it)
+		}
 	}
 
 }

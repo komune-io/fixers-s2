@@ -7,13 +7,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -33,7 +28,6 @@ import ssm.data.dsl.features.query.DataSsmSessionListQuery
 import ssm.data.dsl.features.query.DataSsmSessionListQueryFunction
 import ssm.data.dsl.features.query.DataSsmSessionLogListQuery
 import ssm.data.dsl.features.query.DataSsmSessionLogListQueryFunction
-import ssm.data.dsl.model.DataSsmSessionDTO
 import ssm.data.dsl.model.DataSsmSessionStateDTO
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionResult
@@ -50,11 +44,13 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
 
+	internal lateinit var ssmSessionStartFunction: SsmTxSessionStartFunction
 	internal lateinit var ssmSessionPerformActionFunction: SsmTxSessionPerformActionFunction
+
 	internal lateinit var dataSsmSessionGetQueryFunction: DataSsmSessionGetQueryFunction
 	internal lateinit var dataSsmSessionLogFunction: DataSsmSessionLogListQueryFunction
 	internal lateinit var dataSsmSessionListQueryFunction: DataSsmSessionListQueryFunction
-	internal lateinit var ssmSessionStartFunction: SsmTxSessionStartFunction
+
 
 	internal lateinit var chaincodeUri: ChaincodeUri
 	internal lateinit var agentSigner: Agent
@@ -134,7 +130,7 @@ EVENT: WithS2Id<ID>
 		return event
 	}
 
-	suspend fun Flow<EVENT>.initFlow( ): Flow<SsmSessionStartResult> = map { event ->
+	private suspend fun Flow<EVENT>.initFlow( ): Flow<SsmSessionStartResult> = map { event ->
 		@OptIn(InternalSerializationApi::class)
 		SsmSessionStartCommand(
 			session = SsmSession(
@@ -151,7 +147,7 @@ EVENT: WithS2Id<ID>
 		ssmSessionStartFunction.invoke(it)
 	}
 
-	suspend fun Flow<EVENT>.updateFlow(): Flow<SsmSessionPerformActionResult> = map { event ->
+	private suspend fun Flow<EVENT>.updateFlow(): Flow<SsmSessionPerformActionResult> = map { event ->
 		val sessionName = buildSessionName(event)
 		val iteration = getIteration(sessionName)!!
 		val action = event::class.simpleName!!
@@ -171,7 +167,7 @@ EVENT: WithS2Id<ID>
 		ssmSessionPerformActionFunction.invoke(toUpdated)
 	}
 
-	suspend fun init(event: EVENT): EVENT {
+	private suspend fun init(event: EVENT): EVENT {
 		@OptIn(InternalSerializationApi::class)
 		val ssmStart = SsmSessionStartCommand(
 			session = SsmSession(
