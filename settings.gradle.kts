@@ -52,7 +52,9 @@ include(
 	"sample:orderbook-sourcing:orderbook-sourcing-app-r2dbc",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm-permissive",
-	"sample:orderbook-sourcing:orderbook-sourcing-domain"
+	"sample:orderbook-sourcing:orderbook-sourcing-domain",
+
+	"sample:orderbook-storing:orderbook-storing-app-ssm"
 )
 
 include(

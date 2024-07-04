@@ -5,7 +5,7 @@ GET http://localhost:9090/?args=ssm&cmd=query&fcn=list
 
 
 ###
-GET http://localhost:9090/?args=ProjectS2&cmd=query&fcn=ssm
+GET http://localhost:9090/?args=S2OrderBook-storing&cmd=query&fcn=ssm
 
 
 ###

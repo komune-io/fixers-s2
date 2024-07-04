@@ -1,6 +1,8 @@
 package s2.spring.automate.ssm
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import f2.dsl.fnc.invoke
+import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
@@ -8,12 +10,14 @@ import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
+import s2.dsl.automate.ssm.toSsm
 import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 import s2.spring.automate.ssm.persister.SsmAutomatePersister
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
+import ssm.tx.dsl.features.ssm.SsmInitCommand
 import ssm.tx.dsl.features.ssm.SsmTxInitFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
@@ -41,18 +45,31 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	lateinit var objectMapper: ObjectMapper
 
 //	@Bean
-	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
-		return SsmAutomatePersister<STATE, ID, ENTITY, Evt>().also {
-			it.ssmTxInitFunction = ssmTxInitFunction
+	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> = runBlocking {
+	val automate = automate()
+	val signer = signerAgent()
+	val chaincodeUri = chaincodeUri()
+		SsmAutomatePersister<STATE, ID, ENTITY, Evt>().also {
 			it.ssmSessionStartFunction = ssmSessionStartFunction
 			it.ssmSessionPerformActionFunction = ssmSessionPerformActionFunction
 			it.objectMapper = objectMapper
 			it.dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction
 			it.entityType = entityType()
-			it.chaincodeUri = chaincodeUri()
-			it.agentSigner = signerAgent()
+			it.chaincodeUri = chaincodeUri
+			it.agentSigner = signer
 			it.permisive = permisive
+		}.also {
+
+			ssmTxInitFunction.invoke(
+				SsmInitCommand(
+					signerName = signer.name,
+					ssm = automate.toSsm(permisive),
+					agent = signer,
+					chaincodeUri = chaincodeUri
+				)
+			)
 		}
+
 	}
 
 	abstract fun entityType(): Class<ENTITY>
