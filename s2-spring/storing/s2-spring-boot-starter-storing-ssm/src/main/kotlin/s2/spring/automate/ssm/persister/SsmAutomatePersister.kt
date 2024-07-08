@@ -143,7 +143,8 @@ ENTITY : WithS2Id<ID> {
 			val entity = transitionContext.entity
 			val sessionName = entity.s2Id().toString()
 			val iteration = getIteration(transitionContext.automateContext, sessionName)
-			val action = transitionContext.event ?: transitionContext.msg
+			val withEventAsAction = transitionContext.automateContext.automate.withResultAsAction
+			val action = transitionContext.event?.takeIf { withEventAsAction } ?: transitionContext.msg
 			SsmSessionPerformActionCommand(
 				action = action::class.simpleName!!,
 				context = SsmContext(

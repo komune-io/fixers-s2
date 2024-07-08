@@ -20,18 +20,18 @@ import ssm.chaincode.dsl.model.uri.from
 import ssm.sdk.sign.extention.loadFromFile
 
 @Configuration
-class OrderBookAutomateConfig(
-	private val orderBookS2Aggregate: OrderBookS2Aggregate
+class OrderBookAutomateEventConfig(
+	private val orderBookS2Aggregate: OrderBookS2EventAggregate
 )
 	: S2SsmConfigurerAdapter<
 		OrderBookState,
 		OrderBookId,
 		OrderBook,
-		OrderBookS2Aggregate
+		OrderBookS2EventAggregate
 		>() {
-	override fun automate() = orderBookAutomate2("storing")
+	override fun automate() = orderBookAutomate("storing")
 
-	override fun executor(): OrderBookS2Aggregate = orderBookS2Aggregate
+	override fun executor(): OrderBookS2EventAggregate = orderBookS2Aggregate
 
 	override fun entityType(): Class<OrderBook> {
 		return OrderBook::class.java
@@ -51,32 +51,4 @@ class OrderBookAutomateConfig(
 }
 
 @Service
-class OrderBookS2Aggregate : S2AutomateExecutorSpring<OrderBookState, OrderBookId, OrderBook>()
-
-
-fun orderBookAutomate2(unique: String) = s2 {
-	name = "S2OrderBook-$unique-2"
-	transaction<OrderBookCreateCommand> {
-		to = OrderBookState.Created
-		role = Role
-	}
-	selfTransaction<OrderBookUpdateCommand> {
-		states += OrderBookState.Created
-		role = Role
-	}
-	transaction<OrderBookPublishCommand> {
-		from = OrderBookState.Created
-		to = OrderBookState.Published
-		role = Role
-	}
-	transaction<OrderBookCloseCommand> {
-		from = OrderBookState.Created
-		to = OrderBookState.Closed
-		role = Role
-	}
-	transaction<OrderBookCloseCommand> {
-		from = OrderBookState.Published
-		to = OrderBookState.Closed
-		role = Role
-	}
-}
+class OrderBookS2EventAggregate : S2AutomateExecutorSpring<OrderBookState, OrderBookId, OrderBook>()

@@ -3,6 +3,7 @@ package s2.dsl.automate
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlinx.serialization.Serializable
+import s2.dsl.automate.ssm.toSsm
 
 @Serializable
 @JsExport
@@ -12,6 +13,9 @@ class S2Automate(
 	val version: String?,
 	val transitions: Array<S2Transition>,
 ):Automate {
+
+	val withResultAsAction = this.transitions.all { it.result != null }
+
 	override fun getAvailableTransitions(state: S2State): Array<S2Transition> {
 		return transitions.filter { it.from.isSame(state) }.toTypedArray()
 	}
