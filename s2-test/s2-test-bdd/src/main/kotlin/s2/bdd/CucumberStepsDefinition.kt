@@ -62,7 +62,11 @@ abstract class CucumberStepsDefinition {
                 throw actualException
             } catch (e: Exception) {
                 e.printStackTrace()
-                context.errors.add(e)
+                if (e.cause is F2Exception) {
+                    context.errors.add(e.cause as F2Exception)
+                } else {
+                    context.errors.add(e)
+                }
                 if (propagateException(e)) {
                     throw e
                 }
