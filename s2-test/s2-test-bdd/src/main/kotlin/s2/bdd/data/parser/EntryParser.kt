@@ -1,13 +1,39 @@
 package s2.bdd.data.parser
 
-class EntryParser<R: Any>(
-    private val parseErrorMessage: String,
-    private val parser: (String) -> R?
+import s2.bdd.exception.IllegalDataTableParamException
+import s2.bdd.exception.NullDataTableParamException
+import kotlin.reflect.KClass
+
+open class EntryParser<R: Any>(
+    output: KClass<R>,
+    protected val parseErrorMessage: String,
+    protected val parser: (String) -> R?
 ) {
-    fun single(entry: Map<String, String>, key: String): R? = entry.extract(key, parseErrorMessage, parser)
-    fun safeSingle(entry: Map<String, String>, key: String): R = entry.safeExtract(key, parseErrorMessage, parser)
-    fun list(entry: Map<String, String>, key: String): List<R>? = entry.extractList(key, parseErrorMessage, parser)
-    fun safeList(
-        entry: Map<String, String>, key: String
-    ): List<R> = entry.safeExtractList(key, parseErrorMessage, parser)
+    init {
+        EntryParserDirectory.register(this, output)
+    }
+
+    fun singleOrNull(entry: Map<String, String>, key: String): R? {
+        return entry[key]?.let {
+            parser(it) ?: throw IllegalDataTableParamException(key, parseErrorMessage)
+        }
+    }
+
+    fun single(entry: Map<String, String>, key: String): R {
+        return singleOrNull(entry, key)
+            ?: throw NullDataTableParamException(key)
+    }
+
+    fun listOrNull(entry: Map<String, String>, key: String): List<R>? {
+        return entry[key]
+            ?.split(",")
+            ?.map {
+                parser(it.trim()) ?: throw IllegalDataTableParamException(key, parseErrorMessage)
+            }
+    }
+
+    fun list(entry: Map<String, String>, key: String): List<R> {
+        return listOrNull(entry, key)
+            ?: throw NullDataTableParamException(key)
+    }
 }

@@ -8,6 +8,7 @@ import io.cucumber.java8.En
 import s2.bdd.S2CucumberStepsDefinition
 import s2.bdd.assertion.AssertionBdd
 import s2.bdd.assertion.exceptions
+import s2.bdd.data.parser.extract
 import s2.bdd.data.parser.safeExtract
 
 class ExceptionAssertionSteps: En, S2CucumberStepsDefinition()  {
@@ -41,8 +42,8 @@ class ExceptionAssertionSteps: En, S2CucumberStepsDefinition()  {
     }
 
     private fun exceptionAssertionParams(entry: Map<String, String>) = ExceptionAssertionParams(
-        code = entry.safeExtract("code").toInt(),
-        times = entry["times"]?.toInt() ?: 1
+        code = entry.safeExtract<Int>("code"),
+        times = entry.extract<Int>("times") ?: 1
     )
 
     private data class ExceptionAssertionParams(
