@@ -4,11 +4,14 @@ import s2.bdd.exception.EntityNotInitializedException
 
 class TestEntities<KEY: Any, ITEM>(
     private val name: String
-) {
+): Iterable<Map.Entry<KEY, ITEM?>> {
     private val mutableEntities = mutableMapOf<KEY, ITEM?>()
 
     val items: List<ITEM>
         get() = mutableEntities.values.mapNotNull { it }
+
+    val keys: Set<KEY>
+        get() = mutableEntities.keys
 
     private var lastUsedPair: Pair<KEY, ITEM?>? = null
 
@@ -57,5 +60,9 @@ class TestEntities<KEY: Any, ITEM>(
 
     fun putAll(from: Map<KEY, ITEM>) {
         from.forEach { (id, entity) -> set(id, entity) }
+    }
+
+    override fun iterator(): Iterator<Map.Entry<KEY, ITEM?>> {
+        return mutableEntities.iterator()
     }
 }

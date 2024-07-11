@@ -1,0 +1,6 @@
+s2.bdd.data.parser.StringParser
+s2.bdd.data.parser.IntParser
+s2.bdd.data.parser.LongParser
+s2.bdd.data.parser.FloatParser
+s2.bdd.data.parser.DoubleParser
+s2.bdd.data.parser.BooleanParser
