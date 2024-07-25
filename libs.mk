@@ -7,7 +7,7 @@ lint:
 
 build:
 	./gradlew :sample:did-sample:did-domain:dependencies
-	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
+	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test --refresh-dependencies
 
 test-pre:
 	make dev up
