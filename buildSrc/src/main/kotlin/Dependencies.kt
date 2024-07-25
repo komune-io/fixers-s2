@@ -27,6 +27,9 @@ object Versions {
 
 	const val postgresql = "42.7.3"
 	const val r2dbc = "1.0.5.RELEASE"
+	const val redisSpring = "3.2.0"
+	const val redisTestContainer = "2.2.2"
+	const val lettuce = "6.2.2.RELEASE"
 }
 
 fun RepositoryHandler.defaultRepo() {
@@ -66,8 +69,8 @@ object Dependencies {
 
 		fun redis(scope: Scope) = scope.add(
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
-			"com.redis:spring-lettucemod:3.2.0",
-			"io.lettuce:lettuce-core:6.2.2.RELEASE"
+			"com.redis:spring-lettucemod:${Versions.redisSpring}",
+			"io.lettuce:lettuce-core:${Versions.lettuce}"
 		)
 
 		fun mongo(scope: Scope) = scope.add(
@@ -92,7 +95,7 @@ object Dependencies {
 	fun testcontainersPostgres(scope: Scope, runtimeOnly: Scope) = scope.add(
 		"org.testcontainers:postgresql:${Versions.testcontainers}",
 		"org.testcontainers:r2dbc:${Versions.testcontainers}",
-		"com.redis:testcontainers-redis:2.2.2",
+		"com.redis:testcontainers-redis:${Versions.redisTestContainer}",
 	).also { testcontainers(scope) }
 		.also {
 			runtimeOnly.add(
