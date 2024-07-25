@@ -1,7 +1,6 @@
 name: Dev
 
 on:
-  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, labeled]
   push:
@@ -10,7 +9,17 @@ on:
       - 'release/*'
     tags:
       - '*'
-
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+          - info
+          - warning
+          - debug
 jobs:
   libs:
     uses: komune-io/fixers-gradle/.github/workflows/make-jvm-workflow.yml@main
