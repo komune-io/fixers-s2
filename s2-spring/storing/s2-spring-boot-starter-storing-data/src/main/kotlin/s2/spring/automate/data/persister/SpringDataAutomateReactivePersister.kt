@@ -3,11 +3,13 @@ package s2.spring.automate.data.persister
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactor.asFlux
+import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import reactor.core.publisher.Flux
 import s2.automate.core.context.AutomateContext
@@ -36,6 +38,10 @@ ENTITY : WithS2Id<ID> {
 
 	override suspend fun load(automateContext: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
 		return repository.findById(id).awaitFirstOrNull()
+	}
+
+	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
+		return repository.findAllById(ids.asFlux()).asFlow()
 	}
 
 	override suspend fun persist(
@@ -81,4 +87,5 @@ ENTITY : WithS2Id<ID> {
 			emit(event)
 		}
 	}
+
 }
