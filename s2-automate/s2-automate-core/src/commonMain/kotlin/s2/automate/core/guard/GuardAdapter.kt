@@ -5,6 +5,7 @@ import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.dsl.automate.Automate
+import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
@@ -18,8 +19,8 @@ AUTOMATE : Automate
 
 	override suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>) = GuardResult.valid()
 
-	override suspend fun evaluateTransition(
-		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE>
+	override suspend fun <COMMAND: Cmd> evaluateTransition(
+		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
 	) = GuardResult.valid()
 
 	override suspend fun verifyInitTransition(

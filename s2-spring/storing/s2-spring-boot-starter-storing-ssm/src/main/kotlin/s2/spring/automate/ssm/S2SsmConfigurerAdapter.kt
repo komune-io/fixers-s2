@@ -44,22 +44,20 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	lateinit var objectMapper: ObjectMapper
 
-//	@Bean
 	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> = runBlocking {
-	val automate = automate()
-	val signer = signerAgent()
-	val chaincodeUri = chaincodeUri()
-		SsmAutomatePersister<STATE, ID, ENTITY, Evt>().also {
-			it.ssmSessionStartFunction = ssmSessionStartFunction
-			it.ssmSessionPerformActionFunction = ssmSessionPerformActionFunction
-			it.objectMapper = objectMapper
-			it.dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction
-			it.entityType = entityType()
-			it.chaincodeUri = chaincodeUri
-			it.agentSigner = signer
-			it.permisive = permisive
-		}.also {
-
+		val automate = automate()
+		val signer = signerAgent()
+		val chaincodeUri = chaincodeUri()
+		SsmAutomatePersister<STATE, ID, ENTITY, Evt>(
+			ssmSessionStartFunction = ssmSessionStartFunction,
+			ssmSessionPerformActionFunction = ssmSessionPerformActionFunction,
+			objectMapper = objectMapper,
+			dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction,
+			entityType = entityType(),
+			chaincodeUri = chaincodeUri,
+			agentSigner = signer,
+			permisive = permisive,
+		).also {
 			ssmTxInitFunction.invoke(
 				SsmInitCommand(
 					signerName = signer.name,
@@ -69,7 +67,6 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 				)
 			)
 		}
-
 	}
 
 	abstract fun entityType(): Class<ENTITY>

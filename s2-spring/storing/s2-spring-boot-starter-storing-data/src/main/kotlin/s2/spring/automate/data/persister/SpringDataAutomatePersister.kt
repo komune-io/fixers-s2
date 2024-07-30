@@ -1,6 +1,7 @@
 package s2.spring.automate.data.persister
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.springframework.data.repository.CrudRepository
@@ -30,6 +31,10 @@ ENTITY : WithS2Id<ID> {
 		return repository.findById(id).orElse(null)
 	}
 
+	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
+		return repository.findAllById(ids.toList()).asFlow()
+	}
+
 	override suspend fun persist(
 		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
 	): ENTITY {
@@ -55,4 +60,5 @@ ENTITY : WithS2Id<ID> {
 
 		return eventsFlow
 	}
+
 }
