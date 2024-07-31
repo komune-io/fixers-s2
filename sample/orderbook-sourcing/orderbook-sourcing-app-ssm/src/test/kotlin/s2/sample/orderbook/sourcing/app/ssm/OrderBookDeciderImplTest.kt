@@ -66,7 +66,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
 		orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
 		val events = eventStore.load(event.id).toList()
-		Assertions.assertThat(events.toList()).hasSize(4)
+		assertThat(events.toList()).hasSize(4)
 	}
 	@Test
 	fun `should create flow(24-6) of order book`(): Unit = runTest {
