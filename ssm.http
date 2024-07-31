@@ -39,7 +39,21 @@ Content-Type: application/json
   {
     "cmd" : "query",
     "fcn" : "session",
-    "args" : ["da9b2b34-63b9-4c57-a64e-7e9ac23dc0a8"],
+    "args" : ["000efa5c-0b89-481d-8133-0cc61fe0007d"],
+    "channelid" : "sandbox",
+    "chaincodeid" : "ssm"
+  }
+]
+
+###
+POST http://localhost:9090/invoke
+Content-Type: application/json
+
+[
+  {
+    "cmd" : "query",
+    "fcn" : "log",
+    "args" : ["000efa5c-0b89-481d-8133-0cc61fe0007d"],
     "channelid" : "sandbox",
     "chaincodeid" : "ssm"
   }
