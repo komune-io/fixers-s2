@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
+import s2.automate.core.S2AutomateExecutorFlowImpl
 import s2.automate.core.S2AutomateExecutorImpl
 import s2.automate.core.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
@@ -26,8 +27,9 @@ import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
 import s2.spring.automate.persister.SpringEventPublisher
 import s2.spring.automate.sourcing.persist.AutomateSourcingPersister
+import s2.spring.automate.sourcing.persist.AutomateSourcingPersisterFlow
 
-abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
+abstract class S2AutomateDeciderSpringAdapterFlow<ENTITY, STATE, EVENT, ID, EXECUTOR>(
 	val executor: EXECUTOR,
 	val view: View<EVENT, ENTITY>,
 	val snapRepository: SnapRepository<ENTITY, ID>? = null,
@@ -37,7 +39,7 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EVENT: Evt,
 EVENT: WithS2Id<ID>,
-EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
+EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 
 	private lateinit var applicationContext: ApplicationContext
 
@@ -54,14 +56,14 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	open fun aggregate(
 		projectionBuilder: Loader<EVENT, ENTITY, ID>,
 		eventStore: EventRepository<EVENT, ID>,
-	): S2AutomateExecutorImpl<STATE, ID, ENTITY, EVENT> {
+	): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
-		return S2AutomateExecutorImpl(
+		return S2AutomateExecutorFlowImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
-			persister = AutomateSourcingPersister(
+			persister = AutomateSourcingPersisterFlow(
 				projectionLoader = projectionBuilder,
 				eventStore = eventStore,
 				snapRepository = snapRepository,

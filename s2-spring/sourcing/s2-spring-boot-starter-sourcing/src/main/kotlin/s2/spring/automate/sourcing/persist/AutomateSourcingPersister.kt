@@ -1,11 +1,8 @@
-package s2.spring.automate.sourcing
+package s2.spring.automate.sourcing.persist
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.toList
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -20,6 +17,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 import s2.sourcing.dsl.snap.SnapRepository
+import s2.spring.automate.sourcing.AutomateSourcingPersisterSnapChannel
 
 class AutomateSourcingPersister<STATE, ID, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
@@ -39,13 +37,6 @@ EVENT: WithS2Id<ID> {
         val event = transitionContext.event
         val id = transitionContext.entity.s2Id()
         return persist(id, event)
-    }
-
-    override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
-        // TODO Fix to do here
-        return ids.map { id ->
-            projectionLoader.load(id)
-        }
     }
 
     override suspend fun persist(
@@ -89,23 +80,4 @@ EVENT: WithS2Id<ID> {
         return projectionLoader.load(id)
     }
 
-    override suspend fun persistInitFlow(
-        transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-    ): Flow<EVENT> {
-        return transitionContext.map {
-            it.event
-        }.let {
-            persist(it)
-        }.map { it.second }
-    }
-
-    override suspend fun persistFlow(
-        transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-    ): Flow<EVENT> {
-        return transitionContext.map {
-            it.event
-        }.let {
-            persist(it)
-        }.map { it.second }
-    }
 }

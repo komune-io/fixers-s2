@@ -1,11 +1,6 @@
 package s2.automate.core
 
 import f2.dsl.cqrs.Message
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.appevent.AutomateSessionStarted
@@ -23,11 +18,9 @@ import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
-import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardExecutorImpl
 import s2.automate.core.persist.AutomatePersister
-import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -40,40 +33,31 @@ open class S2AutomateExecutorImpl<STATE, ID, ENTITY, EVENT>(
 	private val guardExecutor: GuardExecutorImpl<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
-	private val flow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT>
-		= S2AutomateExecutorFlowImpl(automateContext, guardExecutor, persister, publisher)
 ) : S2AutomateExecutor<STATE, ENTITY, ID, EVENT> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInit(
-		commands: Flow<COMMAND>,
-		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Flow<EVENT_OUT> {
-		return flow.createInit(commands, decide)
-	}
-
-	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
-		commands: Flow<COMMAND>,
-		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Flow<EVENT_OUT> {
-		return flow.doTransitionFlow(commands, exec)
-	}
-
 	override suspend fun <ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> create(
-		command: S2InitCommand,
-		decide: suspend () -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Pair<ENTITY_OUT, EVENT_OUT> {
-		return try {
+		command: S2InitCommand, decide: suspend () -> Pair<ENTITY_OUT, EVENT_OUT>,
+	):  Pair<ENTITY_OUT, EVENT_OUT> {
+		try {
 			val (entity, event) = decide()
 			val initTransitionContext = initTransitionContext(command)
 			guardExecutor.evaluateInit(initTransitionContext)
 			persist(command, entity, event)
-			sendEndCreateEvent(command, entity)
-			entity to event
+			sentEndCreateEvent(command, entity)
+			return entity to event
+		} catch (e: AutomateException) {
+			throw e
 		} catch (e: Exception) {
-			handleException(command, e)
+			publisher.automateTransitionError(
+				AutomateTransitionError(
+					msg = command,
+					exception = e
+				)
+			)
+			throw e
 		}
 	}
 
@@ -84,34 +68,32 @@ ENTITY : WithS2Id<ID> {
 			event = event,
 			entity = entity
 		)
-		persistInitFlow(flowOf(initTransitionPersistContext)).collect()
+		guardExecutor.verifyInitTransition(initTransitionPersistContext)
+		persister.persist(initTransitionPersistContext)
 	}
 
-	private suspend fun persistInitFlow(
-		contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		return contexts.map {
-			guardExecutor.verifyInitTransition(it)
-			it
-		}.let {
-			persister.persistInitFlow(it)
-		}
-	}
-
-	override suspend fun <ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
-		command: S2Command<ID>,
-		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
-	): Pair<ENTITY_OUT, EVENT_OUT> {
-		return try {
+	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
+		command: COMMAND,
+		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>,
+	):  Pair<ENTITY_OUT, EVENT_OUT> {
+		try {
 			val (entity, transitionContext) = loadTransitionContext(command)
 			guardExecutor.evaluateTransition(transitionContext)
 			val fromState = entity.s2State()
 			val (entityMutated, result) = exec(entity)
 			persist(fromState, command, entityMutated, result)
 			sendEndDoTransitionEvent(entityMutated.s2State(), transitionContext.from, command, entity)
-			entityMutated to result
+			return entityMutated to result
+		} catch (e: AutomateException) {
+			throw e
 		} catch (e: Exception) {
-			handleException(command, e)
+			publisher.automateTransitionError(
+				AutomateTransitionError(
+					msg = command,
+					exception = e
+				)
+			)
+			throw e
 		}
 	}
 
@@ -127,85 +109,81 @@ ENTITY : WithS2Id<ID> {
 		persister.persist(transitionPersistContext)
 	}
 
-	private suspend fun persistFlow(
-		contexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		return contexts.map {
-			guardExecutor.verifyTransition(it)
-		}.let {
-			persister.persistFlow(it)
-		}
-	}
-
 	private fun initTransitionContext(
-		command: Message
+		command: Message,
 	): InitTransitionContext<S2Automate> {
-		return InitTransitionContext(
+		val initTransitionContext = InitTransitionContext(
 			automateContext = automateContext,
-			msg = command
-		).apply {
-			publisher.automateInitTransitionStarted(
-				AutomateInitTransitionStarted(msg = command)
+			msg = command,
+		)
+		publisher.automateInitTransitionStarted(
+			AutomateInitTransitionStarted(
+				msg = command
 			)
-		}
+		)
+		return initTransitionContext
 	}
 
-	private fun sendEndCreateEvent(command: S2InitCommand, entity: ENTITY) {
-		with(publisher) {
-			automateInitTransitionEnded(
-				AutomateInitTransitionEnded(
-					to = entity.s2State(),
-					msg = command,
-					entity = entity
-				)
+	private fun sentEndCreateEvent(command: S2InitCommand, entity: ENTITY) {
+		publisher.automateInitTransitionEnded(
+			AutomateInitTransitionEnded(
+				to = entity.s2State(),
+				msg = command,
+				entity = entity
 			)
-			automateSessionStarted(
-				AutomateSessionStarted(automate = automateContext.automate)
+		)
+		publisher.automateSessionStarted(
+			AutomateSessionStarted(
+				automate = automateContext.automate
 			)
-			automateStateEntered(
-				AutomateStateEntered(state = entity.s2State())
+		)
+		publisher.automateStateEntered(
+			AutomateStateEntered(
+				state = entity.s2State(),
 			)
-		}
+		)
 	}
 
 	private fun sendEndDoTransitionEvent(
 		to: STATE,
 		fromState: STATE,
 		command: S2Command<ID>,
-		entity: ENTITY
+		entity: ENTITY,
 	) {
-		with(publisher) {
-			automateTransitionEnded(
-				AutomateTransitionEnded(
-					to = to,
-					from = fromState,
-					msg = command,
-					entity = entity
+		publisher.automateTransitionEnded(
+			AutomateTransitionEnded(
+				to = to,
+				from = fromState,
+				msg = command,
+				entity = entity
+			)
+		)
+		if (automateContext.automate.isSameState(fromState, to)) {
+			publisher.automateStateExited(
+				AutomateStateExited(
+					state = entity.s2State()
 				)
 			)
-			if (automateContext.automate.isSameState(fromState, to)) {
-				automateStateExited(
-					AutomateStateExited(state = entity.s2State())
+		}
+		if (automateContext.automate.isFinalState(to)) {
+			publisher.automateSessionStopped(
+				AutomateSessionStopped(
+					automate = automateContext.automate
 				)
-			}
-			if (automateContext.automate.isFinalState(to)) {
-				automateSessionStopped(
-					AutomateSessionStopped(automate = automateContext.automate)
-				)
-			}
+			)
 		}
 	}
 
-	private suspend fun loadTransitionContext(
-		command: S2Command<ID>
-	): Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, S2Command<ID>>> {
-		val entity = persister.load(automateContext, id = command.id)
-			?: throw ERROR_ENTITY_NOT_FOUND(command.id.toString()).asException()
+	private suspend fun <COMMAND : S2Command<ID>>  loadTransitionContext(
+		command: COMMAND,
+	): Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, COMMAND>> {
+		val entity =
+			persister.load(automateContext, id = command.id) ?: throw ERROR_ENTITY_NOT_FOUND(command.id.toString()).asException()
 		val transitionContext = TransitionContext(
 			automateContext = automateContext,
 			from = entity.s2State(),
 			command = command,
-			entity = entity
+			entity = entity,
 		)
 		publisher.automateTransitionStarted(
 			AutomateTransitionStarted(
@@ -213,20 +191,7 @@ ENTITY : WithS2Id<ID> {
 				msg = command
 			)
 		)
-		return entity to transitionContext
+		return Pair(entity, transitionContext)
 	}
 
-	private fun <T> handleException(command: Message, e: Exception): T {
-		publisher.automateTransitionError(
-			AutomateTransitionError(
-				msg = command,
-				exception = e
-			)
-		)
-		if(e is AutomateException) {
-			throw e
-		} else {
-			throw ERROR_UNKNOWN(e).asException()
-		}
-	}
 }

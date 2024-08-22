@@ -12,7 +12,7 @@ interface S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
 
-	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> createInit(
+	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> createInitFlow(
 		commands: Flow<COMMAND>,
 		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT>

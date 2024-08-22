@@ -2,6 +2,7 @@ package s2.spring.automate.executor
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
+import s2.automate.core.S2AutomateExecutorFlowImpl
 import s2.automate.core.S2AutomateExecutorImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.dsl.automate.Evt
@@ -17,10 +18,16 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
 	protected lateinit var automateExecutor: S2AutomateExecutorImpl<STATE, ID, ENTITY, Evt>
+	protected lateinit var automateExecutorFlow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt>
 	private lateinit var publisher: AppEventPublisher
 
-	fun withContext(automateExecutor: S2AutomateExecutorImpl<STATE, ID, ENTITY, Evt>, publisher: AppEventPublisher) {
+	fun withContext(
+		automateExecutor: S2AutomateExecutorImpl<STATE, ID, ENTITY, Evt>,
+		automateExecutorFlow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt>,
+		publisher: AppEventPublisher
+	) {
 		this.automateExecutor = automateExecutor
+		this.automateExecutorFlow = automateExecutorFlow
 		this.publisher = publisher
 	}
 
@@ -69,7 +76,7 @@ ENTITY : WithS2Id<ID> {
 		commands: Flow<COMMAND>,
 		build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT> {
-		return automateExecutor.createInit(commands, build).onEach { event ->
+		return automateExecutorFlow.createInitFlow(commands, build).onEach { event ->
 			publisher.publish(event)
 		}
 	}
@@ -78,7 +85,7 @@ ENTITY : WithS2Id<ID> {
 		command: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransitionFlow(command, exec).onEach {
+		return automateExecutorFlow.doTransitionFlow(command, exec).onEach {
 			publisher.publish(it)
 		}
 	}

@@ -23,7 +23,7 @@ import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
 import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardExecutorImpl
-import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -34,7 +34,7 @@ import s2.dsl.automate.model.WithS2State
 open class S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
 	private val guardExecutor: GuardExecutorImpl<STATE, ID, ENTITY, EVENT, S2Automate>,
-	private val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,
+	private val persister: AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>
 ) : S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
 STATE : S2State,
@@ -42,7 +42,7 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
 
-	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInit(
+	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInitFlow(
 		commands: Flow<COMMAND>,
 		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT> {
