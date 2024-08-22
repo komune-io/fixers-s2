@@ -2,6 +2,8 @@ package s2.sample.did.app.config
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Service
+import s2.automate.core.persist.AutomatePersisterFlow
+import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.sample.did.app.entity.DidEntity
 import s2.sample.did.domain.DidId
@@ -34,7 +36,6 @@ class DidS2Config(
 	override fun signerAgent(): Agent {
 		return Agent.loadFromFile("ssm-admin","user/ssm-admin")
 	}
-
 }
 
 @Service

@@ -3,7 +3,7 @@ DOCKER_COMPOSE_FILE = bclan bclan-init
 DOCKER_COMPOSE_PATH = infra/docker-compose
 DOCKER_COMPOSE_ENV = $(DOCKER_COMPOSE_PATH)/.env_dev
 .PHONY: $(DOCKER_COMPOSE_FILE)
-ACTIONS = up down logs
+ACTIONS = up down logs pull
 
 include $(DOCKER_COMPOSE_ENV)
 export
@@ -32,6 +32,8 @@ dev-service-action:
 		docker compose --env-file $(DOCKER_COMPOSE_ENV) -f $(DOCKER_COMPOSE_PATH)/docker-compose-$(SERVICE).yml  up -d; \
 	elif [ "$(ACTION)" = "down" ]; then \
 		docker compose --env-file $(DOCKER_COMPOSE_ENV) -f $(DOCKER_COMPOSE_PATH)/docker-compose-$(SERVICE).yml down -v; \
+	elif [ "$(ACTION)" = "pull" ]; then \
+		docker compose --env-file $(DOCKER_COMPOSE_ENV) -f $(DOCKER_COMPOSE_PATH)/docker-compose-$(SERVICE).yml pull; \
 	elif [ "$(ACTION)" = "logs" ]; then \
 		docker compose --env-file $(DOCKER_COMPOSE_ENV) -f $(DOCKER_COMPOSE_PATH)/docker-compose-$(SERVICE).yml logs -f; \
 	else \

@@ -4,6 +4,7 @@ import f2.dsl.fnc.invoke
 import java.util.UUID
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -53,7 +54,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 	lateinit var orderBookDeciderImpl: OrderBookDeciderImpl
 
 	@Test
-	fun `should create order book`(): Unit = runBlocking {
+	fun `should create order book`(): Unit = runTest {
 		val event = orderBookDeciderImpl.orderBookCreateDecider().invoke(OrderBookCreateCommand("TheNewOrderBook"))
 		orderBookDeciderImpl.orderBookUpdateDecider().invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
@@ -64,7 +65,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 	}
 
 	@Test
-	fun `should replay event to build entity`(): Unit = runBlocking {
+	fun `should replay event to build entity`(): Unit = runTest {
 		val event = create(OrderBookCreateCommand("TheNewOrderBook"))
 		update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		publish(OrderBookPublishCommand(id = event.id))
