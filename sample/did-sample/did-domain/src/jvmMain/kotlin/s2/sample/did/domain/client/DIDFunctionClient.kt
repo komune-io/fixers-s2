@@ -4,6 +4,7 @@ import f2.client.ktor.F2ClientBuilder
 import f2.client.ktor.Protocol
 import f2.client.ktor.get
 import f2.dsl.fnc.F2Supplier
+import f2.dsl.fnc.F2SupplierSingle
 import kotlinx.coroutines.flow.flow
 
 actual fun didClient(
@@ -11,12 +12,10 @@ actual fun didClient(
     host: String,
     port: Int,
     path: String?,
-): F2Supplier<DIDFunctionClient> {
-    return F2Supplier {
-        flow {
-            F2ClientBuilder.get(protocol, host, port, path).let { s2Client ->
-                emit(DIDFunctionClient(s2Client))
-            }
+): F2SupplierSingle<DIDFunctionClient> {
+    return F2SupplierSingle {
+        F2ClientBuilder.get(protocol, host, port, path).let { s2Client ->
+            DIDFunctionClient(s2Client)
         }
     }
 }

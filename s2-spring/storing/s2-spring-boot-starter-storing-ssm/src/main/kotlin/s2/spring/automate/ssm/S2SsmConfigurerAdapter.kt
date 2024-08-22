@@ -5,6 +5,7 @@ import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -14,6 +15,7 @@ import s2.dsl.automate.ssm.toSsm
 import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 import s2.spring.automate.ssm.persister.SsmAutomatePersister
+import s2.spring.automate.ssm.persister.SsmAutomatePersisterFlow
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
@@ -49,6 +51,31 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		val signer = signerAgent()
 		val chaincodeUri = chaincodeUri()
 		SsmAutomatePersister<STATE, ID, ENTITY, Evt>(
+			ssmSessionStartFunction = ssmSessionStartFunction,
+			ssmSessionPerformActionFunction = ssmSessionPerformActionFunction,
+			objectMapper = objectMapper,
+			dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction,
+			entityType = entityType(),
+			chaincodeUri = chaincodeUri,
+			agentSigner = signer,
+			permisive = permisive,
+		).also {
+			ssmTxInitFunction.invoke(
+				SsmInitCommand(
+					signerName = signer.name,
+					ssm = automate.toSsm(permisive),
+					agent = signer,
+					chaincodeUri = chaincodeUri
+				)
+			)
+		}
+	}
+
+	override fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate> = runBlocking {
+		val automate = automate()
+		val signer = signerAgent()
+		val chaincodeUri = chaincodeUri()
+		SsmAutomatePersisterFlow<STATE, ID, ENTITY, Evt>(
 			ssmSessionStartFunction = ssmSessionStartFunction,
 			ssmSessionPerformActionFunction = ssmSessionPerformActionFunction,
 			objectMapper = objectMapper,

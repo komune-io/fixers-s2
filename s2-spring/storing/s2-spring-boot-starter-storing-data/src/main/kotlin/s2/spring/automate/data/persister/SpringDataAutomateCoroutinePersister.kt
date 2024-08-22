@@ -1,7 +1,5 @@
 package s2.spring.automate.data.persister
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -29,50 +27,10 @@ ENTITY : WithS2Id<ID> {
 		return repository.findById(id)
 	}
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
-		return repository.findAllById(ids)
-	}
-
 	override suspend fun persist(
 		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
 	): ENTITY {
 		return repository.save(transitionContext.entity)
-	}
-
-	override suspend fun persistInitFlow(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = flow {
-		val entities = mutableListOf<ENTITY>()
-		val events = mutableListOf<EVENT>()
-
-		transitionContexts.collect { context ->
-			entities.add(context.entity)
-			events.add(context.event)
-		}
-
-		repository.saveAll(entities)
-
-		events.forEach { event ->
-			emit(event)
-		}
-	}
-
-	override suspend fun persistFlow(
-		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = flow {
-		val entities = mutableListOf<ENTITY>()
-		val events = mutableListOf<EVENT>()
-
-		transitionContext.collect { context ->
-			entities.add(context.entity)
-			events.add(context.event)
-		}
-
-		repository.saveAll(entities)
-
-		events.forEach { event ->
-			emit(event)
-		}
 	}
 
 }

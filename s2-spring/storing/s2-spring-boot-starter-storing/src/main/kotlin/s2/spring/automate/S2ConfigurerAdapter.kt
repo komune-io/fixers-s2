@@ -2,6 +2,7 @@ package s2.spring.automate
 
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
+import s2.automate.core.S2AutomateExecutorFlowImpl
 import s2.automate.core.S2AutomateExecutorImpl
 import s2.automate.core.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
@@ -9,6 +10,7 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.GuardAdapter
 import s2.automate.core.guard.GuardExecutorImpl
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -33,6 +35,13 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		val persister = aggregateRepository()
 		return S2AutomateExecutorImpl(automateContext, guardExecutor, persister, publisher)
 	}
+	open fun aggregateFlow(): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt> {
+		val automateContext = automateContext()
+		val publisher = automateAppEventPublisher(eventPublisher)
+		val guardExecutor = guardExecutor(publisher)
+		val persister = aggregateRepositoryFlow()
+		return S2AutomateExecutorFlowImpl(automateContext, guardExecutor, persister, publisher)
+	}
 
 	protected open fun automateContext() = AutomateContext(automate())
 
@@ -55,11 +64,13 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
 	override fun afterPropertiesSet() {
 		val automateExecutor = aggregate()
+		val automateExecutorFlow = aggregateFlow()
 		val agg = executor()
-		agg.withContext(automateExecutor, eventPublisher)
+		agg.withContext(automateExecutor, automateExecutorFlow, eventPublisher)
 	}
 
 	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
+	abstract fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate>
 	abstract fun automate(): S2Automate
 	abstract fun executor(): EXECUTER
 }

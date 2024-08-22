@@ -4,14 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import f2.dsl.fnc.invokeWith
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
-import org.slf4j.LoggerFactory
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -30,6 +25,7 @@ import ssm.data.dsl.features.query.DataSsmSessionGetQuery
 import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
 import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
+import ssm.tx.dsl.features.ssm.SsmSessionStartResult
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 
@@ -48,22 +44,9 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	private val logger = LoggerFactory.getLogger(SsmAutomatePersister::class.java)
-
 	override suspend fun load(automateContext: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
 		val session = getSession(id.toString(), automateContext).item ?: return null
 		return objectMapper.readValue(session.state.details.public as String, entityType)
-	}
-
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
-		return ids.map {
-			GetAutomateSessionQuery(automateContext = automateContext, sessionId = it.toString())
-		}.let {
-			getSessionForAutomate(it)
-		}.map { session ->
-			objectMapper.readValue(session.item!!.state.details.public as String, entityType)
-		}
-
 	}
 
 	override suspend fun persist(
@@ -90,71 +73,34 @@ ENTITY : WithS2Id<ID> {
 	override suspend fun persist(
 		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
 	): ENTITY {
-		return persistInternal(flowOf(transitionContext)).toList().first().first
-	}
-
-	override suspend fun persistInitFlow(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		return persistInternal(transitionContexts).map { it.second }
+		return persistInternal(transitionContext)
 	}
 
 	private suspend fun persistInternal(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<Pair<ENTITY, EVENT>> {
-		val collectedContexts = transitionContexts.toList()
-
+		transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
+	): ENTITY {
 		// Create a list of SsmSessionStartCommands
-		val ssmStartCommands = collectedContexts.map { transitionContext ->
-			val entity = transitionContext.entity
-			val automate = transitionContext.automateContext.automate
+		val entity = transitionContext.entity
+		val automate = transitionContext.automateContext.automate
 
-			SsmSessionStartCommand(
-				session = SsmSession(
-					ssm = automate.name,
-					session = entity.s2Id().toString(),
-					roles = mapOf(agentSigner.name to automate.transitions[0].role.name),
-					public = objectMapper.writeValueAsString(entity),
-					private = mapOf()
-				),
-				signerName = agentSigner.name,
-				chaincodeUri = chaincodeUri
-			)
-		}
-
+		val cmd = SsmSessionStartCommand(
+			session = SsmSession(
+				ssm = automate.name,
+				session = entity.s2Id().toString(),
+				roles = mapOf(agentSigner.name to automate.transitions[0].role.name),
+				public = objectMapper.writeValueAsString(entity),
+				private = mapOf()
+			),
+			signerName = agentSigner.name,
+			chaincodeUri = chaincodeUri
+		)
 		// Invoke the ssmSessionStartFunction with all collected commands
-		ssmSessionStartFunction.invoke(ssmStartCommands.asFlow()).collect()
+		ssmSessionStartFunction.invoke(cmd)
 
 		// Return a flow emitting each event from the collected contexts
-		return flow {
-			collectedContexts.forEach { transitionContext ->
-				emit(transitionContext.entity to transitionContext.event)
-			}
-		}
+		return entity
 	}
 
-	private suspend fun getIterations(
-		query: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>
-	): Flow<GetSessionResult<STATE, ID, ENTITY, EVENT>> {
-		val list = query.toList()
-		logger.info("//////////////////////")
-		logger.info("//////////////////////")
-		logger.info("//////////////////////")
-		logger.info("Get iterations for ${list.size} sessions")
-		val bySession = list.associateBy { it.sessionId }
-
-		return getSession(list.asFlow()).map { session ->
-			val it = bySession[session.item?.sessionName]!!
-			session.item?.state?.details?.iteration ?: 0
-
-			GetSessionResult(
-				transitionContext = it.transitionContext,
-				sessionId = it.sessionId,
-				iteration = session.item?.state?.details?.iteration ?: 0
-			)
-		}
-
-	}
 
 	private suspend fun getIteration(query: GetSessionQuery<STATE, ID, ENTITY, EVENT>): Int {
 		val session = getSession(flowOf(query)).first()
@@ -181,73 +127,4 @@ ENTITY : WithS2Id<ID> {
 		dataSsmSessionGetQueryFunction.invoke(it)
 	}
 
-	private suspend fun getSessionForAutomate(
-		queries: Flow<GetAutomateSessionQuery>,
-	) = queries.map { query ->
-		DataSsmSessionGetQuery(
-			sessionName = query.sessionId,
-			ssmUri = chaincodeUri.toSsmUri(query.automateContext.automate.name)
-		)
-	}.let {
-		dataSsmSessionGetQueryFunction.invoke(it)
-	}
-
-	override suspend fun persistFlow(
-		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = flow {
-		val collectedContexts = transitionContexts.toList()
-
-		val ssmCommands = collectedContexts.map { transitionContext ->
-			val sessionName = transitionContext.entity.s2Id().toString()
-			GetSessionQuery(transitionContext, sessionName)
-		}.let {
-			getIterations(it.asFlow())
-		}.map { (transitionContext, _,iteration) ->
-
-			val entity = transitionContext.entity
-
-			val withEventAsAction = transitionContext.automateContext.automate.withResultAsAction
-			val action = transitionContext.event?.takeIf { withEventAsAction } ?: transitionContext.msg
-			SsmSessionPerformActionCommand(
-				action = action::class.simpleName!!,
-				context = SsmContext(
-					session = entity.s2Id().toString(),
-					public = objectMapper.writeValueAsString(entity),
-					private = mapOf(),
-					iteration = iteration,
-				),
-				signerName = agentSigner.name,
-				chaincodeUri = chaincodeUri
-			)
-		}
-
-		ssmSessionPerformActionFunction.invoke(ssmCommands).collect()
-
-		collectedContexts.forEach { e ->
-			emit(e.event)
-		}
-	}
-
 }
-
-data class GetSessionQuery<STATE, ID, ENTITY, EVENT>(
-	val transitionContext: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>,
-	val sessionId: SessionName
-) where
-STATE : S2State,
-ENTITY : WithS2State<STATE>,
-ENTITY : WithS2Id<ID>
-
-data class GetAutomateSessionQuery(
-	val automateContext: AutomateContext<S2Automate>,
-	val sessionId: SessionName
-)
-
-data class GetSessionResult<STATE, ID, ENTITY, EVENT>(
-	val transitionContext: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>,
-	val sessionId: SessionName,
-	val iteration: Int
-) where
-STATE : S2State,
-ENTITY : WithS2State<STATE>,
-ENTITY : WithS2Id<ID>

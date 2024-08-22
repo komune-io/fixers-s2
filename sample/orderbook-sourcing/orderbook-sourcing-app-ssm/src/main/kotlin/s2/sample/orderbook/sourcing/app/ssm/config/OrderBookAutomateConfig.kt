@@ -13,8 +13,10 @@ import s2.sample.subautomate.domain.model.OrderBookId
 import s2.sample.subautomate.domain.orderBook.OrderBookEvent
 import s2.sample.subautomate.domain.orderBookAutomate
 import s2.spring.automate.sourcing.S2AutomateDeciderSpring
+import s2.spring.automate.sourcing.S2AutomateDeciderSpringFlow
 import s2.spring.sourcing.ssm.PolymorphicEnumSerializer
 import s2.spring.sourcing.ssm.S2SourcingSsmAdapter
+import s2.spring.sourcing.ssm.S2SourcingSsmAdapterFlow
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.chaincode.dsl.model.uri.from
@@ -22,7 +24,7 @@ import ssm.sdk.sign.extention.loadFromFile
 
 @Configuration
 class OrderBookAutomateConfig(orderBookS2Aggregate: OrderBookS2Aggregate)
-	: S2SourcingSsmAdapter<
+	: S2SourcingSsmAdapterFlow<
 		OrderBook,
 		OrderBookState,
 		OrderBookEvent,
@@ -55,4 +57,4 @@ class OrderBookAutomateConfig(orderBookS2Aggregate: OrderBookS2Aggregate)
 }
 
 @Service
-class OrderBookS2Aggregate : S2AutomateDeciderSpring<OrderBook, OrderBookState, OrderBookEvent, OrderBookId>()
+class OrderBookS2Aggregate : S2AutomateDeciderSpringFlow<OrderBook, OrderBookState, OrderBookEvent, OrderBookId>()
