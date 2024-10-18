@@ -3,7 +3,6 @@ package s2.dsl.automate
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlinx.serialization.Serializable
-import s2.dsl.automate.ssm.toSsm
 
 @Serializable
 @JsExport

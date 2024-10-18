@@ -1,13 +1,13 @@
 package s2.automate.documenter
 
-import kotlinx.serialization.json.Json
-import s2.dsl.automate.S2Automate
 import java.io.File
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import s2.dsl.automate.S2Automate
 
 class S2Documenter(
     val outputFolder: String = getDefaultOutputDirectory(),

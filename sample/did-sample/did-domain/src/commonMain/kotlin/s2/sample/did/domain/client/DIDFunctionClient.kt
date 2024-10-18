@@ -21,7 +21,6 @@ fun didClient(
 	}
 }
 
-
 @JsName("DIDFunctionClient")
 @JsExport
 open class DIDFunctionClient(private val client: F2Client) : DidAggregate {
