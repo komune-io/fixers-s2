@@ -1,7 +1,7 @@
 package s2.bdd.data.parser
 
-import s2.bdd.exception.NoParserFoundException
 import kotlin.reflect.KClass
+import s2.bdd.exception.NoParserFoundException
 
 object EntryParserDirectory {
     private val parsers = mutableMapOf<KClass<*>, EntryParser<*>>()

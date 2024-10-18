@@ -1,6 +1,5 @@
 package s2.automate.core.persist
 
-import kotlinx.coroutines.flow.Flow
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext

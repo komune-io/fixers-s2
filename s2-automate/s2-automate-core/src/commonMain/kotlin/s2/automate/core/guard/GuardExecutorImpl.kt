@@ -10,7 +10,6 @@ import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.Msg
-import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State

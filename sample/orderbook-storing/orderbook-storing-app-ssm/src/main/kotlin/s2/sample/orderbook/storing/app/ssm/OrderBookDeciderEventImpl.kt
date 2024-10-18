@@ -1,12 +1,8 @@
 package s2.sample.orderbook.storing.app.ssm
 
 import f2.dsl.fnc.F2Function
-import f2.dsl.fnc.f2Function
 import java.util.UUID
-import kotlinx.coroutines.flow.map
-import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
-import s2.sample.orderbook.storing.app.ssm.config.OrderBookS2Aggregate
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookS2EventAggregate
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.model.OrderBook

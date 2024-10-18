@@ -1,7 +1,6 @@
 package s2.automate.core
 
 import kotlin.js.JsName
-import kotlinx.coroutines.flow.Flow
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State

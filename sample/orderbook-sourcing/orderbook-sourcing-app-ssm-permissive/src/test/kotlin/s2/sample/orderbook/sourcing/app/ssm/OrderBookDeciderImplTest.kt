@@ -3,7 +3,6 @@ package s2.sample.orderbook.sourcing.app.ssm
 import f2.dsl.fnc.invoke
 import java.util.UUID
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

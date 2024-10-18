@@ -8,7 +8,6 @@ import org.springframework.data.repository.CrudRepository
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State

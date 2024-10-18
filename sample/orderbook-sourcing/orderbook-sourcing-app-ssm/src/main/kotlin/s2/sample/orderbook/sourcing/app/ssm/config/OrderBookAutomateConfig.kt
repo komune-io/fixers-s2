@@ -12,10 +12,8 @@ import s2.sample.subautomate.domain.model.OrderBook
 import s2.sample.subautomate.domain.model.OrderBookId
 import s2.sample.subautomate.domain.orderBook.OrderBookEvent
 import s2.sample.subautomate.domain.orderBookAutomate
-import s2.spring.automate.sourcing.S2AutomateDeciderSpring
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringFlow
 import s2.spring.sourcing.ssm.PolymorphicEnumSerializer
-import s2.spring.sourcing.ssm.S2SourcingSsmAdapter
 import s2.spring.sourcing.ssm.S2SourcingSsmAdapterFlow
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri

@@ -13,18 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.context.AutomateContext
 import s2.sample.orderbook.sourcing.app.ssm.config.SpringTestBase
 import s2.sample.orderbook.storing.app.ssm.OrderBookDeciderEventImpl
-import s2.sample.orderbook.storing.app.ssm.OrderBookDeciderImpl
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookAutomateConfig
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.orderBook.OrderBookCloseCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookClosedEvent
 import s2.sample.subautomate.domain.orderBook.OrderBookCreateCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookCreatedEvent
-import s2.sample.subautomate.domain.orderBook.OrderBookDecide
 import s2.sample.subautomate.domain.orderBook.OrderBookPublishCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookPublishedEvent
 import s2.sample.subautomate.domain.orderBook.OrderBookUpdateCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookUpdatedEvent
 import s2.sample.subautomate.domain.orderBookAutomate
 
 internal class OrderBookStoringDeciderEventImplTest: SpringTestBase() {

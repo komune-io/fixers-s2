@@ -12,8 +12,6 @@ import s2.dsl.automate.ssm.toSsm
 import s2.sourcing.dsl.event.EventRepository
 import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
-import s2.spring.automate.sourcing.S2AutomateDeciderSpring
-import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapter
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapterFlow
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringFlow
 import ssm.chaincode.dsl.model.Agent

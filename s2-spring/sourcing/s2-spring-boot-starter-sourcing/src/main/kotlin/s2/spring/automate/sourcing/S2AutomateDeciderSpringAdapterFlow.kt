@@ -8,7 +8,6 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
 import s2.automate.core.S2AutomateExecutorFlowImpl
-import s2.automate.core.S2AutomateExecutorImpl
 import s2.automate.core.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
@@ -26,7 +25,6 @@ import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
 import s2.spring.automate.persister.SpringEventPublisher
-import s2.spring.automate.sourcing.persist.AutomateSourcingPersister
 import s2.spring.automate.sourcing.persist.AutomateSourcingPersisterFlow
 
 abstract class S2AutomateDeciderSpringAdapterFlow<ENTITY, STATE, EVENT, ID, EXECUTOR>(
