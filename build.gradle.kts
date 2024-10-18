@@ -57,7 +57,11 @@ fixers {
 	bundle {
 		id = "s2"
 		name = "S2"
-		description = "Wrapper around SSM"
+		description = "Fixers S2"
 		url = "https://github.com/komune-io/fixers-s2"
+	}
+	sonar {
+		organization = "komune-io"
+		projectKey = "komune-io_connect-s2"
 	}
 }
