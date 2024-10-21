@@ -1,10 +1,10 @@
 package s2.spring.automate.sourcing
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import s2.automate.core.executor.S2AutomateExecutorFlow
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.sourcing.S2AutomateDeciderFlow
+import s2.automate.core.engine.sourcing.S2AutomateSourcingFlowEngine
+import s2.automate.core.executor.S2AutomateExecutorFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -22,67 +22,39 @@ EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
-	private lateinit var automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>
-	private lateinit var publisher: AppEventPublisher
-	private lateinit var projectionLoader: Loader<EVENT, ENTITY, ID>
-	private lateinit var eventStore: EventRepository<EVENT, ID>
+    private lateinit var engine: S2AutomateSourcingFlowEngine<STATE, ENTITY, ID, EVENT>
 
-	internal fun withContext(
-		automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
-		publisher: AppEventPublisher,
-		projectionLoader: Loader<EVENT, ENTITY, ID>,
-		eventStore: EventRepository<EVENT, ID>
-	) {
-		this.automateExecutor = automateExecutor
-		this.publisher = publisher
-		this.projectionLoader = projectionLoader
-		this.eventStore = eventStore
-	}
+    internal fun withContext(
+        automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
+        publisher: AppEventPublisher,
+        projectionLoader: Loader<EVENT, ENTITY, ID>,
+        eventStore: EventRepository<EVENT, ID>
+    ) {
+        this.engine = S2AutomateSourcingFlowEngine(automateExecutor, publisher, projectionLoader, eventStore)
+    }
+
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : EVENT> initFlow(
+        commands: Flow<COMMAND>,
+        buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
+    ): Flow<EVENT_OUT> = engine.initFlow(commands, buildEvent)
+
+    override fun <EVENT_OUT : EVENT, COMMAND : S2InitCommand> initDecide(
+        fnc: suspend (t: COMMAND) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = engine.initDecide(fnc)
+
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> decideFlow(
+        fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = engine.decideFlow(fnc)
+
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> transitionFlow(
+        commands: Flow<COMMAND>,
+        exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
+    ): Flow<EVENT_OUT> = engine.transitionFlow(commands, exec)
 
 
-	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> initDecide(
-		fnc: suspend (t: COMMAND) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = Decide { msgs ->
-			initFlow(msgs) { msg ->
-				fnc(msg)
-			}
-		}
+    suspend fun loadAll() = engine.loadAll()
 
-	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> initFlow(
-		commands: Flow<COMMAND>,
-		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
-	): Flow<EVENT_OUT> {
-		return automateExecutor.createInitFlow(commands) { cmd ->
-			val event = buildEvent(cmd)
-			val entity = projectionLoader.evolve(flowOf(event))!!
-			entity to event
-		}.also(publisher::publish)
-	}
+    suspend fun load(id: ID) = engine.load(id)
 
-	fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decideFlow(
-		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
-	) : Decide<COMMAND, EVENT_OUT> = Decide { msgs ->
-
-		transitionFlow(msgs) { command, entity ->
-			fnc(command, entity)
-		}
-	}
-
-	suspend fun loadAll() = eventStore.loadAll()
-	suspend fun load(id: ID) = eventStore.load(id)
-
-	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> transitionFlow(
-		commands: Flow<COMMAND>,
-		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
-	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransitionFlow(commands) { command, entity ->
-			val event = exec(command, entity)
-			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
-			entityUpdated to event
-		}.also(publisher::publish)
-	}
-
-	override suspend fun replayHistory() {
-		projectionLoader.reloadHistory()
-	}
+    override suspend fun replayHistory() = engine.replayHistory()
 }
