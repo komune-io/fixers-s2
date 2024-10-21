@@ -25,7 +25,9 @@ import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
 import s2.spring.automate.persister.SpringEventPublisher
-import s2.spring.automate.sourcing.persist.AutomateSourcingPersisterFlow
+import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersisterFlow
+import s2.automate.core.snap.RetryTaskChannel
+import s2.automate.core.snap.SnapPersister
 
 abstract class S2AutomateDeciderSpringAdapterFlow<ENTITY, STATE, EVENT, ID, EXECUTOR>(
 	val executor: EXECUTOR,
@@ -45,7 +47,7 @@ EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 	lateinit var eventPublisher: SpringEventPublisher
 
 	@Autowired
-	lateinit var automateSourcingPersisterSnapChannel: AutomateSourcingPersisterSnapChannel
+	lateinit var retryTaskChannel: RetryTaskChannel
 
 	override fun setApplicationContext(applicationContext: ApplicationContext) {
 		this.applicationContext = applicationContext
@@ -58,14 +60,18 @@ EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
+		val snapPersister = SnapPersister(
+			projectionBuilder,
+			snapRepository,
+			retryTaskChannel.takeIf { preventOptimisticLocking() }
+		)
 		return S2AutomateExecutorFlowImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
-			persister = AutomateSourcingPersisterFlow(
+			persister = S2AutomateSourcingPersisterFlow(
 				projectionLoader = projectionBuilder,
 				eventStore = eventStore,
-				snapRepository = snapRepository,
-				automateSourcingPersisterSnapChannel = automateSourcingPersisterSnapChannel.takeIf { preventOptimisticLocking() }
+				snapPersister = snapPersister,
 			),
 			publisher = publisher
 		).also {

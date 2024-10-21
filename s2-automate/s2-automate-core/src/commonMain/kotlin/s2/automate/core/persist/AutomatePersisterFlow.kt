@@ -21,5 +21,5 @@ ENTITY : WithS2Id<ID> {
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
-	suspend fun load(automateContext: AutomateContext<AUTOMATE>, id: Flow<ID & Any>): Flow<ENTITY?>
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
 }

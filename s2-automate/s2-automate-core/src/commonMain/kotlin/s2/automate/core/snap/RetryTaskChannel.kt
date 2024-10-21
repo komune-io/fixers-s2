@@ -1,6 +1,7 @@
-package s2.spring.automate.sourcing
+package s2.automate.core.snap
 
 import kotlin.coroutines.CoroutineContext
+import kotlin.reflect.KClass
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -8,34 +9,25 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.springframework.dao.OptimisticLockingFailureException
 
-data class PersistTask<ID, ENTITY, EVENT>(
+data class RetryTask<ID, ENTITY, EVENT>(
     val id: ID,
     val event: EVENT,
-    val result: CompletableDeferred<Pair<ENTITY?, Throwable?>>,
-    val persist: suspend (ID, EVENT) -> ENTITY
+    val result: CompletableDeferred<Pair<Pair<ENTITY, EVENT>?, Throwable?>>,
+    val persist: suspend (EVENT) -> Pair<ENTITY, EVENT>,
 )
 
-class AutomateSourcingPersisterSnapChannel(
+class RetryTaskChannel(
     private val maxAttempts: Int = 5,
     private val delayMillis: Long = 1000,
+    private val retryOn: KClass<*>
 ) : CoroutineScope {
-
-//    init {
-//        println("//////////////////////////////////////////////////////////////////////")
-//        println("//////////////////////////////////////////////////////////////////////")
-//        println("AutomateSourcingPersisterSnapChannel ${this}")
-//        println("//////////////////////////////////////////////////////////////////////")
-//        println("//////////////////////////////////////////////////////////////////////")
-//    }
-//    // Replace these types with the actual types of S2InitCommand, ENTITY, and EVENT
 
     private val supervisorJob = SupervisorJob()
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + supervisorJob
 
-    private val persistChannel = Channel<PersistTask<Any, Any, Any>>()
+    private val persistChannel = Channel<RetryTask<Any, Any, Any>>()
 
     init {
         launchPersistWorker()
@@ -44,17 +36,19 @@ class AutomateSourcingPersisterSnapChannel(
     private fun CoroutineScope.launchPersistWorker() = launch {
         for (task in persistChannel) {
             val result = retry {
-                task.persist(task.id, task.event)
+                task.persist(task.event)
             }
             task.result.complete(result)
         }
     }
 
     suspend fun <ID, ENTITY, EVENT> addToPersistQueue(
-        id: ID, event: EVENT, persist: suspend (ID, EVENT) -> ENTITY
-    ): ENTITY {
-        val resultDeferred = CompletableDeferred<Pair<ENTITY?, Throwable?>>()
-        val task = PersistTask(id, event, resultDeferred, persist) as PersistTask<Any, Any, Any>
+        id: ID,
+        event: EVENT,
+        persist: suspend (EVENT) -> Pair<ENTITY, EVENT>
+    ): Pair<ENTITY, EVENT> {
+        val resultDeferred = CompletableDeferred<Pair<Pair<ENTITY, EVENT>?, Throwable?>>()
+        val task = RetryTask(id, event, resultDeferred, persist) as RetryTask<Any, Any, Any>
         persistChannel.send(task)
         val (entity, exception) = resultDeferred.await()
         if(exception != null) throw exception
@@ -62,6 +56,7 @@ class AutomateSourcingPersisterSnapChannel(
     }
 
 
+    @Suppress("NestedBlockDepth")
     private suspend fun <T> retry(
         block: suspend () -> T
     ): Pair<T?, Throwable?> {
@@ -70,14 +65,15 @@ class AutomateSourcingPersisterSnapChannel(
             try {
                 return block() to null
             } catch (e: Throwable) {
-                return (null to e)
-            }
-            catch (e: OptimisticLockingFailureException) {
-                attempts++
-                if (attempts >= maxAttempts) {
+                if(retryOn.isInstance(e)) {
+                    attempts++
+                    if (attempts >= maxAttempts) {
+                        return (null to e)
+                    }
+                    delay(delayMillis)
+                } else {
                     return (null to e)
                 }
-                delay(delayMillis)
             }
         }
     }

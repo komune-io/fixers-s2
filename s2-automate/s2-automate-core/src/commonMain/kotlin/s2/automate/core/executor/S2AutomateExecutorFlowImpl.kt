@@ -158,7 +158,7 @@ ENTITY : WithS2Id<ID> {
 		val commands = commands.toList()
 		val byIds = commands.associateBy { it.id }
 		return commands.asFlow().mapNotNull { it.id }.let { ids ->
-			persister.load(automateContext, id = ids)
+			persister.load(automateContext, ids = ids)
 		}.map { entity ->
 			entity?:  throw ERROR_ENTITY_NOT_FOUND(entity?.s2Id().toString()).asException()
 			val command = byIds[entity.s2Id()] ?: throw ERROR_ENTITY_NOT_FOUND(entity.s2Id().toString()).asException()
