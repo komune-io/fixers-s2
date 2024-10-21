@@ -1,4 +1,4 @@
-package s2.automate.core
+package s2.automate.core.executor
 
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext

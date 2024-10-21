@@ -1,4 +1,4 @@
-package s2.automate.core
+package s2.automate.core.executor
 
 import kotlin.js.JsName
 import s2.dsl.automate.S2Command

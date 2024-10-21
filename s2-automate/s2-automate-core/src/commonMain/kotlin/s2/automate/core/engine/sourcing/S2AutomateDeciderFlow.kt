@@ -1,4 +1,4 @@
-package s2.spring.automate.sourcing
+package s2.automate.core.engine.sourcing
 
 import kotlinx.coroutines.flow.Flow
 import s2.dsl.automate.S2Command

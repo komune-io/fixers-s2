@@ -1,4 +1,4 @@
-package s2.automate.core
+package s2.automate.core.executor
 
 import f2.dsl.cqrs.Message
 import kotlinx.coroutines.flow.Flow

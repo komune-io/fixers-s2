@@ -2,8 +2,9 @@ package s2.spring.automate.sourcing
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import s2.automate.core.S2AutomateExecutorFlow
+import s2.automate.core.executor.S2AutomateExecutorFlow
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.engine.sourcing.S2AutomateDeciderFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand

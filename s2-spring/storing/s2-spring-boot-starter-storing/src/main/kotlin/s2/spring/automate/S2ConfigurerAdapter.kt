@@ -2,9 +2,9 @@ package s2.spring.automate
 
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
-import s2.automate.core.S2AutomateExecutorFlowImpl
-import s2.automate.core.S2AutomateExecutorImpl
-import s2.automate.core.TransitionStateGuard
+import s2.automate.core.executor.S2AutomateExecutorFlowImpl
+import s2.automate.core.executor.S2AutomateExecutorImpl
+import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.GuardAdapter

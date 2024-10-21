@@ -1,9 +1,7 @@
-package s2.automate.core
+package s2.automate.core.guard
 
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.ERROR_INVALID_TRANSITION
-import s2.automate.core.guard.GuardAdapter
-import s2.automate.core.guard.GuardResult
 import s2.dsl.automate.Automate
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2State

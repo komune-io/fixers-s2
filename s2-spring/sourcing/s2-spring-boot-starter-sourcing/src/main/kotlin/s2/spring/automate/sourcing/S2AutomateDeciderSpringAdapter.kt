@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
-import s2.automate.core.S2AutomateExecutorImpl
-import s2.automate.core.TransitionStateGuard
+import s2.automate.core.executor.S2AutomateExecutorImpl
+import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.Guard

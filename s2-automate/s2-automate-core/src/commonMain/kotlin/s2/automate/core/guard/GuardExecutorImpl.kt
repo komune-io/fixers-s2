@@ -1,6 +1,6 @@
 package s2.automate.core.guard
 
-import s2.automate.core.GuardExecutor
+import s2.automate.core.executor.GuardExecutor
 import s2.automate.core.appevent.AutomateTransitionNotAccepted
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.InitTransitionAppliedContext
