@@ -1,2 +1,2 @@
 s2.spring.automate.config.EventPublisherConfiguration
-s2.spring.automate.sourcing.config.AutomateSourcingPersisterSnapChannelConfiguration
+s2.spring.automate.sourcing.config.RetryTaskChannelConfiguration
