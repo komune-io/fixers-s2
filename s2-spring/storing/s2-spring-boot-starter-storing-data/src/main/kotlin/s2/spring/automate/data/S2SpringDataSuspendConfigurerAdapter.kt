@@ -11,7 +11,6 @@ import s2.dsl.automate.model.WithS2State
 import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersister
 import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlow
-import s2.spring.automate.data.persister.SpringDataAutomatePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID, ENTITY, EVENT, AGGREGATE>(
