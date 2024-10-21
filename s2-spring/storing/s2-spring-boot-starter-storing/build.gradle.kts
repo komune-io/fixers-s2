@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-	api(project(":s2-automate:s2-automate-core"))
+	api(project(":s2-spring:s2-spring-core"))
 
 	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
 }

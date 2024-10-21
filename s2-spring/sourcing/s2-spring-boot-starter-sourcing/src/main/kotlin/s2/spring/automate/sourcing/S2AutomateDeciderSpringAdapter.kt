@@ -24,10 +24,10 @@ import s2.sourcing.dsl.snap.SnapLoader
 import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
-import s2.spring.automate.persister.SpringEventPublisher
 import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
 import s2.automate.core.snap.RetryTaskChannel
 import s2.automate.core.snap.SnapPersister
+import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
 	val executor: EXECUTOR,

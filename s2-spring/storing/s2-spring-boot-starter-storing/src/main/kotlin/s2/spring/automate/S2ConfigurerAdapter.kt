@@ -17,7 +17,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.spring.automate.executor.S2AutomateExecutorSpring
-import s2.spring.automate.persister.SpringEventPublisher
+import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2ConfigurerAdapter<STATE, ID, ENTITY, out EXECUTER>: InitializingBean where
 STATE : S2State,
