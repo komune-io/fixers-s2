@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
-import s2.automate.core.S2AutomateExecutorImpl
-import s2.automate.core.TransitionStateGuard
+import s2.automate.core.executor.S2AutomateExecutorImpl
+import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.Guard
@@ -24,7 +24,10 @@ import s2.sourcing.dsl.snap.SnapLoader
 import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
-import s2.spring.automate.persister.SpringEventPublisher
+import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
+import s2.automate.core.snap.RetryTaskChannel
+import s2.automate.core.snap.SnapPersister
+import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
 	val executor: EXECUTOR,
@@ -44,7 +47,7 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	lateinit var eventPublisher: SpringEventPublisher
 
 	@Autowired
-	lateinit var automateSourcingPersisterSnapChannel: AutomateSourcingPersisterSnapChannel
+	lateinit var retryTaskChannel: RetryTaskChannel
 
 	override fun setApplicationContext(applicationContext: ApplicationContext) {
 		this.applicationContext = applicationContext
@@ -56,15 +59,19 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	): S2AutomateExecutorImpl<STATE, ID, ENTITY, EVENT> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
+		val snapPersister = SnapPersister(
+			projectionBuilder,
+			snapRepository,
+			retryTaskChannel.takeIf { preventOptimisticLocking() }
+		)
 		val guardExecutor = guardExecutor(publisher)
 		return S2AutomateExecutorImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
-			persister = AutomateSourcingPersister(
+			persister = S2AutomateSourcingPersister(
 				projectionLoader = projectionBuilder,
 				eventStore = eventStore,
-				snapRepository = snapRepository,
-				automateSourcingPersisterSnapChannel = automateSourcingPersisterSnapChannel.takeIf { preventOptimisticLocking() }
+				snapPersister = snapPersister,
 			),
 			publisher = publisher
 		).also {

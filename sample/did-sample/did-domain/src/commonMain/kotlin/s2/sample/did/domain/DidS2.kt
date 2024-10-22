@@ -3,7 +3,6 @@ package s2.sample.did.domain
 import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlinx.serialization.Serializable
-import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2Event
 import s2.dsl.automate.S2InitCommand

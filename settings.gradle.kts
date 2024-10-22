@@ -22,6 +22,10 @@ include(
 )
 
 include(
+	"s2-spring:s2-spring-core"
+)
+
+include(
 	"s2-spring:storing:s2-spring-boot-starter-storing",
 	"s2-spring:storing:s2-spring-boot-starter-storing-data",
 	"s2-spring:storing:s2-spring-boot-starter-storing-ssm"

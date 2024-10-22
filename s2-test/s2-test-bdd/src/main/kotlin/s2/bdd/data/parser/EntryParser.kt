@@ -1,8 +1,8 @@
 package s2.bdd.data.parser
 
+import kotlin.reflect.KClass
 import s2.bdd.exception.IllegalDataTableParamException
 import s2.bdd.exception.NullDataTableParamException
-import kotlin.reflect.KClass
 
 open class EntryParser<R: Any>(
     output: KClass<R>,

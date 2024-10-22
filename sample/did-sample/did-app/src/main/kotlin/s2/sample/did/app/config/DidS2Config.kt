@@ -34,7 +34,6 @@ class DidS2Config(
 	override fun signerAgent(): Agent {
 		return Agent.loadFromFile("ssm-admin","user/ssm-admin")
 	}
-
 }
 
 @Service

@@ -1,8 +1,8 @@
 package s2.bdd.assertion
 
+import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions
 import s2.bdd.data.TestContext
-import kotlin.reflect.KClass
 
 fun AssertionBdd.events(testContext: TestContext) = AssertionApplicationEvents(testContext)
 

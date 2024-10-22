@@ -2,15 +2,9 @@ package s2.sample.orderbook.storing.app.ssm.config
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Service
-import s2.dsl.automate.builder.s2
 import s2.sample.subautomate.domain.OrderBookState
-import s2.sample.subautomate.domain.Role
 import s2.sample.subautomate.domain.model.OrderBook
 import s2.sample.subautomate.domain.model.OrderBookId
-import s2.sample.subautomate.domain.orderBook.OrderBookCloseCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookCreateCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookPublishCommand
-import s2.sample.subautomate.domain.orderBook.OrderBookUpdateCommand
 import s2.sample.subautomate.domain.orderBookAutomate
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 import s2.spring.automate.ssm.S2SsmConfigurerAdapter
