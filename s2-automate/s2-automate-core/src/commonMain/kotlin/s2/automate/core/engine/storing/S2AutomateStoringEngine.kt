@@ -11,6 +11,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
+import s2.sourcing.dsl.Decide
 
 open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
     private val automateExecutor: S2AutomateExecutor<STATE, ENTITY, ID, Evt>,
@@ -18,7 +19,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
     private val publisher: AppEventPublisher
 ) :
     S2AutomateStoringExecutor<STATE, ID, ENTITY, Evt>,
-    S2AutomateStoringExecutorFlow<STATE, ID, ENTITY, Evt>
+    S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
     override suspend fun <EVENT_OUT : Evt> createWithEvent(
@@ -64,11 +65,27 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
     }
 
     override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> doTransitionFlow(
-        command: Flow<COMMAND>,
+        commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutorFlow.doTransitionFlow(command, exec).onEach {
+        return automateExecutorFlow.doTransitionFlow(commands, exec).onEach {
             publisher.publish(it)
+        }
+    }
+
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
+        fnc: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
+    ): Decide<COMMAND, EVENT_OUT> = Decide { messages ->
+        doTransitionFlow(messages) { command, entity ->
+            fnc(command, entity)
+        }
+    }
+
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+        build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
+    ): Decide<COMMAND, EVENT_OUT> = Decide { messages ->
+        createWithEventFlow(messages) { command ->
+            build(command)
         }
     }
 
