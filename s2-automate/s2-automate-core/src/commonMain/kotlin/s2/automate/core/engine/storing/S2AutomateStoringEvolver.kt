@@ -10,7 +10,7 @@ import s2.sourcing.dsl.Decide
 
 interface S2AutomateStoringEvolver<STATE : S2State, ID, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
-	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> createWithEventFlow(
+	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolve(
 		commands: Flow<COMMAND>,
 		build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT>
@@ -19,7 +19,7 @@ interface S2AutomateStoringEvolver<STATE : S2State, ID, ENTITY : WithS2State<STA
 		build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
 	): Decide<COMMAND, EVENT_OUT>
 
-	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> doTransitionFlow(
+	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolve(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT>

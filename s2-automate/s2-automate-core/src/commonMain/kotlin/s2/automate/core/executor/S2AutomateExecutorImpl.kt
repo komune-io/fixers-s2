@@ -30,7 +30,7 @@ import s2.dsl.automate.model.WithS2State
 
 open class S2AutomateExecutorImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
-	private val guardExecutor: GuardExecutorImpl<STATE, ID, ENTITY, EVENT, S2Automate>,
+	private val guardExecutor: GuardExecutor<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
 ) : S2AutomateExecutor<STATE, ENTITY, ID, EVENT> where

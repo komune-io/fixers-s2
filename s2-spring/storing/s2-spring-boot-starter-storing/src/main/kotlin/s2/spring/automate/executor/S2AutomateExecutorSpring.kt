@@ -41,7 +41,7 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
         automateExecutorFlow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt>,
         publisher: AppEventPublisher
     ) {
-        this.engine = S2AutomateStoringEngine(automateExecutor, automateExecutorFlow, publisher)
+        this.engine = S2AutomateStoringEngine(automateExecutorFlow, publisher)
     }
 
     /**
@@ -89,10 +89,10 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param build The function to build the entity and event.
      * @return The flow of created events.
      */
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> createWithEventFlow(
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
-    ): Flow<EVENT_OUT> = engine.createWithEventFlow(commands, build)
+    ): Flow<EVENT_OUT> = engine.evolve(commands, build)
 
     /**
      * Performs state transitions with events from a flow of commands.
@@ -101,10 +101,10 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param exec The function to execute the transitions.
      * @return The flow of resulting events.
      */
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> doTransitionFlow(
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
-    ): Flow<EVENT_OUT> = engine.doTransitionFlow(commands, exec)
+    ): Flow<EVENT_OUT> = engine.evolve(commands, exec)
 
     override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         fnc: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>

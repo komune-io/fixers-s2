@@ -33,23 +33,23 @@ ENTITY : WithS2State<STATE> {
         this.engine = S2AutomateSourcingFlowEngine(automateExecutor, publisher, projectionLoader, eventStore)
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : EVENT> initFlow(
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : EVENT> decide(
         commands: Flow<COMMAND>,
         buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
-    ): Flow<EVENT_OUT> = engine.initFlow(commands, buildEvent)
+    ): Flow<EVENT_OUT> = engine.decide(commands, buildEvent)
 
-    override fun <EVENT_OUT : EVENT, COMMAND : S2InitCommand> initDecide(
+    override fun <EVENT_OUT : EVENT, COMMAND : S2InitCommand> decide(
         fnc: suspend (t: COMMAND) -> EVENT_OUT
-    ): Decide<COMMAND, EVENT_OUT> = engine.initDecide(fnc)
+    ): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
-    override fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> decideFlow(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> decide(
         fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
-    ): Decide<COMMAND, EVENT_OUT> = engine.decideFlow(fnc)
+    ): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> transitionFlow(
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> decide(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
-    ): Flow<EVENT_OUT> = engine.transitionFlow(commands, exec)
+    ): Flow<EVENT_OUT> = engine.decide(commands, exec)
 
 
     suspend fun loadAll() = engine.loadAll()

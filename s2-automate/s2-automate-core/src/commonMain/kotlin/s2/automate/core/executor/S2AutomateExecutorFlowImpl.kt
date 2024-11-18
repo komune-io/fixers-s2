@@ -33,14 +33,13 @@ import s2.dsl.automate.model.WithS2State
 
 open class S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
-	private val guardExecutor: GuardExecutorImpl<STATE, ID, ENTITY, EVENT, S2Automate>,
+	private val guardExecutor: GuardExecutor<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val persister: AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>
 ) : S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
-
 
 	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInitFlow(
 		commands: Flow<COMMAND>,

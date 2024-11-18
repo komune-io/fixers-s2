@@ -26,15 +26,15 @@ EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
-	override fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> initDecide(
+	override fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
 		fnc: suspend (t: COMMAND) -> EVENT_OUT
 	): Decide<COMMAND, EVENT_OUT> = Decide { messages ->
-			initFlow(messages) { msg ->
+			decide(messages) { msg ->
 				fnc(msg)
 			}
 		}
 
-	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> initFlow(
+	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> decide(
 		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
@@ -45,10 +45,10 @@ ENTITY : WithS2State<STATE> {
 		}.also(publisher::publish)
 	}
 
-	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decideFlow(
+	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decide(
 		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
 	) : Decide<COMMAND, EVENT_OUT> = Decide { messages ->
-		transitionFlow(messages) { command, entity ->
+		decide(messages) { command, entity ->
 			fnc(command, entity)
 		}
 	}
@@ -56,7 +56,7 @@ ENTITY : WithS2State<STATE> {
 	suspend fun loadAll() = eventStore.loadAll()
 	suspend fun load(id: ID) = eventStore.load(id)
 
-	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> transitionFlow(
+	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> decide(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
