@@ -41,7 +41,7 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createInitFlow(
+	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> create(
 		commands: Flow<COMMAND>,
 		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT> {
@@ -55,7 +55,7 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
+	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT> {

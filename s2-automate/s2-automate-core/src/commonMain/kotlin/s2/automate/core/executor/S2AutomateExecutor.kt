@@ -11,10 +11,11 @@ interface S2AutomateExecutor<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
 	suspend fun <ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> create(
-		command: S2InitCommand, decide: suspend () -> Pair<ENTITY_OUT, EVENT_OUT>
+		command: S2InitCommand,
+		decide: suspend () -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Pair<ENTITY_OUT, EVENT_OUT>
 
-	suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
+	suspend fun <COMMAND: S2Command<ID>, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
 		command: COMMAND,
 		exec: suspend ENTITY.() -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Pair<ENTITY_OUT, EVENT_OUT>

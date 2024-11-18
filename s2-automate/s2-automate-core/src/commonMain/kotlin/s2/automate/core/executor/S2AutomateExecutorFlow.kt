@@ -11,13 +11,12 @@ import s2.dsl.automate.model.WithS2State
 interface S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
-
-	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> createInitFlow(
+	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> create(
 		commands: Flow<COMMAND>,
 		decide: suspend (cmd: COMMAND) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT>
 
-	suspend fun <COMMAND:S2Command<ID>, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransitionFlow(
+	suspend fun <COMMAND: S2Command<ID>, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> doTransition(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY_OUT, EVENT_OUT>
 	): Flow<EVENT_OUT>

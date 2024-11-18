@@ -19,7 +19,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
     private val automateExecutorFlow: S2AutomateExecutorFlow<STATE, ENTITY, ID, Evt>,
     private val publisher: AppEventPublisher
 ) :
-    S2AutomateStoringExecutor<STATE, ID, ENTITY, Evt>,
+    S2AutomateStoringEvolverOld<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
@@ -28,7 +28,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
         buildEvent: suspend ENTITY.() -> EVENT_OUT,
         buildEntity: suspend () -> ENTITY,
     ): EVENT_OUT {
-        val event = automateExecutorFlow.createInitFlow(flowOf(command)) {
+        val event = automateExecutorFlow.create(flowOf(command)) {
             val entity = buildEntity()
             val event = buildEvent(entity)
             entity to event
@@ -41,7 +41,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
         command: S2InitCommand,
         build: suspend () -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
-        val domainEvent = automateExecutorFlow.createInitFlow(flowOf(command)) { _: S2InitCommand ->
+        val domainEvent = automateExecutorFlow.create(flowOf(command)) { _: S2InitCommand ->
             build()
         }.first()
         publisher.publish(domainEvent)
@@ -52,7 +52,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
         command: S2Command<ID>,
         exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
-        val event = automateExecutorFlow.doTransitionFlow(flowOf(command)) { _, entity ->
+        val event = automateExecutorFlow.doTransition(flowOf(command)) { _, entity ->
             entity.exec()
         }.first()
         publisher.publish(event)
@@ -63,7 +63,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutorFlow.createInitFlow(commands, build).onEach { event ->
+        return automateExecutorFlow.create(commands, build).onEach { event ->
             publisher.publish(event)
         }
     }
@@ -72,7 +72,7 @@ open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutorFlow.doTransitionFlow(commands, exec).onEach {
+        return automateExecutorFlow.doTransition(commands, exec).onEach {
             publisher.publish(it)
         }
     }

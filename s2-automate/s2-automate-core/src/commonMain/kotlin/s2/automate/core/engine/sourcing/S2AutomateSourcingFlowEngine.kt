@@ -38,7 +38,7 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.createInitFlow(commands) { cmd ->
+		return automateExecutor.create(commands) { cmd ->
 			val event = buildEvent(cmd)
 			val entity = projectionLoader.evolve(flowOf(event))!!
 			entity to event
@@ -60,7 +60,7 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransitionFlow(commands) { command, entity ->
+		return automateExecutor.doTransition(commands) { command, entity ->
 			val event = exec(command, entity)
 			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
 			entityUpdated to event

@@ -5,7 +5,7 @@ import s2.automate.core.executor.S2AutomateExecutorFlowImpl
 import s2.automate.core.executor.S2AutomateExecutorImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.storing.S2AutomateStoringEngine
-import s2.automate.core.engine.storing.S2AutomateStoringExecutor
+import s2.automate.core.engine.storing.S2AutomateStoringEvolverOld
 import s2.automate.core.engine.storing.S2AutomateStoringEvolver
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
@@ -23,7 +23,7 @@ import s2.sourcing.dsl.Decide
  * @param ENTITY The entity type.
  */
 open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
-    S2AutomateStoringExecutor<STATE, ID, ENTITY, Evt>,
+    S2AutomateStoringEvolverOld<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
