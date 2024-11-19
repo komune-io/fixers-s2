@@ -7,7 +7,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
-@JsName("S2AutomateExecutorFlow")
+@JsName("S2AutomateEngine")
 interface S2AutomateEngine<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {

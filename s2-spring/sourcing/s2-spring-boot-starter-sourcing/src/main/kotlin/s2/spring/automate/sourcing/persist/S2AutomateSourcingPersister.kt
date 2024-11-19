@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.map
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -17,11 +17,11 @@ import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 import s2.automate.core.storing.snap.SnapPersister
 
-class S2AutomateSourcingPersisterFlow<STATE, ID, ENTITY, EVENT>(
+class S2AutomateSourcingPersister<STATE, ID, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
     private val eventStore: EventRepository<EVENT, ID>,
     private val snapPersister: SnapPersister<STATE, ID, ENTITY, EVENT>,
-) : AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate> where
+) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
@@ -39,29 +39,26 @@ EVENT: WithS2Id<ID> {
         }
     }
 
-    override suspend fun persistInitFlow(
+    override suspend fun persistInit(
         transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
         return transitionContexts.map {
             it.event
-        }.let {
-            persist(it)
-        }.map { it.second }
+        }.persistEvent().map { it.second }
     }
 
-    override suspend fun persistFlow(
+    override suspend fun persist(
         transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
         return transitionContexts.map {
             it.event
-        }.let {
-            persist(it)
-        }.map { it.second }
+        }.persistEvent()
+            .map { it.second }
     }
 
-    private suspend fun persist(events: Flow<EVENT>): Flow<Pair<ENTITY, EVENT>> {
+    private suspend fun Flow<EVENT>.persistEvent(): Flow<Pair<ENTITY, EVENT>> {
         return eventStore
-            .persistFlow(events)
+            .persist(this)
             .map { event ->
                 snapPersister.persist(event)
             }

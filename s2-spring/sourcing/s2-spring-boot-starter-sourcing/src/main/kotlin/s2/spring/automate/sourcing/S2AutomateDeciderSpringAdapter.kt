@@ -26,7 +26,7 @@ import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
 import s2.automate.core.storing.snap.RetryTaskChannel
 import s2.automate.core.storing.snap.SnapPersister
-import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersisterFlow
+import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
 import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
@@ -68,7 +68,7 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 		return S2AutomateEngineImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
-			persister = S2AutomateSourcingPersisterFlow(
+			persister = S2AutomateSourcingPersister(
 				projectionLoader = projectionBuilder,
 				eventStore = eventStore,
 				snapPersister = snapPersister,

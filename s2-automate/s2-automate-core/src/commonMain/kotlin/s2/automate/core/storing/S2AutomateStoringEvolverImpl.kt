@@ -15,8 +15,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Decide
 
 open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
-//    private val automateExecutor: S2AutomateExecutor<STATE, ENTITY, ID, Evt>,
-    private val automateExecutorFlow: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
+    private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
     private val publisher: AppEventPublisher
 ) :
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
@@ -28,7 +27,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         buildEvent: suspend ENTITY.() -> EVENT_OUT,
         buildEntity: suspend () -> ENTITY,
     ): EVENT_OUT {
-        val event = automateExecutorFlow.create(flowOf(command)) {
+        val event = automateExecutor.create(flowOf(command)) {
             val entity = buildEntity()
             val event = buildEvent(entity)
             entity to event
@@ -41,7 +40,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         command: S2InitCommand,
         build: suspend () -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
-        val domainEvent = automateExecutorFlow.create(flowOf(command)) { _: S2InitCommand ->
+        val domainEvent = automateExecutor.create(flowOf(command)) { _: S2InitCommand ->
             build()
         }.first()
         publisher.publish(domainEvent)
@@ -52,7 +51,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         command: S2Command<ID>,
         exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
-        val event = automateExecutorFlow.doTransition(flowOf(command)) { _, entity ->
+        val event = automateExecutor.doTransition(flowOf(command)) { _, entity ->
             entity.exec()
         }.first()
         publisher.publish(event)
@@ -63,7 +62,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutorFlow.create(commands, build).onEach { event ->
+        return automateExecutor.create(commands, build).onEach { event ->
             publisher.publish(event)
         }
     }
@@ -72,7 +71,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutorFlow.doTransition(commands, exec).onEach {
+        return automateExecutor.doTransition(commands, exec).onEach {
             publisher.publish(it)
         }
     }

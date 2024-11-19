@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -44,7 +44,7 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	lateinit var objectMapper: ObjectMapper
 
-	override fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate> = runBlocking {
+	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> = runBlocking {
 		val automate = automate()
 		val signer = signerAgent()
 		val chaincodeUri = chaincodeUri()

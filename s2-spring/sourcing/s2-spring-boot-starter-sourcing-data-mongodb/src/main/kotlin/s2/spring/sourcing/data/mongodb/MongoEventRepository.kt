@@ -30,7 +30,7 @@ EVENT: WithS2Id<ID>
 	}
 
 	@OptIn(InternalSerializationApi::class)
-	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> {
+	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
 		val toSave: Flow<EventSourcing<ID>>  = events.map { event ->
 			val encoded: String=  json.encodeToString(eventType.serializer(), event)
 			EventSourcing(

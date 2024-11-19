@@ -36,7 +36,7 @@ internal class OrderBookStoringDeciderEventImplTest: SpringTestBase() {
 			 .invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBookAfterUpdate"))
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
 		orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
-		val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepositoryFlow()
+		val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 		val entity = ssmAutomatePersister.load(AutomateContext(automate = orderBookAutomate("storing-test-1")), event.id)
 		assertThat(entity?.name).isEqualTo("TheNewOrderBookAfterUpdate")
 		assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
@@ -60,7 +60,7 @@ internal class OrderBookStoringDeciderEventImplTest: SpringTestBase() {
 		}.let {
 			orderBookDeciderImpl.orderBookCloseDecider().invoke(it)
 		}.map { event ->
-			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepositoryFlow()
+			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 			val entity = ssmAutomatePersister.load(AutomateContext(automate = orderBookAutomate("storing-test-2")), event.id)
 			assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
 		}
@@ -85,7 +85,7 @@ internal class OrderBookStoringDeciderEventImplTest: SpringTestBase() {
 		}.let {
 			orderBookDeciderImpl.orderBookCloseDecider().invoke(it)
 		}.toList().forEach { event ->
-			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepositoryFlow()
+			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 			val entity = ssmAutomatePersister.load(AutomateContext(automate = orderBookAutomate("storing-test-3")), event.id)
 			assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
 			assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
@@ -105,7 +105,7 @@ internal class OrderBookStoringDeciderEventImplTest: SpringTestBase() {
 		val events = orderBookDeciderImpl.orderBookCreateDecider().invoke(all).toList()
 		assertThat(events).hasSize(5)
 		events.forEach { event ->
-			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepositoryFlow()
+			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 			val entity = ssmAutomatePersister.load(AutomateContext(automate = orderBookAutomate("storing-test-4")), event.id)
 			assertThat(entity?.name).startsWith("TheNewOrderBook")
 			assertThat(entity?.status).isEqualTo(OrderBookState.Created)

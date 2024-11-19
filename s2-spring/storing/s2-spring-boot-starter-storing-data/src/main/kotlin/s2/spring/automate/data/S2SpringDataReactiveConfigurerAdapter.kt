@@ -1,7 +1,7 @@
 package s2.spring.automate.data
 
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -19,7 +19,7 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-	override fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate> {
+	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
 		return SpringDataAutomateReactivePersisterFlow(
 			aggregateRepository
 		)

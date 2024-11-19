@@ -8,7 +8,7 @@ import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.GuardAdapter
 import s2.automate.core.guard.GuardVerifierImpl
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -30,7 +30,7 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
-		val persister = aggregateRepositoryFlow()
+		val persister = aggregateRepository()
 		return S2AutomateEngineImpl(automateContext, guardExecutor, persister, publisher)
 	}
 
@@ -59,8 +59,7 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		agg.withContext(automateExecutorFlow, eventPublisher)
 	}
 
-//	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
-	abstract fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate>
+	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
 	abstract fun automate(): S2Automate
 	abstract fun executor(): EXECUTER
 }

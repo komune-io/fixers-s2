@@ -10,7 +10,7 @@ import org.springframework.data.repository.CrudRepository
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
@@ -18,7 +18,7 @@ import s2.dsl.automate.model.WithS2State
 
 class SpringDataAutomatePersisterFlow<STATE, ID, ENTITY, EVENT>(
 	private val repository: CrudRepository<ENTITY, ID>,
-) : AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate> where
+) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
@@ -31,7 +31,7 @@ ENTITY : WithS2Id<ID> {
 		return repository.findAllById(ids.toList()).asFlow()
 	}
 
-	override suspend fun persistInitFlow(
+	override suspend fun persistInit(
 		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return transitionContext.map {
@@ -40,7 +40,7 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	override suspend fun persistFlow(
+	override suspend fun persist(
 		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		val eventsFlow: Flow<EVENT> = transitionContext.map { it.event }

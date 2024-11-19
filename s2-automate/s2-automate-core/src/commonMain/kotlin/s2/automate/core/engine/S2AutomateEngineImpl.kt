@@ -23,7 +23,7 @@ import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
 import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
-import s2.automate.core.persist.AutomatePersisterFlow
+import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -34,7 +34,7 @@ import s2.dsl.automate.model.WithS2State
 open class S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
 	private val guardExecutor: GuardVerifier<STATE, ID, ENTITY, EVENT, S2Automate>,
-	private val persister: AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate>,
+	private val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>
 ) : S2AutomateEngine<STATE, ENTITY, ID, EVENT> where
 STATE : S2State,
@@ -49,7 +49,7 @@ ENTITY : WithS2Id<ID> {
 			prepareCreationContext(decide, command)
 		}.let { persistContext ->
 			@Suppress("UNCHECKED_CAST")
-			persistInitFlow(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
+			persistInit(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
 		}.map {
 			it as EVENT_OUT
 		}
@@ -79,7 +79,7 @@ ENTITY : WithS2Id<ID> {
 
 		val transitionContextFlow = transitionContexts.asFlow()
 
-		val persistedEvents = persistFlow(transitionContextFlow)
+		val persistedEvents = persist(transitionContextFlow)
 
 		return persistedEvents.map { event ->
 			val context = transitionContexts.find { it.event == event }!!
@@ -89,24 +89,24 @@ ENTITY : WithS2Id<ID> {
 	}
 
 
-	private suspend fun persistInitFlow(
+	private suspend fun persistInit(
 		contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return contexts.map {
 			guardExecutor.verifyInitTransition(it)
 			it
 		}.let {
-			persister.persistInitFlow(it)
+			persister.persistInit(it)
 		}
 	}
 
-	private suspend fun persistFlow(
+	private suspend fun persist(
 		contexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return contexts.map {
 			guardExecutor.verifyTransition(it)
 		}.let {
-			persister.persistFlow(it)
+			persister.persist(it)
 		}
 	}
 

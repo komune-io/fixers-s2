@@ -44,7 +44,11 @@ ENTITY : WithS2State<STATE> {
 
 	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> init(
 		fnc: suspend (t: COMMAND) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = engine.init(fnc)
+	): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
+
+	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
+		fnc: suspend (t: COMMAND) -> EVENT_OUT
+	): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
 	fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(
 		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
