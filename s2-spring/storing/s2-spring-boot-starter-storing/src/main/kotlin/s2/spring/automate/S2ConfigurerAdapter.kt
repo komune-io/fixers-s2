@@ -3,13 +3,6 @@ package s2.spring.automate
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.engine.S2AutomateEngineImpl
-import s2.automate.core.guard.TransitionStateGuard
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.context.AutomateContext
-import s2.automate.core.guard.Guard
-import s2.automate.core.guard.GuardAdapter
-import s2.automate.core.guard.GuardVerifier
-import s2.automate.core.guard.GuardVerifierImpl
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -26,6 +19,7 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
+
 
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher

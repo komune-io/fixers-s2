@@ -1,16 +1,8 @@
 package s2.spring.core
 
-import java.util.UUID
-import kotlin.reflect.KClass
-import org.springframework.beans.factory.InitializingBean
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.context.ApplicationContext
-import org.springframework.context.ApplicationContextAware
-import org.springframework.context.support.GenericApplicationContext
 import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
-import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
@@ -21,7 +13,7 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.spring.core.publisher.SpringEventPublisher
 
-abstract class S2SpringAdapterBase<ENTITY, STATE, EVENT, ID>: InitializingBean, ApplicationContextAware where
+abstract class S2SpringAdapterBase<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
