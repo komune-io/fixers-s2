@@ -1,7 +1,6 @@
 package s2.spring.automate.data
 
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
-import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -9,7 +8,6 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.spring.automate.S2ConfigurerAdapter
-import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersister
 import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 

@@ -13,7 +13,6 @@ import s2.dsl.automate.model.WithS2State
 import s2.dsl.automate.ssm.toSsm
 import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.executor.S2AutomateExecutorSpring
-import s2.spring.automate.ssm.persister.SsmAutomatePersister
 import s2.spring.automate.ssm.persister.SsmAutomatePersisterFlow
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri

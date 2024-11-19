@@ -46,7 +46,7 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	private val logger = LoggerFactory.getLogger(SsmAutomatePersister::class.java)
+	private val logger = LoggerFactory.getLogger(SsmAutomatePersisterFlow::class.java)
 
 	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
 		return load(automateContexts, flowOf(id)).firstOrNull()
