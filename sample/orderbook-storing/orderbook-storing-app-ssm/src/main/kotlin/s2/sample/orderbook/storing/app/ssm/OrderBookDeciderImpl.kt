@@ -1,9 +1,6 @@
 package s2.sample.orderbook.storing.app.ssm
 
-import f2.dsl.fnc.F2Function
-import f2.dsl.fnc.f2Function
 import java.util.UUID
-import kotlinx.coroutines.flow.map
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookS2Aggregate
@@ -24,53 +21,46 @@ import s2.sample.subautomate.domain.orderBook.OrderBookUpdatedEvent
 
 @Service
 class OrderBookDeciderImpl(
-	private val aggregate: OrderBookS2Aggregate
+    private val aggregate: OrderBookS2Aggregate
 ) : OrderBookDecider {
 
-	@Bean
-	override fun orderBookCreateDecider()
-		: OrderBookDecide<OrderBookCreateCommand, OrderBookCreatedEvent> = F2Function { msg ->
-		aggregate.createWithEventFlow(msg) { cmd ->
-			val id = UUID.randomUUID().toString()
-			OrderBook(
-				id = id,
-				name = cmd.name,
-				status = OrderBookState.Created
-			) to OrderBookCreatedEvent(id = id, name = cmd.name, state = OrderBookState.Created)
-		}
-	}
+    @Bean
+    override fun orderBookCreateDecider(): OrderBookDecide<OrderBookCreateCommand, OrderBookCreatedEvent> =
+        aggregate.evolve { cmd ->
+            val id = UUID.randomUUID().toString()
+            OrderBook(
+                id = id,
+                name = cmd.name,
+                status = OrderBookState.Created
+            ) to OrderBookCreatedEvent(id = id, name = cmd.name, state = OrderBookState.Created)
+        }
 
-	@Bean
-	override fun orderBookUpdateDecider()
-		: OrderBookDecide<OrderBookUpdateCommand, OrderBookUpdatedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
-			val ent = OrderBook.name.set(entity, cmd.name)
-			val event =	OrderBookUpdatedEvent(id = cmd.id, name = cmd.name, state = OrderBookState.Created)
-			ent to event
-		}
-	}
+    @Bean
+    override fun orderBookUpdateDecider(): OrderBookDecide<OrderBookUpdateCommand, OrderBookUpdatedEvent> =
+        aggregate.evolve { cmd, entity ->
+            val ent = OrderBook.name.set(entity, cmd.name)
+            val event = OrderBookUpdatedEvent(id = cmd.id, name = cmd.name, state = OrderBookState.Created)
+            ent to event
+        }
 
-	@Bean
-	override fun orderBookPublishDecider()
-		: OrderBookDecide<OrderBookPublishCommand, OrderBookPublishedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
-			OrderBook.status.set(entity, OrderBookState.Published) to OrderBookPublishedEvent(
-				id = cmd.id,
-				state = OrderBookState.Published
-			)
-		}
-	}
+    @Bean
+    override fun orderBookPublishDecider(): OrderBookDecide<OrderBookPublishCommand, OrderBookPublishedEvent> =
+        aggregate.evolve { cmd, entity ->
+            OrderBook.status.set(entity, OrderBookState.Published) to OrderBookPublishedEvent(
+                id = cmd.id,
+                state = OrderBookState.Published
+            )
+        }
 
-	@Bean
-	override fun orderBookCloseDecider()
-		: OrderBookDecide<OrderBookCloseCommand, OrderBookClosedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
-			OrderBook.status.set(entity, OrderBookState.Closed) to
-				OrderBookClosedEvent(
-					id = cmd.id,
-					state = OrderBookState.Closed
-				)
-		}
-	}
+    @Bean
+    override fun orderBookCloseDecider(): OrderBookDecide<OrderBookCloseCommand, OrderBookClosedEvent> =
+        aggregate.evolve { cmd, entity ->
+            OrderBook.status.set(entity, OrderBookState.Closed) to
+                    OrderBookClosedEvent(
+                        id = cmd.id,
+                        state = OrderBookState.Closed
+                    )
+        }
+
 }
 

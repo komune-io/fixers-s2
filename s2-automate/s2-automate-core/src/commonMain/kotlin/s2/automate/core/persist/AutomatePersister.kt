@@ -12,16 +12,16 @@ interface AutomatePersister<STATE, ID, ENTITY, EVENT, AUTOMATE> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
-	suspend fun persist(transitionContext: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>): ENTITY
-	suspend fun persist(transitionContext: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>): ENTITY
 
-	suspend fun persistInitFlow(
+	suspend fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
-	suspend fun persistFlow(
+	suspend fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
-	suspend fun load(automateContext: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
+
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
 }

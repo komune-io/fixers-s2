@@ -8,7 +8,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.spring.automate.S2ConfigurerAdapter
-import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersister
+import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID, ENTITY, EVENT, AGGREGATE>(
@@ -21,7 +21,7 @@ ENTITY : WithS2Id<ID>,
 AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
 	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
-		return SpringDataAutomateCoroutinePersister(
+		return SpringDataAutomateCoroutinePersisterFlow(
 			aggregateRepository
 		)
 	}

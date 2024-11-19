@@ -5,6 +5,7 @@ pluginManagement {
 		gradlePluginPortal()
 		mavenCentral()
 		maven { url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots") }
+		mavenLocal()
 	}
 }
 
@@ -19,6 +20,10 @@ include(
 )
 include(
 	"s2-test:s2-test-bdd",
+)
+
+include(
+	"s2-spring:s2-spring-core"
 )
 
 include(

@@ -1,12 +1,12 @@
 package s2.bdd.data
 
+import java.nio.file.Path
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.codec.multipart.FilePart
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.nio.file.Path
 
 class StubFilePart(
     val name: String

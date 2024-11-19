@@ -2,7 +2,6 @@ package s2.dsl.automate
 
 import kotlin.js.JsExport
 import kotlin.js.JsName
-import kotlin.jvm.JvmInline
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
 

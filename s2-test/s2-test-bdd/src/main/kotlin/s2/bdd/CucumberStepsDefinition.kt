@@ -4,6 +4,7 @@ import f2.dsl.cqrs.exception.F2Exception
 import io.cucumber.core.backend.CucumberInvocationTargetException
 import io.cucumber.datatable.CucumberDataTableException
 import io.komune.f2.spring.boot.auth.config.WebSecurityConfig
+import java.util.UUID
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -19,7 +20,6 @@ import reactor.core.publisher.Mono
 import reactor.util.context.Context
 import s2.automate.core.error.AutomateException
 import s2.bdd.data.TestContext
-import java.util.UUID
 
 abstract class CucumberStepsDefinition {
     protected abstract val context: TestContext

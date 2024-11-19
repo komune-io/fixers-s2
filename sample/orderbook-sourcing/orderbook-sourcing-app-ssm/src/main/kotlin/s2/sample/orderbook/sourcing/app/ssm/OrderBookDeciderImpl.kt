@@ -23,13 +23,13 @@ class OrderBookDeciderImpl(
 
 	@Bean
 	override fun orderBookCreateDecider(): OrderBookDecide<OrderBookCreateCommand, OrderBookCreatedEvent> =
-		aggregate.initDecide { cmd ->
+		aggregate.decide { cmd ->
 			OrderBookCreatedEvent(id = UUID.randomUUID().toString(), name = cmd.name, state = OrderBookState.Created)
 		}
 
 	@Bean
 	override fun orderBookUpdateDecider(): OrderBookDecide<OrderBookUpdateCommand, OrderBookUpdatedEvent> =
-		aggregate.decideFlow { cmd, _ ->
+		aggregate.decide { cmd, _ ->
 			OrderBookUpdatedEvent(id = cmd.id, name = cmd.name, state = OrderBookState.Created)
 		}
 

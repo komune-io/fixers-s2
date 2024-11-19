@@ -66,7 +66,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
 		orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
 		val events = eventStore.load(event.id).toList()
-		Assertions.assertThat(events.toList()).hasSize(4)
+		assertThat(events.toList()).hasSize(4)
 	}
 	@Test
 	fun `should create flow(24-6) of order book`(): Unit = runTest {
@@ -145,12 +145,12 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 		)
 
 		val events = create.invoke(all).toList()
-		Assertions.assertThat(events).hasSize(5)
+		assertThat(events).hasSize(5)
 		events.map { event ->
-			val event = eventStore.load(event.id)
-			val entity = builder.load(event)
-			Assertions.assertThat(entity?.name).startsWith("TheNewOrderBook")
-			Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Created)
+			val loadedEvent = eventStore.load(event.id)
+			val entity = builder.load(loadedEvent)
+			assertThat(entity?.name).startsWith("TheNewOrderBook")
+			assertThat(entity?.status).isEqualTo(OrderBookState.Created)
 		}
 //		val events = eventStore.load(event.id)
 

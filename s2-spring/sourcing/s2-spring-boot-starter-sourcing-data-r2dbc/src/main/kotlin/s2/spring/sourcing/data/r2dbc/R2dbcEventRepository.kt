@@ -53,7 +53,7 @@ EVENT: WithS2Id<ID>
 	}
 
 	@OptIn(InternalSerializationApi::class)
-	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> {
+	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
 		return events.map { event ->
 			val encoded =  json.encodeToString(eventType.serializer(), event)
 			r2dbcEntityTemplate.insert(EventSourcing::class.java)

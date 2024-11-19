@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {DidHttpClientContext} from "./DidClientContext"
-import {city, DidAggregateJsClient, didClient} from "fixers-did-domain";
+import {DidAggregateJsClient, didClient} from "fixers-did-domain";
 
 interface Props {
     children: JSX.Element

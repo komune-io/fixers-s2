@@ -183,18 +183,8 @@ class DidRevokedPublicKeyEvent(
 
 #### State Storing
 
-* Spring Data
-  TODO
-* Ssm
-  TODO
-
-
-
 #### Event sourcing
-* Spring Data
-  TODO
-* Ssm
-  TODO
+
 
 ## Concept
 

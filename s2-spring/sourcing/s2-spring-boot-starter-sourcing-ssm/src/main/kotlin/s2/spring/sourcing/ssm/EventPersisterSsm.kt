@@ -74,7 +74,7 @@ EVENT: WithS2Id<ID>
 			.toEvents()
 	}
 
-	override suspend fun persistFlow(events: Flow<EVENT>): Flow<EVENT> = flow {
+	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> = flow {
 		val toCreate = mutableListOf<EVENT>()
 		val toUpdate = mutableListOf<EVENT>()
 		val processedIds = mutableSetOf<ID & Any>()

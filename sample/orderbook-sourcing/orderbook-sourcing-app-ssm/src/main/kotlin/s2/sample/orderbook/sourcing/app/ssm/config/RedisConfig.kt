@@ -21,9 +21,7 @@ class RedisConfig {
 	): ReactiveRedisTemplate<String, OrderBook> {
 		val keySerializer = StringRedisSerializer()
 
-		val valueSerializer = Jackson2JsonRedisSerializer(OrderBook::class.java).apply {
-			setObjectMapper(jacksonObjectMapper())
-		}
+		val valueSerializer = Jackson2JsonRedisSerializer(jacksonObjectMapper(), OrderBook::class.java)
 		val builder: RedisSerializationContextBuilder<String, OrderBook> =
 			RedisSerializationContext.newSerializationContext(keySerializer)
 		val context: RedisSerializationContext<String, OrderBook> = builder.value(valueSerializer).build()

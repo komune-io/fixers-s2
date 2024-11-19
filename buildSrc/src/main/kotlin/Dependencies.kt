@@ -36,13 +36,13 @@ fun RepositoryHandler.defaultRepo() {
 	mavenCentral()
 	maven { url = URI("https://s01.oss.sonatype.org/content/repositories/snapshots") }
 	maven { url = URI("https://repo.spring.io/milestone") }
+	mavenLocal()
 }
 
 object Dependencies {
 	fun kserializationJson(scope: Scope) = FixersDependencies.Jvm.Json.kSerialization(scope)
 
 	object Fixers {
-
 		fun f2Http(scope: Scope) = scope.add(
 			"io.komune.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
 		)fun f2Auth(scope: Scope) = scope.add(

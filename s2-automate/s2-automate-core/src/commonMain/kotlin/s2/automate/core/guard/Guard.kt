@@ -4,6 +4,7 @@ import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
+import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
@@ -27,7 +28,9 @@ ENTITY : WithS2Id<ID> {
 	 * @param context the state context transaction
 	 * @return true, if guard evaluation is successful, false otherwise.
 	 */
-	suspend fun evaluateTransition(context: TransitionContext<STATE, ID, ENTITY, AUTOMATE>): GuardResult
+	suspend fun <COMMAND: Cmd> evaluateTransition(
+		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
+	): GuardResult
 
 	/**
 	 * Verify a guard condition after init transition has been applied.

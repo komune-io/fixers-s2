@@ -1,12 +1,8 @@
 package s2.sample.orderbook.storing.app.ssm
 
 import f2.dsl.fnc.F2Function
-import f2.dsl.fnc.f2Function
 import java.util.UUID
-import kotlinx.coroutines.flow.map
-import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
-import s2.sample.orderbook.storing.app.ssm.config.OrderBookS2Aggregate
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookS2EventAggregate
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.model.OrderBook
@@ -30,7 +26,7 @@ class OrderBookDeciderEventImpl(
 
 	override fun orderBookCreateDecider()
 		: OrderBookDecide<OrderBookCreateCommand, OrderBookCreatedEvent> = F2Function { msg ->
-		aggregate.createWithEventFlow(msg) { cmd ->
+		aggregate.evolve(msg) { cmd ->
 			val id = UUID.randomUUID().toString()
 			OrderBook(
 				id = id,
@@ -42,7 +38,7 @@ class OrderBookDeciderEventImpl(
 
 	override fun orderBookUpdateDecider()
 		: OrderBookDecide<OrderBookUpdateCommand, OrderBookUpdatedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
+		aggregate.evolve(msg) { cmd, entity ->
 			val ent = OrderBook.name.set(entity, cmd.name)
 			val event =	OrderBookUpdatedEvent(id = cmd.id, name = cmd.name, state = OrderBookState.Created)
 			ent to event
@@ -51,7 +47,7 @@ class OrderBookDeciderEventImpl(
 
 	override fun orderBookPublishDecider()
 		: OrderBookDecide<OrderBookPublishCommand, OrderBookPublishedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
+		aggregate.evolve(msg) { cmd, entity ->
 			OrderBook.status.set(entity, OrderBookState.Published) to OrderBookPublishedEvent(
 				id = cmd.id,
 				state = OrderBookState.Published
@@ -61,7 +57,7 @@ class OrderBookDeciderEventImpl(
 
 	override fun orderBookCloseDecider()
 		: OrderBookDecide<OrderBookCloseCommand, OrderBookClosedEvent> = F2Function { msg ->
-		aggregate.doTransitionFlow(msg) { cmd, entity ->
+		aggregate.evolve(msg) { cmd, entity ->
 			OrderBook.status.set(entity, OrderBookState.Closed) to
 				OrderBookClosedEvent(
 					id = cmd.id,
