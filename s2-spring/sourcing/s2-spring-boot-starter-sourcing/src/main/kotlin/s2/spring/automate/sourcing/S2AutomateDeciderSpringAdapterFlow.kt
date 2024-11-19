@@ -7,12 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
-import s2.automate.core.executor.S2AutomateExecutorFlowImpl
+import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.Guard
-import s2.automate.core.guard.GuardExecutorImpl
+import s2.automate.core.guard.GuardVerifierImpl
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -25,8 +25,8 @@ import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
 import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersisterFlow
-import s2.automate.core.snap.RetryTaskChannel
-import s2.automate.core.snap.SnapPersister
+import s2.automate.core.storing.snap.RetryTaskChannel
+import s2.automate.core.storing.snap.SnapPersister
 import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapterFlow<ENTITY, STATE, EVENT, ID, EXECUTOR>(
@@ -56,7 +56,7 @@ EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 	open fun aggregate(
 		projectionBuilder: Loader<EVENT, ENTITY, ID>,
 		eventStore: EventRepository<EVENT, ID>,
-	): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT> {
+	): S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
@@ -65,7 +65,7 @@ EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 			snapRepository,
 			retryTaskChannel.takeIf { preventOptimisticLocking() }
 		)
-		return S2AutomateExecutorFlowImpl(
+		return S2AutomateEngineImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
 			persister = S2AutomateSourcingPersisterFlow(
@@ -83,8 +83,8 @@ EXECUTOR : S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> {
 
 	protected open fun guardExecutor(
 		automateAppEventPublisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
-	): GuardExecutorImpl<STATE, ID, ENTITY, EVENT, S2Automate> {
-		return GuardExecutorImpl(
+	): GuardVerifierImpl<STATE, ID, ENTITY, EVENT, S2Automate> {
+		return GuardVerifierImpl(
 			guards = guards(),
 			publisher = automateAppEventPublisher
 		)

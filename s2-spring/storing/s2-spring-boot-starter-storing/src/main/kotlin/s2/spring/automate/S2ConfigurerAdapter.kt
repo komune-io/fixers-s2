@@ -2,12 +2,12 @@ package s2.spring.automate
 
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
-import s2.automate.core.executor.S2AutomateExecutorFlowImpl
+import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.GuardAdapter
-import s2.automate.core.guard.GuardExecutorImpl
+import s2.automate.core.guard.GuardVerifierImpl
 import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -26,20 +26,20 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher
 
-	open fun aggregateFlow(): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt> {
+	open fun aggregateFlow(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
 		val persister = aggregateRepositoryFlow()
-		return S2AutomateExecutorFlowImpl(automateContext, guardExecutor, persister, publisher)
+		return S2AutomateEngineImpl(automateContext, guardExecutor, persister, publisher)
 	}
 
 	protected open fun automateContext() = AutomateContext(automate())
 
 	protected open fun guardExecutor(
 		automateAppEventPublisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
-	): GuardExecutorImpl<STATE, ID, ENTITY, Evt, S2Automate> {
-		return GuardExecutorImpl(
+	): GuardVerifierImpl<STATE, ID, ENTITY, Evt, S2Automate> {
+		return GuardVerifierImpl(
 			guards = guards(),
 			publisher = automateAppEventPublisher
 		)

@@ -1,6 +1,5 @@
 package s2.automate.core.guard
 
-import s2.automate.core.executor.GuardExecutor
 import s2.automate.core.appevent.AutomateTransitionNotAccepted
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -14,10 +13,10 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class GuardExecutorImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
+class GuardVerifierImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 	private val guards: List<Guard<STATE, ID, ENTITY, EVENT, AUTOMATE>>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, AUTOMATE>,
-): GuardExecutor<STATE, ID, ENTITY, EVENT, AUTOMATE> where
+): GuardVerifier<STATE, ID, ENTITY, EVENT, AUTOMATE> where
 	STATE : S2State,
 	ENTITY : WithS2State<STATE>,
 	ENTITY : WithS2Id<ID> {

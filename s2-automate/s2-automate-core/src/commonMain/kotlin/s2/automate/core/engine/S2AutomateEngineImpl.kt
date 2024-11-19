@@ -1,4 +1,4 @@
-package s2.automate.core.executor
+package s2.automate.core.engine
 
 import f2.dsl.cqrs.Message
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +22,7 @@ import s2.automate.core.error.AutomateException
 import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
 import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
-import s2.automate.core.guard.GuardExecutorImpl
+import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
@@ -31,12 +31,12 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-open class S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT>(
+open class S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
-	private val guardExecutor: GuardExecutor<STATE, ID, ENTITY, EVENT, S2Automate>,
+	private val guardExecutor: GuardVerifier<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val persister: AutomatePersisterFlow<STATE, ID, ENTITY, EVENT, S2Automate>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>
-) : S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
+) : S2AutomateEngine<STATE, ENTITY, ID, EVENT> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {

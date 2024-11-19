@@ -1,10 +1,10 @@
-package s2.automate.core.engine.sourcing
+package s2.automate.core.sourcing
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.executor.S2AutomateExecutorFlow
+import s2.automate.core.engine.S2AutomateEngine
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -15,12 +15,12 @@ import s2.sourcing.dsl.Decide
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
-open class S2AutomateSourcingEngine<STATE, ENTITY, ID, EVENT>(
-	private val automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
+open class S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID, EVENT>(
+	private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
 	private val publisher: AppEventPublisher,
 	private val projectionLoader: Loader<EVENT, ENTITY, ID>,
 	private val eventStore: EventRepository<EVENT, ID>
-) : S2AutomateDecider<ENTITY, STATE, EVENT, ID> where
+) : S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 EVENT : Evt,
 EVENT : WithS2Id<ID>,

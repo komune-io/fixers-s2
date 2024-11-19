@@ -1,4 +1,4 @@
-package s2.automate.core.executor
+package s2.automate.core.engine
 
 import kotlin.js.JsName
 import kotlinx.coroutines.flow.Flow
@@ -8,7 +8,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
 @JsName("S2AutomateExecutorFlow")
-interface S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT> where
+interface S2AutomateEngine<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
 	suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> create(

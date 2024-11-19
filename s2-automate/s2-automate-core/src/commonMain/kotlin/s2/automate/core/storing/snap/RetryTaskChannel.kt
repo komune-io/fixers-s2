@@ -1,4 +1,4 @@
-package s2.automate.core.snap
+package s2.automate.core.storing.snap
 
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass

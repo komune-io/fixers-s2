@@ -1,4 +1,4 @@
-package s2.automate.core.engine.sourcing
+package s2.automate.core.sourcing
 
 import kotlinx.coroutines.flow.Flow
 import s2.dsl.automate.Evt
@@ -8,7 +8,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Decide
 
-interface S2AutomateDeciderFlow<ENTITY : WithS2State<STATE>, STATE : S2State, EVENT: Evt, ID> {
+interface S2AutomateSourcingDeciderFlow<ENTITY : WithS2State<STATE>, STATE : S2State, EVENT: Evt, ID> {
 
 	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> decide(
 		commands: Flow<COMMAND>,

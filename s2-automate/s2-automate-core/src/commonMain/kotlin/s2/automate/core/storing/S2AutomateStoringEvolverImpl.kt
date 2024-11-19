@@ -1,10 +1,10 @@
-package s2.automate.core.engine.storing
+package s2.automate.core.storing
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onEach
-import s2.automate.core.executor.S2AutomateExecutorFlow
+import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
@@ -14,13 +14,13 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Decide
 
-open class S2AutomateStoringEngine<STATE, ENTITY, ID>(
+open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
 //    private val automateExecutor: S2AutomateExecutor<STATE, ENTITY, ID, Evt>,
-    private val automateExecutorFlow: S2AutomateExecutorFlow<STATE, ENTITY, ID, Evt>,
+    private val automateExecutorFlow: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
     private val publisher: AppEventPublisher
 ) :
-    S2AutomateStoringEvolverOld<STATE, ID, ENTITY, Evt>,
-    S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>
+    S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
+    S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
     override suspend fun <EVENT_OUT : Evt> createWithEvent(

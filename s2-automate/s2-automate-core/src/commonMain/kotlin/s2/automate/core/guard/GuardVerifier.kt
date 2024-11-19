@@ -1,4 +1,4 @@
-package s2.automate.core.executor
+package s2.automate.core.guard
 
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
@@ -9,7 +9,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-interface GuardExecutor<STATE, ID, ENTITY, EVENT, AUTOMATE> where
+interface GuardVerifier<STATE, ID, ENTITY, EVENT, AUTOMATE> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {

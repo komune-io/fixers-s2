@@ -1,11 +1,11 @@
 package s2.spring.automate.executor
 
 import kotlinx.coroutines.flow.Flow
-import s2.automate.core.executor.S2AutomateExecutorFlowImpl
+import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.engine.storing.S2AutomateStoringEngine
-import s2.automate.core.engine.storing.S2AutomateStoringEvolverOld
-import s2.automate.core.engine.storing.S2AutomateStoringEvolver
+import s2.automate.core.storing.S2AutomateStoringEvolverImpl
+import s2.automate.core.storing.S2AutomateStoringEvolver
+import s2.automate.core.storing.S2AutomateStoringEvolverFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -22,11 +22,11 @@ import s2.sourcing.dsl.Decide
  * @param ENTITY The entity type.
  */
 open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
-    S2AutomateStoringEvolverOld<STATE, ID, ENTITY, Evt>,
-    S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>
+    S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
+    S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
-    protected lateinit var engine: S2AutomateStoringEngine<STATE, ENTITY, ID>
+    protected lateinit var engine: S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>
 
     /**
      * Initializes the executor with the given context.
@@ -36,10 +36,10 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param publisher The event publisher.
      */
     fun withContext(
-        automateExecutorFlow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt>,
+        automateExecutorFlow: S2AutomateEngineImpl<STATE, ID, ENTITY, Evt>,
         publisher: AppEventPublisher
     ) {
-        this.engine = S2AutomateStoringEngine(automateExecutorFlow, publisher)
+        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, publisher)
     }
 
     /**

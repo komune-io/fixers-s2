@@ -1,4 +1,4 @@
-package s2.automate.core.snap
+package s2.automate.core.storing.snap
 
 import kotlinx.coroutines.flow.flowOf
 import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND

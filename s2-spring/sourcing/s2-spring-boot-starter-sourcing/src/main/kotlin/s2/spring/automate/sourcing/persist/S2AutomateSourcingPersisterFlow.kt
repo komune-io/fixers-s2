@@ -15,7 +15,7 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
-import s2.automate.core.snap.SnapPersister
+import s2.automate.core.storing.snap.SnapPersister
 
 class S2AutomateSourcingPersisterFlow<STATE, ID, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,

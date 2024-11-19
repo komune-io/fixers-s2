@@ -2,9 +2,9 @@ package s2.spring.automate.sourcing
 
 import kotlinx.coroutines.flow.Flow
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.engine.sourcing.S2AutomateDeciderFlow
-import s2.automate.core.engine.sourcing.S2AutomateSourcingFlowEngine
-import s2.automate.core.executor.S2AutomateExecutorFlow
+import s2.automate.core.sourcing.S2AutomateSourcingDeciderFlow
+import s2.automate.core.sourcing.S2AutomateSourcingDeciderFlowImpl
+import s2.automate.core.engine.S2AutomateEngine
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -15,22 +15,23 @@ import s2.sourcing.dsl.Decide
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
-open class S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID> : S2AutomateDeciderFlow<ENTITY, STATE, EVENT, ID> where
+open class S2AutomateDeciderSpringFlow<ENTITY, STATE, EVENT, ID>
+    : S2AutomateSourcingDeciderFlow<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 EVENT : Evt,
 EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
-    private lateinit var engine: S2AutomateSourcingFlowEngine<STATE, ENTITY, ID, EVENT>
+    private lateinit var engine: S2AutomateSourcingDeciderFlowImpl<STATE, ENTITY, ID, EVENT>
 
     internal fun withContext(
-        automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
+        automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
         publisher: AppEventPublisher,
         projectionLoader: Loader<EVENT, ENTITY, ID>,
         eventStore: EventRepository<EVENT, ID>
     ) {
-        this.engine = S2AutomateSourcingFlowEngine(automateExecutor, publisher, projectionLoader, eventStore)
+        this.engine = S2AutomateSourcingDeciderFlowImpl(automateExecutor, publisher, projectionLoader, eventStore)
     }
 
     override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : EVENT> decide(
