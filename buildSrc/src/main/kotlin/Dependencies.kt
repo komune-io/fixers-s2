@@ -36,6 +36,7 @@ fun RepositoryHandler.defaultRepo() {
 	mavenCentral()
 	maven { url = URI("https://s01.oss.sonatype.org/content/repositories/snapshots") }
 	maven { url = URI("https://repo.spring.io/milestone") }
+	mavenLocal()
 }
 
 object Dependencies {
