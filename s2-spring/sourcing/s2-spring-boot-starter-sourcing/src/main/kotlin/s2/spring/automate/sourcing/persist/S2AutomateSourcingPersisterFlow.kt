@@ -1,6 +1,8 @@
 package s2.spring.automate.sourcing.persist
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -25,6 +27,10 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
+
+    override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
+        return load(automateContexts, flowOf(id)).firstOrNull()
+    }
 
     override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
         // TODO Fix to do here
@@ -60,4 +66,5 @@ EVENT: WithS2Id<ID> {
                 snapPersister.persist(event)
             }
     }
+
 }

@@ -1,9 +1,9 @@
 package s2.spring.automate.sourcing
 
-import s2.automate.core.executor.S2AutomateExecutor
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.sourcing.S2AutomateDecider
 import s2.automate.core.engine.sourcing.S2AutomateSourcingEngine
+import s2.automate.core.executor.S2AutomateExecutorFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -24,7 +24,7 @@ ENTITY : WithS2State<STATE> {
 	private lateinit var engine: S2AutomateSourcingEngine<STATE, ENTITY, ID, EVENT>
 
 	internal fun withContext(
-		automateExecutor: S2AutomateExecutor<STATE, ENTITY, ID, EVENT>,
+		automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
 		publisher: AppEventPublisher,
 		projectionLoader: Loader<EVENT, ENTITY, ID>,
 		eventStore: EventRepository<EVENT, ID>

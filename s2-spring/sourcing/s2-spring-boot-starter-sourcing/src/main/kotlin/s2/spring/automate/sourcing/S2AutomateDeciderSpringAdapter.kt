@@ -7,10 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
-import s2.automate.core.executor.S2AutomateExecutorImpl
 import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
+import s2.automate.core.executor.S2AutomateExecutorFlowImpl
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardExecutorImpl
 import s2.dsl.automate.Evt
@@ -24,9 +24,9 @@ import s2.sourcing.dsl.snap.SnapLoader
 import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
-import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
 import s2.automate.core.snap.RetryTaskChannel
 import s2.automate.core.snap.SnapPersister
+import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersisterFlow
 import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
@@ -56,7 +56,7 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	open fun aggregate(
 		projectionBuilder: Loader<EVENT, ENTITY, ID>,
 		eventStore: EventRepository<EVENT, ID>,
-	): S2AutomateExecutorImpl<STATE, ID, ENTITY, EVENT> {
+	): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, EVENT> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val snapPersister = SnapPersister(
@@ -65,10 +65,10 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 			retryTaskChannel.takeIf { preventOptimisticLocking() }
 		)
 		val guardExecutor = guardExecutor(publisher)
-		return S2AutomateExecutorImpl(
+		return S2AutomateExecutorFlowImpl(
 			automateContext = automateContext,
 			guardExecutor = guardExecutor,
-			persister = S2AutomateSourcingPersister(
+			persister = S2AutomateSourcingPersisterFlow(
 				projectionLoader = projectionBuilder,
 				eventStore = eventStore,
 				snapPersister = snapPersister,

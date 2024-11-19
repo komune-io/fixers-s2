@@ -1,9 +1,10 @@
 package s2.automate.core.engine.sourcing
 
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import s2.automate.core.executor.S2AutomateExecutor
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.executor.S2AutomateExecutorFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -15,7 +16,7 @@ import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
 open class S2AutomateSourcingEngine<STATE, ENTITY, ID, EVENT>(
-	private val automateExecutor: S2AutomateExecutor<STATE, ENTITY, ID, EVENT>,
+	private val automateExecutor: S2AutomateExecutorFlow<STATE, ENTITY, ID, EVENT>,
 	private val publisher: AppEventPublisher,
 	private val projectionLoader: Loader<EVENT, ENTITY, ID>,
 	private val eventStore: EventRepository<EVENT, ID>
@@ -27,22 +28,22 @@ ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
 	override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
-		return automateExecutor.create(command) {
+		return automateExecutor.create(flowOf(command)) {
 			val event = buildEvent()
 			val entity = projectionLoader.evolve(flowOf(event))!!
 			entity to event
-		}.second
+		}.first()
 			.also(publisher::publish)
 	}
 
 	override suspend fun <EVENT_OUT : EVENT> transition(
 		command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
 	): EVENT_OUT {
-		return automateExecutor.doTransition(command) {
-			val event = exec(this)
-			val entity = projectionLoader.evolve(flowOf(event), this)!!
-			entity to event
-		}.second
+		return automateExecutor.doTransition(flowOf(command)) { _, entity ->
+			val event = exec(entity)
+			val evolvedEntity = projectionLoader.evolve(flowOf(event), entity)!!
+			evolvedEntity to event
+		}.first()
 			.also(publisher::publish)
 	}
 

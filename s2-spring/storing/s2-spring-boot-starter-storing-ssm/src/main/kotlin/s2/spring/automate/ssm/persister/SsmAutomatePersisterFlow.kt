@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
@@ -46,9 +48,13 @@ ENTITY : WithS2Id<ID> {
 
 	private val logger = LoggerFactory.getLogger(SsmAutomatePersister::class.java)
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
+		return load(automateContexts, flowOf(id)).firstOrNull()
+	}
+
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
 		return ids.map {
-			GetAutomateSessionQuery(automateContext = automateContext, sessionId = it.toString())
+			GetAutomateSessionQuery(automateContext = automateContexts, sessionId = it.toString())
 		}.let {
 			getSessionForAutomate(it)
 		}.map { session ->

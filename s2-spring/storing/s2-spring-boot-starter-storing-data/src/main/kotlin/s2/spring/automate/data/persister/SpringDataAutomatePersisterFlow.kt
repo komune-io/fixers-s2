@@ -2,6 +2,8 @@ package s2.spring.automate.data.persister
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.springframework.data.repository.CrudRepository
@@ -20,6 +22,10 @@ class SpringDataAutomatePersisterFlow<STATE, ID, ENTITY, EVENT>(
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
+
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
+		return load(automateContexts, flowOf(id)).firstOrNull()
+	}
 
 	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
 		return repository.findAllById(ids.toList()).asFlow()

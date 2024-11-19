@@ -3,13 +3,11 @@ package s2.spring.automate
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.executor.S2AutomateExecutorFlowImpl
-import s2.automate.core.executor.S2AutomateExecutorImpl
 import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.GuardAdapter
 import s2.automate.core.guard.GuardExecutorImpl
-import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.AutomatePersisterFlow
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -28,13 +26,6 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher
 
-	open fun aggregate(): S2AutomateExecutorImpl<STATE, ID, ENTITY, Evt> {
-		val automateContext = automateContext()
-		val publisher = automateAppEventPublisher(eventPublisher)
-		val guardExecutor = guardExecutor(publisher)
-		val persister = aggregateRepository()
-		return S2AutomateExecutorImpl(automateContext, guardExecutor, persister, publisher)
-	}
 	open fun aggregateFlow(): S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
@@ -63,13 +54,12 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		listOf(TransitionStateGuard())
 
 	override fun afterPropertiesSet() {
-		val automateExecutor = aggregate()
 		val automateExecutorFlow = aggregateFlow()
 		val agg = executor()
-		agg.withContext(automateExecutor, automateExecutorFlow, eventPublisher)
+		agg.withContext(automateExecutorFlow, eventPublisher)
 	}
 
-	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
+//	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
 	abstract fun aggregateRepositoryFlow(): AutomatePersisterFlow<STATE, ID, ENTITY, Evt, S2Automate>
 	abstract fun automate(): S2Automate
 	abstract fun executor(): EXECUTER

@@ -22,4 +22,6 @@ ENTITY : WithS2Id<ID> {
 	): Flow<EVENT>
 
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
+
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
 }

@@ -2,7 +2,6 @@ package s2.spring.automate.executor
 
 import kotlinx.coroutines.flow.Flow
 import s2.automate.core.executor.S2AutomateExecutorFlowImpl
-import s2.automate.core.executor.S2AutomateExecutorImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.storing.S2AutomateStoringEngine
 import s2.automate.core.engine.storing.S2AutomateStoringEvolverOld
@@ -37,7 +36,6 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param publisher The event publisher.
      */
     fun withContext(
-        automateExecutor: S2AutomateExecutorImpl<STATE, ID, ENTITY, Evt>,
         automateExecutorFlow: S2AutomateExecutorFlowImpl<STATE, ID, ENTITY, Evt>,
         publisher: AppEventPublisher
     ) {
