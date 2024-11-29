@@ -20,7 +20,7 @@ AUTOMATE : Automate {
 	): GuardResult {
 		val state = context.entity.s2State()
 		val cmd = context.command
-		val isCmdValid = context.automateContext.automate.isAvailableTransition(state, cmd)
+		val isCmdValid = context.automateContext.automate.isAvailableTransition(state, cmd.data)
 		return if (isCmdValid) {
 			GuardResult.valid()
 		} else {

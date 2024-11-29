@@ -1,9 +1,9 @@
 package s2.spring.automate.sourcing
 
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.sourcing.S2AutomateSourcingDecider
 import s2.automate.core.sourcing.S2AutomateSourcingDeciderImpl
-import s2.automate.core.engine.S2AutomateEngine
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand

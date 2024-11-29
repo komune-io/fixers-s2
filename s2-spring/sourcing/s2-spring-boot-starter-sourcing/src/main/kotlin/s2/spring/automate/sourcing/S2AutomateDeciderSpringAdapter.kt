@@ -8,6 +8,8 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
 import org.springframework.context.support.GenericApplicationContext
 import s2.automate.core.engine.S2AutomateEngineImpl
+import s2.automate.core.storing.snap.RetryTaskChannel
+import s2.automate.core.storing.snap.SnapPersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -19,8 +21,6 @@ import s2.sourcing.dsl.snap.SnapLoader
 import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.sourcing.dsl.view.ViewLoader
-import s2.automate.core.storing.snap.RetryTaskChannel
-import s2.automate.core.storing.snap.SnapPersister
 import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
 import s2.spring.core.S2SpringAdapterBase
 import s2.spring.core.publisher.SpringEventPublisher

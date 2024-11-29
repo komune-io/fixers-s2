@@ -1,10 +1,14 @@
 package s2.automate.core.sourcing
 
+import f2.dsl.fnc.operators.mapEnvelope
+import f2.dsl.fnc.operators.mapEnvelopeWithType
+import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import s2.automate.core.engine.S2AutomateEngine
+import kotlinx.coroutines.flow.map
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.engine.S2AutomateEngine
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -44,11 +48,12 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.create(commands) { cmd ->
-			val event = buildEvent(cmd)
+		return automateExecutor.create(commands.mapToEnvelope(type = "Cmd")) { cmd ->
+			val event = buildEvent(cmd.data)
+			val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
 			val entity = projectionLoader.evolve(flowOf(event))!!
-			entity to event
-		}.also(publisher::publish)
+			entity to evl
+		}.map { it.data }.also(publisher::publish)
 	}
 
 	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decide(
@@ -66,11 +71,11 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransition(commands) { command, entity ->
-			val event = exec(command, entity)
+		return automateExecutor.doTransition(commands.mapToEnvelope(type = "Cmd")) { command, entity ->
+			val event = exec(command.data, entity)
 			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
-			entityUpdated to event
-		}.also(publisher::publish)
+			entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
+		}.map { it.data }.also(publisher::publish)
 	}
 
 	override suspend fun replayHistory() {

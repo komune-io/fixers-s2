@@ -1,11 +1,14 @@
 package s2.spring.automate.executor
 
+import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
-import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.storing.S2AutomateStoringEvolverImpl
+import s2.automate.core.engine.S2AutomateEngineImpl
 import s2.automate.core.storing.S2AutomateStoringEvolver
 import s2.automate.core.storing.S2AutomateStoringEvolverFlow
+import s2.automate.core.storing.S2AutomateStoringEvolverImpl
+import s2.automate.core.storing.S2EvolveFnc
+import s2.automate.core.storing.S2EvolveInitFnc
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -111,5 +114,15 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
     override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Decide<COMMAND, EVENT_OUT> = engine.evolve(build)
+
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+        commands: EnvelopedFlow<COMMAND>,
+        build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
+    ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, build)
+
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
+        commands: EnvelopedFlow<COMMAND>,
+        exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
+    ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, exec)
 
 }

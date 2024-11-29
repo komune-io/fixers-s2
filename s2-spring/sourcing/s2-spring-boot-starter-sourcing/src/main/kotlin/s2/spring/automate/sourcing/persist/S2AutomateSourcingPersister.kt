@@ -8,6 +8,7 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.storing.snap.SnapPersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -15,7 +16,6 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
-import s2.automate.core.storing.snap.SnapPersister
 
 class S2AutomateSourcingPersister<STATE, ID, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
@@ -44,7 +44,9 @@ EVENT: WithS2Id<ID> {
     ): Flow<EVENT> {
         return transitionContexts.map {
             it.event
-        }.persistEvent().map { it.second }
+        }.persistEvent().map {
+            it.second
+        }
     }
 
     override suspend fun persist(
