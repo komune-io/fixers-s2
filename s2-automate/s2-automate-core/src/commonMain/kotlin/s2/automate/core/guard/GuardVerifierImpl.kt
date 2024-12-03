@@ -30,7 +30,7 @@ class GuardVerifierImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
 	) {
 		val result = guards.map { it.evaluateTransition(context) }.flatten()
-		handleResult(result, context.command, context.from)
+		handleResult(result, context.command.data, context.from)
 	}
 
 	private fun List<GuardResult>.flatten(): GuardResult {

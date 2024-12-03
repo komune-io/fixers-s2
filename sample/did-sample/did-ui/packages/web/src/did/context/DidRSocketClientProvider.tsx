@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {city, DidAggregateJsClient, didClient} from "fixers-did-domain";
+import {DidAggregateJsClient, didClient} from "fixers-did-domain";
 import {DidRSocketClientContext} from "./DidClientContext";
 
 interface Props {

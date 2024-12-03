@@ -1,11 +1,11 @@
 package s2.spring.core
 
-import s2.automate.core.guard.TransitionStateGuard
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
+import s2.automate.core.guard.TransitionStateGuard
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
