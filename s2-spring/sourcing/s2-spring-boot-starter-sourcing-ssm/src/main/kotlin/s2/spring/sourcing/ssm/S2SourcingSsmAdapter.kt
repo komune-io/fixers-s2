@@ -14,11 +14,12 @@ import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.spring.automate.sourcing.S2AutomateDeciderSpring
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapter
+import ssm.chaincode.dsl.config.InvokeChunkedProps
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
 import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
 import ssm.data.dsl.features.query.DataSsmSessionListQueryFunction
-import ssm.data.dsl.features.query.DataSsmSessionLogListQueryFunction
 import ssm.tx.dsl.features.ssm.SsmInitCommand
 import ssm.tx.dsl.features.ssm.SsmTxInitFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
@@ -52,15 +53,15 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	lateinit var dataSsmSessionListQueryFunction: DataSsmSessionListQueryFunction
 
 	@Autowired
-	lateinit var dataSsmSessionLogFunction: DataSsmSessionLogListQueryFunction
+	lateinit var ssmGetSessionLogsQueryFunction: SsmGetSessionLogsQueryFunction
 
 	override fun eventStore(): EventRepository<EVENT, ID> = runBlocking {
 		val automate = automate()
 		val signer = signerAgent()
 		val chaincodeUri = chaincodeUri()
-		EventPersisterSsm(automate, entityType()).also { ee ->
+		EventPersisterSsm(automate, entityType(), chunking).also { ee ->
 			ee.ssmSessionStartFunction = ssmSessionStartFunction
-			ee.dataSsmSessionLogFunction = dataSsmSessionLogFunction
+			ee.ssmGetSessionLogsQueryFunction = ssmGetSessionLogsQueryFunction
 			ee.ssmSessionPerformActionFunction = ssmSessionPerformActionFunction
 			ee.dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction
 			ee.dataSsmSessionListQueryFunction = dataSsmSessionListQueryFunction
@@ -85,4 +86,5 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	abstract fun signerAgent(): Agent
 	open var permisive = false
 	open var versioning = false
+	open var chunking: InvokeChunkedProps = InvokeChunkedProps()
 }

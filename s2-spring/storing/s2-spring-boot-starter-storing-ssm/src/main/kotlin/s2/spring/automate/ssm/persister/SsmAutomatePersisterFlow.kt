@@ -23,9 +23,9 @@ import ssm.chaincode.dsl.model.SessionName
 import ssm.chaincode.dsl.model.SsmContext
 import ssm.chaincode.dsl.model.SsmSession
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
-import ssm.chaincode.dsl.model.uri.toSsmUri
-import ssm.data.dsl.features.query.DataSsmSessionGetQuery
-import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQuery
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryResult
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
 import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
@@ -34,7 +34,7 @@ import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 class SsmAutomatePersisterFlow<STATE, ID, ENTITY, EVENT>(
 	internal var ssmSessionStartFunction: SsmTxSessionStartFunction,
 	internal var ssmSessionPerformActionFunction: SsmTxSessionPerformActionFunction,
-	internal var dataSsmSessionGetQueryFunction: DataSsmSessionGetQueryFunction,
+	internal var ssmGetSessionLogsQueryFunction: SsmGetSessionLogsQueryFunction,
 
 	internal var chaincodeUri: ChaincodeUri,
 	internal var entityType: Class<ENTITY>,
@@ -58,7 +58,10 @@ ENTITY : WithS2Id<ID> {
 		}.let {
 			getSessionForAutomate(it)
 		}.map { session ->
-			objectMapper.readValue(session.item!!.state.details.public as String, entityType)
+			val lastTransaction = session.logs.maxByOrNull { transaction ->
+				transaction.state.iteration
+			}
+			objectMapper.readValue(lastTransaction!!.state.public as String, entityType)
 		}
 
 	}
@@ -114,13 +117,13 @@ ENTITY : WithS2Id<ID> {
 		val bySession = list.associateBy { it.sessionId }
 
 		return getSession(list.asFlow()).map { session ->
-			val it = bySession[session.item?.sessionName]!!
-			session.item?.state?.details?.iteration ?: 0
+			val it = bySession[session.sessionName]!!
+			val iteration = session.logs.maxOfOrNull { it.state.iteration }
 
 			GetSessionResult(
 				transitionContext = it.transitionContext,
 				sessionId = it.sessionId,
-				iteration = session.item?.state?.details?.iteration ?: 0
+				iteration = iteration ?: 0
 			)
 		}
 
@@ -128,24 +131,26 @@ ENTITY : WithS2Id<ID> {
 
 	private suspend fun getSession(
 		queries: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>,
-	) = queries.map { query ->
-		DataSsmSessionGetQuery(
+	): Flow<SsmGetSessionLogsQueryResult> = queries.map { query ->
+		SsmGetSessionLogsQuery(
 			sessionName = query.sessionId,
-			ssmUri = chaincodeUri.toSsmUri(query.transitionContext.automateContext.automate.name)
+			chaincodeUri = chaincodeUri,
+			ssmName = query.transitionContext.automateContext.automate.name,
 		)
 	}.let {
-		dataSsmSessionGetQueryFunction.invoke(it)
+		ssmGetSessionLogsQueryFunction.invoke(it)
 	}
 
 	private suspend fun getSessionForAutomate(
 		queries: Flow<GetAutomateSessionQuery>,
-	) = queries.map { query ->
-		DataSsmSessionGetQuery(
+	): Flow<SsmGetSessionLogsQueryResult> = queries.map { query ->
+		SsmGetSessionLogsQuery(
 			sessionName = query.sessionId,
-			ssmUri = chaincodeUri.toSsmUri(query.automateContext.automate.name)
+			chaincodeUri = chaincodeUri,
+			ssmName = query.automateContext.automate.name,
 		)
 	}.let {
-		dataSsmSessionGetQueryFunction.invoke(it)
+		ssmGetSessionLogsQueryFunction.invoke(it)
 	}
 
 	override suspend fun persist(
