@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -16,19 +17,20 @@ import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
+import ssm.chaincode.dsl.config.InvokeChunkedProps
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.SessionName
 import ssm.chaincode.dsl.model.SsmContext
 import ssm.chaincode.dsl.model.SsmSession
+import ssm.chaincode.dsl.model.SsmSessionStateLog
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.chaincode.dsl.model.uri.toSsmUri
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQuery
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
 import ssm.data.dsl.features.query.DataSsmSessionGetQuery
 import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
 import ssm.data.dsl.features.query.DataSsmSessionListQuery
 import ssm.data.dsl.features.query.DataSsmSessionListQueryFunction
-import ssm.data.dsl.features.query.DataSsmSessionLogListQuery
-import ssm.data.dsl.features.query.DataSsmSessionLogListQueryFunction
-import ssm.data.dsl.model.DataSsmSessionStateDTO
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
 import ssm.tx.dsl.features.ssm.SsmSessionPerformActionResult
 import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
@@ -38,7 +40,8 @@ import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 
 class EventPersisterSsm<EVENT, ID>(
 	private val s2Automate: S2Automate,
-	private val eventType: KClass<EVENT>
+	private val eventType: KClass<EVENT>,
+	private val chunking: InvokeChunkedProps,
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
@@ -48,9 +51,8 @@ EVENT: WithS2Id<ID>
 	internal lateinit var ssmSessionPerformActionFunction: SsmTxSessionPerformActionFunction
 
 	internal lateinit var dataSsmSessionGetQueryFunction: DataSsmSessionGetQueryFunction
-	internal lateinit var dataSsmSessionLogFunction: DataSsmSessionLogListQueryFunction
+	internal lateinit var ssmGetSessionLogsQueryFunction: SsmGetSessionLogsQueryFunction
 	internal lateinit var dataSsmSessionListQueryFunction: DataSsmSessionListQueryFunction
-
 
 	internal lateinit var chaincodeUri: ChaincodeUri
 	internal lateinit var agentSigner: Agent
@@ -58,20 +60,18 @@ EVENT: WithS2Id<ID>
 	internal var versioning: Boolean = false
 
 	override suspend fun load(id: ID): Flow<EVENT> {
-		return getSessionLog(id.toString())
-			.items
+		return getSessionLogs(listOf(id.toString()))
 			.toEvents()
 	}
 
+	@Suppress("MagicNumber")
 	override suspend fun loadAll(): Flow<EVENT> {
 		return listSessions()
-			.items
-				.flatMap { session ->
-					getSessionLog(session.sessionName).items
-				}.sortedBy {
-					it.transaction?.timestamp
-				}
-			.toEvents()
+			.items.map { it.sessionName }.chunked(chunking.size).flatMap {
+				getSessionLogs(it)
+			}.sortedBy {
+				it.state.iteration
+			}.toEvents()
 	}
 
 	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> = flow {
@@ -204,19 +204,24 @@ EVENT: WithS2Id<ID>
 		ssmUri = chaincodeUri.toSsmUri(s2Automate.name)
 	).invokeWith(dataSsmSessionGetQueryFunction)
 
-	private suspend fun getSessionLog(
-		sessionId: SessionName,
-	) = DataSsmSessionLogListQuery(
-		sessionName = sessionId,
-		ssmUri = chaincodeUri.toSsmUri(s2Automate.name)
-	).invokeWith(dataSsmSessionLogFunction)
+	private suspend fun getSessionLogs(
+		sessionIds: List<SessionName>,
+	): List<SsmSessionStateLog> = sessionIds.map { sessionId ->
+		SsmGetSessionLogsQuery(
+			sessionName = sessionId,
+			chaincodeUri = chaincodeUri,
+			ssmName = s2Automate.name
+		)
+	}.let{
+		ssmGetSessionLogsQueryFunction.invoke(it.asFlow())
+	}.toList().flatMap { it.logs }
 
 	private suspend fun listSessions() = DataSsmSessionListQuery(
 		ssmUri = chaincodeUri.toSsmUri(s2Automate.name)
 	).invokeWith(dataSsmSessionListQueryFunction)
 
 	@OptIn(InternalSerializationApi::class)
-	private fun List<DataSsmSessionStateDTO>.toEvents() = sortedBy { it.details.iteration }.map {
-		json.decodeFromString(eventType.serializer(), it.details.public as String)
+	private fun List<SsmSessionStateLog>.toEvents(): Flow<EVENT> = sortedBy { it.state.iteration }.map {
+		json.decodeFromString(eventType.serializer(), it.state.public as String)
 	}.asFlow()
 }

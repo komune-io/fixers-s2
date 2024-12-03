@@ -16,7 +16,7 @@ import s2.spring.automate.executor.S2AutomateExecutorSpring
 import s2.spring.automate.ssm.persister.SsmAutomatePersisterFlow
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
-import ssm.data.dsl.features.query.DataSsmSessionGetQueryFunction
+import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
 import ssm.tx.dsl.features.ssm.SsmInitCommand
 import ssm.tx.dsl.features.ssm.SsmTxInitFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
@@ -39,7 +39,7 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	lateinit var ssmSessionPerformActionFunction: SsmTxSessionPerformActionFunction
 
 	@Autowired
-	lateinit var dataSsmSessionGetQueryFunction: DataSsmSessionGetQueryFunction
+	lateinit var ssmGetSessionLogsQueryFunction: SsmGetSessionLogsQueryFunction
 
 	@Autowired
 	lateinit var objectMapper: ObjectMapper
@@ -52,7 +52,7 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 			ssmSessionStartFunction = ssmSessionStartFunction,
 			ssmSessionPerformActionFunction = ssmSessionPerformActionFunction,
 			objectMapper = objectMapper,
-			dataSsmSessionGetQueryFunction = dataSsmSessionGetQueryFunction,
+			ssmGetSessionLogsQueryFunction = ssmGetSessionLogsQueryFunction,
 			entityType = entityType(),
 			chaincodeUri = chaincodeUri,
 			agentSigner = signer,
