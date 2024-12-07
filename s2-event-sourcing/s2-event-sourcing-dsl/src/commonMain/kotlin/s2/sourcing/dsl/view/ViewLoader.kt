@@ -50,30 +50,6 @@ EVENT: WithS2Id<ID> {
 		.mapNotNull{it}
 		.toList()
 
-	// https://stackoverflow.com/a/58678049
-//	private fun <T, K> Flow<T>.groupBy(getKey: (T) -> K): Flow<Pair<K, Flow<T>>> = flow {
-//		val storage = mutableMapOf<K, SendChannel<T>>()
-//		try {
-//			collect { t ->
-//				val key = getKey(t)
-//				println("Handle ${key}")
-//				storage.getOrPut(key) {
-//					Channel<T>(32).also { emit(key to it.consumeAsFlow()) }
-//				}.send(t)
-//			}
-//		} finally {
-//			println("Handle groupBy finally")
-//			storage.values.forEach { chan ->
-//				try {
-//					println("Handle groupBy finally ${chan}")
-//					 chan.close()
-//				} catch (e: Exception) {
-//					println("Handle groupBy finally exception: ${e}")
-//				}
-//			}
-//		}
-//	}
-
 	suspend fun <T, K> Flow<T>.groupBy(keySelector: suspend (T) -> K): Map<K, Flow<T>> {
 		val resultMap = mutableMapOf<K, MutableList<T>>()
 
@@ -87,7 +63,6 @@ EVENT: WithS2Id<ID> {
 		return resultMap.mapValues { it.value.asFlow() }
 	}
 
-	@OptIn(FlowPreview::class)
 	private fun <T, K, R> Map<K, Flow<T>>.reducePerKey(reduce: suspend (Flow<T>) -> R): Flow<R> {
 		return this.values.asFlow().map { flow ->
 			reduce(flow)

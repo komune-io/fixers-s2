@@ -40,6 +40,5 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
 	open fun json(): Json = Json {
 		ignoreUnknownKeys = true
-
 	}
 }

@@ -24,7 +24,7 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher
 
-	open fun aggregateFlow(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> {
+	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
@@ -33,9 +33,9 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	}
 
 	override fun afterPropertiesSet() {
-		val automateExecutorFlow = aggregateFlow()
+		val automateExecutor = aggregate()
 		val agg = executor()
-		agg.withContext(automateExecutorFlow, eventPublisher)
+		agg.withContext(automateExecutor, eventPublisher)
 	}
 
 	abstract override fun automate(): S2Automate

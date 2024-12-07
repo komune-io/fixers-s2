@@ -73,7 +73,7 @@ class RetryTaskChannelTest {
         val attempts = AtomicInteger(0)
 
         val exception = assertThrows<Exception> {
-            retryTaskChannel.addToPersistQueue<String, String, String>(id, event) { evt ->
+            retryTaskChannel.addToPersistQueue<String, String, String>(id, event) { _ ->
                 attempts.incrementAndGet()
                 throw IllegalStateException("Non-retryable exception")
             }

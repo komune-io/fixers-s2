@@ -9,6 +9,6 @@ interface EventRepository<EVENT, ID>
 	suspend fun load(id: ID): Flow<EVENT>
 	suspend fun loadAll(): Flow<EVENT>
 	suspend fun persist(event: EVENT): EVENT
-	suspend fun persist(event: Flow<EVENT>): Flow<EVENT>
+	suspend fun persist(events: Flow<EVENT>): Flow<EVENT>
 	suspend fun createTable()
 }

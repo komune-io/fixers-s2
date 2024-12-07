@@ -2,6 +2,7 @@ package s2.spring.core
 
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
+import s2.automate.core.engine.BatchParams
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
@@ -19,7 +20,7 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EVENT: Evt{
 
-	protected open fun automateContext() = AutomateContext(automate())
+	protected open fun automateContext() = AutomateContext(automate(), batchParams)
 
 	protected open fun guardExecutor(
 		automateAppEventPublisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
@@ -40,5 +41,6 @@ EVENT: Evt{
 	)
 
 	abstract fun automate(): S2Automate
+	open var batchParams: BatchParams = BatchParams()
 
 }

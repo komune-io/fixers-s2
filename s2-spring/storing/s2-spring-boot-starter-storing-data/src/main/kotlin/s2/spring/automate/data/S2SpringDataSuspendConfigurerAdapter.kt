@@ -1,6 +1,7 @@
 package s2.spring.automate.data
 
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import s2.automate.core.engine.BatchParams
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -12,7 +13,7 @@ import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlo
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID, ENTITY, EVENT, AGGREGATE>(
-	private val aggregateRepository: CoroutineCrudRepository<ENTITY, ID>
+	private val aggregateRepository: CoroutineCrudRepository<ENTITY, ID>,
 ) : S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where
 EVENT : Evt,
 STATE : S2State,
@@ -22,7 +23,8 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
 	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
 		return SpringDataAutomateCoroutinePersisterFlow(
-			aggregateRepository
+			aggregateRepository,
+			batchParams
 		)
 	}
 

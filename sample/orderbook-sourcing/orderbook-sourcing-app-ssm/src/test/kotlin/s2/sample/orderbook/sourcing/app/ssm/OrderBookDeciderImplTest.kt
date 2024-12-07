@@ -88,8 +88,8 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 			orderBookDeciderImpl.orderBookCloseDecider().invoke(it)
 		}.map { event ->
 			val events = eventStore.load(event.id).toList()
-			Assertions.assertThat(events.toList()).hasSize(4)
-		}
+			assertThat(events.toList()).hasSize(4)
+		}.collect()
 	}
 
 	@Test
@@ -119,8 +119,9 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 	@Test
 	fun `should replay event to build entity`(): Unit = runTest {
 		var exception: Exception? = null
+		val event = create(OrderBookCreateCommand("TheNewOrderBook"))
+
 		try {
-			val event = create(OrderBookCreateCommand("TheNewOrderBook"))
 			val updateCommand = (0..12).map {
 				OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook$it")
 			}.asFlow()
@@ -131,7 +132,7 @@ internal class OrderBookDeciderImplTest: SpringTestBase() {
 
 		assertThat(exception)
 			.isNotNull()
-			.hasMessageContaining("Multiple events with the same ID cannot be processed due to SSM limitations.")
+			.hasMessageContaining("Duplicate events detected: ${event.id}, cannot be processed due to SSM limitations.")
 	}
 
 	@Test
