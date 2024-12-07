@@ -46,8 +46,6 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	private val logger = LoggerFactory.getLogger(SsmAutomatePersisterFlow::class.java)
-
 	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
@@ -77,7 +75,6 @@ ENTITY : WithS2Id<ID> {
 	): Flow<Pair<ENTITY, EVENT>> {
 		val collectedContexts = transitionContexts.toList()
 
-		// Create a list of SsmSessionStartCommands
 		val ssmStartCommands = collectedContexts.map { transitionContext ->
 			val entity = transitionContext.entity
 			val automate = transitionContext.automateContext.automate
@@ -95,10 +92,8 @@ ENTITY : WithS2Id<ID> {
 			)
 		}
 
-		// Invoke the ssmSessionStartFunction with all collected commands
 		ssmSessionStartFunction.invoke(ssmStartCommands.asFlow()).collect()
 
-		// Return a flow emitting each event from the collected contexts
 		return flow {
 			collectedContexts.forEach { transitionContext ->
 				emit(transitionContext.entity to transitionContext.event)
@@ -110,13 +105,9 @@ ENTITY : WithS2Id<ID> {
 		query: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>
 	): Flow<GetSessionResult<STATE, ID, ENTITY, EVENT>> {
 		val list = query.toList()
-		logger.info("//////////////////////")
-		logger.info("//////////////////////")
-		logger.info("//////////////////////")
-		logger.info("Get iterations for ${list.size} sessions")
 		val bySession = list.associateBy { it.sessionId }
 
-		return getSession(list.asFlow()).map { session ->
+		return getSessions(list.asFlow()).map { session ->
 			val it = bySession[session.sessionName]!!
 			val iteration = session.logs.maxOfOrNull { it.state.iteration }
 
@@ -129,7 +120,7 @@ ENTITY : WithS2Id<ID> {
 
 	}
 
-	private suspend fun getSession(
+	private suspend fun getSessions(
 		queries: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>,
 	): Flow<SsmGetSessionLogsQueryResult> = queries.map { query ->
 		SsmGetSessionLogsQuery(

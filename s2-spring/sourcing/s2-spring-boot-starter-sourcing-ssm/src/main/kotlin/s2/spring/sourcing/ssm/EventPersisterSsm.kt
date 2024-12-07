@@ -2,22 +2,22 @@ package s2.spring.sourcing.ssm
 
 import f2.dsl.fnc.invoke
 import f2.dsl.fnc.invokeWith
+import f2.dsl.fnc.operators.flattenConcurrently
 import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
+import s2.automate.core.engine.BatchParams
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
-import ssm.chaincode.dsl.config.InvokeChunkedProps
+import ssm.chaincode.dsl.config.chunk
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.SessionName
 import ssm.chaincode.dsl.model.SsmContext
@@ -41,7 +41,7 @@ import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 class EventPersisterSsm<EVENT, ID>(
 	private val s2Automate: S2Automate,
 	private val eventType: KClass<EVENT>,
-	private val chunking: InvokeChunkedProps,
+	private val batchParams: BatchParams,
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
@@ -67,41 +67,43 @@ EVENT: WithS2Id<ID>
 	@Suppress("MagicNumber")
 	override suspend fun loadAll(): Flow<EVENT> {
 		return listSessions()
-			.items.map { it.sessionName }.chunked(chunking.size).flatMap {
+			.items.map { it.sessionName }.chunked(batchParams.chunk.size).flatMap {
 				getSessionLogs(it)
 			}.sortedBy {
 				it.state.iteration
 			}.toEvents()
 	}
 
-	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> = flow {
-		val toCreate = mutableListOf<EVENT>()
-		val toUpdate = mutableListOf<EVENT>()
-		val processedIds = mutableSetOf<ID & Any>()
+	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
+		return events.chunk(batchParams.chunk).map { chunkedEvents: List<EVENT> ->
+			checkDuplication(chunkedEvents)
 
-		events.collect { event ->
-			val eventId = event.s2Id()
-			require(eventId !in processedIds){
-				"Duplicate ID detected: $eventId. Multiple events with the same ID cannot be processed due to SSM limitations."
+			val bySessionName = chunkedEvents.associateBy { buildSessionName(it) }
+			getSessions(bySessionName.keys).associateWith {
+				bySessionName[it.sessionName]
+			}.map { (session, event) ->
+				val iteration = session.logs.maxOfOrNull { it.state.iteration }
+				ExecutableAction(event!!, iteration)
+			}.groupBy {
+				it.action
+			}.flatMap { (action, eventsByAction) ->
+				when(action) {
+					Action.CREATE -> eventsByAction.asFlow().initFlow().collect()
+					Action.UPDATE -> eventsByAction.asFlow().updateFlow().collect()
+				}
+				eventsByAction.map { it.event }
 			}
-			processedIds.add(eventId)
+		}.flattenConcurrently(batchParams.concurrency)
+	}
 
-			val sessionName = buildSessionName(event)
-			val iteration = getIteration(sessionName)
-			if (iteration == null) {
-				toCreate.add(event)
-			} else {
-				toUpdate.add(event)
-			}
+	private fun checkDuplication(chunkedEvents: List<EVENT>) {
+		val duplicates = chunkedEvents.groupingBy { it.s2Id() }
+			.eachCount()
+			.filter { (_, count) -> count > 1 }
+			.keys
+		require(duplicates.isEmpty()) {
+			"Duplicate events detected: ${duplicates.joinToString()}, cannot be processed due to SSM limitations."
 		}
-		if(toCreate.isNotEmpty()) {
-			toCreate.asFlow().initFlow().collect()
-		}
-		if(toUpdate.isNotEmpty()) {
-			toUpdate.asFlow().updateFlow().collect()
-		}
-		emitAll(toCreate.asFlow())
-		emitAll(toUpdate.asFlow())
 	}
 
 	override suspend fun createTable() {}
@@ -114,11 +116,12 @@ EVENT: WithS2Id<ID>
 			init(event)
 		} else {
 			@OptIn(InternalSerializationApi::class)
+			val public = json.encodeToString(eventType.serializer(), event)
 			val context = SsmSessionPerformActionCommand(
 				action = action,
 				context = SsmContext(
 					session = sessionName,
-					public = json.encodeToString(eventType.serializer(), event),
+					public = public,
 					private = mapOf(),
 					iteration = iteration,
 				),
@@ -130,14 +133,16 @@ EVENT: WithS2Id<ID>
 		return event
 	}
 
-	private suspend fun Flow<EVENT>.initFlow( ): Flow<SsmSessionStartResult> = map { event ->
+	private suspend fun Flow<ExecutableAction<EVENT>>.initFlow( ): Flow<SsmSessionStartResult> = map { event ->
+		val sessionName = buildSessionName(event.event)
 		@OptIn(InternalSerializationApi::class)
+		val public = json.encodeToString(eventType.serializer(), event.event)
 		SsmSessionStartCommand(
 			session = SsmSession(
 				ssm = s2Automate.name,
-				session = buildSessionName(event),
+				session = sessionName,
 				roles = mapOf(agentSigner.name to s2Automate.transitions[0].role.name),
-				public = json.encodeToString(eventType.serializer(), event),
+				public = public,
 				private = mapOf()
 			),
 			signerName = agentSigner.name,
@@ -147,18 +152,17 @@ EVENT: WithS2Id<ID>
 		ssmSessionStartFunction.invoke(it)
 	}
 
-	private suspend fun Flow<EVENT>.updateFlow(): Flow<SsmSessionPerformActionResult> = map { event ->
-		val sessionName = buildSessionName(event)
-		val iteration = getIteration(sessionName)!!
-		val action = event::class.simpleName!!
+	private suspend fun Flow<ExecutableAction<EVENT>>.updateFlow(): Flow<SsmSessionPerformActionResult> = map { event ->
+		val sessionName = buildSessionName(event.event)
+		val action = event.event::class.simpleName!!
 		@OptIn(InternalSerializationApi::class)
 		SsmSessionPerformActionCommand(
 			action = action,
 			context = SsmContext(
 				session = sessionName,
-				public = json.encodeToString(eventType.serializer(), event),
+				public = json.encodeToString(eventType.serializer(), event.event),
 				private = mapOf(),
-				iteration = iteration,
+				iteration = event.iteration ?: 0,
 			),
 			signerName = agentSigner.name,
 			chaincodeUri = chaincodeUri
@@ -186,7 +190,7 @@ EVENT: WithS2Id<ID>
 
 	private fun buildSessionName(event: EVENT): String {
 		return if(versioning) {
-			return "${s2Automate.name}-${event.s2Id().toString()}"
+			return "${s2Automate.name}-${event.s2Id()}"
 		} else {
 			event.s2Id().toString()
 		}
@@ -203,6 +207,18 @@ EVENT: WithS2Id<ID>
 		sessionName = sessionId,
 		ssmUri = chaincodeUri.toSsmUri(s2Automate.name)
 	).invokeWith(dataSsmSessionGetQueryFunction)
+
+	private suspend fun getSessions(
+		sessionNames: Collection<SessionName>,
+	) = sessionNames.map { sessionName ->
+		SsmGetSessionLogsQuery(
+			sessionName = sessionName,
+			chaincodeUri = chaincodeUri,
+			ssmName = s2Automate.name,
+		)
+	}.let {
+		ssmGetSessionLogsQueryFunction.invoke(it.asFlow())
+	}.toList()
 
 	private suspend fun getSessionLogs(
 		sessionIds: List<SessionName>,
@@ -224,4 +240,15 @@ EVENT: WithS2Id<ID>
 	private fun List<SsmSessionStateLog>.toEvents(): Flow<EVENT> = sortedBy { it.state.iteration }.map {
 		json.decodeFromString(eventType.serializer(), it.state.public as String)
 	}.asFlow()
+}
+
+enum class Action {
+	CREATE, UPDATE
+}
+
+data class ExecutableAction<EVENT>(
+	val event: EVENT,
+	val iteration: Int?
+) {
+	val action: Action = if(iteration == null) Action.CREATE else Action.UPDATE
 }

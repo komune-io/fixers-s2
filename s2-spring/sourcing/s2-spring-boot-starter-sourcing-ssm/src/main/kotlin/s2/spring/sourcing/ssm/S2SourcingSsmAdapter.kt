@@ -4,6 +4,7 @@ import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
+import s2.automate.core.engine.BatchParams
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
@@ -14,7 +15,6 @@ import s2.sourcing.dsl.snap.SnapRepository
 import s2.sourcing.dsl.view.View
 import s2.spring.automate.sourcing.S2AutomateDeciderSpring
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapter
-import ssm.chaincode.dsl.config.InvokeChunkedProps
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
@@ -59,7 +59,7 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 		val automate = automate()
 		val signer = signerAgent()
 		val chaincodeUri = chaincodeUri()
-		EventPersisterSsm(automate, entityType(), chunking).also { ee ->
+		EventPersisterSsm(automate, entityType(), batchParams).also { ee ->
 			ee.ssmSessionStartFunction = ssmSessionStartFunction
 			ee.ssmGetSessionLogsQueryFunction = ssmGetSessionLogsQueryFunction
 			ee.ssmSessionPerformActionFunction = ssmSessionPerformActionFunction
@@ -86,5 +86,4 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	abstract fun signerAgent(): Agent
 	open var permisive = false
 	open var versioning = false
-	open var chunking: InvokeChunkedProps = InvokeChunkedProps()
 }

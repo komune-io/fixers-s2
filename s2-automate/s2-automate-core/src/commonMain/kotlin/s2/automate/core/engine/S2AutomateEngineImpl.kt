@@ -3,9 +3,11 @@ package s2.automate.core.engine
 import f2.dsl.cqrs.Message
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
+import f2.dsl.fnc.operators.flattenConcurrently
 import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
@@ -33,6 +35,8 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
+import ssm.chaincode.dsl.config.InvokeChunkedProps
+import ssm.chaincode.dsl.config.chunk
 
 open class S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
@@ -62,33 +66,26 @@ ENTITY : WithS2Id<ID> {
 		commands: EnvelopedFlow<COMMAND>,
 		exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
 	): EnvelopedFlow<EVENT_OUT> {
-		val transitionContexts = mutableListOf<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
-
-		loadTransitionContext(commands).map { (entity, transitionContext)->
+		return loadTransitionContext(commands).map { (entity, transitionContext)->
 			guardExecutor.evaluateTransition(transitionContext)
 			val fromState = entity.s2State()
 			val (entityMutated, result) = exec(transitionContext.command, entity)
-
-			transitionContexts.add(
-				TransitionAppliedContext(
-					automateContext = automateContext,
-					from = fromState,
-					msg = transitionContext.command.data,
-					event = result.data,
-					entity = entityMutated
-				)
+			TransitionAppliedContext(
+				automateContext = automateContext,
+				from = fromState,
+				msg = transitionContext.command.data,
+				event = result.data,
+				entity = entityMutated
 			)
-		}.collect{}
-
-		val transitionContextFlow = transitionContexts.asFlow()
-
-		val persistedEvents = persist(transitionContextFlow)
-
-		return persistedEvents.map { event ->
-			val context = transitionContexts.find { it.event == event }!!
-			sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
-			event as EVENT_OUT
-		}.mapToEnvelope("Evt")
+		}.chunk(automateContext.batch.chunk).map {  transitionContexts ->
+			val transitionContextsFlow = transitionContexts.asFlow()
+					as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+			persist(transitionContextsFlow ).map { event ->
+				val context = transitionContexts.find { it.event == event }!!
+				sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+				event as EVENT_OUT
+			}
+		}.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "Evt")
 	}
 
 	private suspend fun persistInit(
@@ -156,28 +153,29 @@ ENTITY : WithS2Id<ID> {
 	private suspend fun <COMMAND : S2Command<ID>> loadTransitionContext(
 		commands: EnvelopedFlow<COMMAND>
 	): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
-		val commands = commands.toList()
-		val byIds = commands.associateBy { it.data.id }
-		return commands.asFlow().mapNotNull { it.data.id }.let { ids ->
-			persister.load(automateContext, ids = ids)
-		}.map { entity ->
-			entity?:  throw ERROR_ENTITY_NOT_FOUND(entity?.s2Id().toString()).asException()
-			val command: Envelope<COMMAND> = byIds[entity.s2Id()]
-				?: throw ERROR_ENTITY_NOT_FOUND(entity.s2Id().toString()).asException()
-			val transitionContext = TransitionContext(
-				automateContext = automateContext,
-				from = entity.s2State(),
-				command = command,
-				entity = entity
-			)
-			publisher.automateTransitionStarted(
-				AutomateTransitionStarted(
+		return commands.chunk(automateContext.batch.chunk).map { commandsChunk ->
+			val byIds = commandsChunk.associateBy { it.data.id }
+			commandsChunk.asFlow().mapNotNull { it.data.id }.let { ids ->
+				persister.load(automateContext, ids = ids)
+			}.map { entity ->
+				entity?:  throw ERROR_ENTITY_NOT_FOUND(entity?.s2Id().toString()).asException()
+				val command: Envelope<COMMAND> = byIds[entity.s2Id()]
+					?: throw ERROR_ENTITY_NOT_FOUND(entity.s2Id().toString()).asException()
+				val transitionContext = TransitionContext(
+					automateContext = automateContext,
 					from = entity.s2State(),
-					msg = command
+					command = command,
+					entity = entity
 				)
-			)
-			entity to transitionContext
-		}
+				publisher.automateTransitionStarted(
+					AutomateTransitionStarted(
+						from = entity.s2State(),
+						msg = command
+					)
+				)
+				entity to transitionContext
+			}
+		}.flattenConcurrently(automateContext.batch.concurrency)
 	}
 
 	private suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> prepareCreationContext(

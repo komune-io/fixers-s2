@@ -89,7 +89,7 @@ ENTITY : WithS2State<STATE> {
 		command: S2InitCommand,
 		buildEvent: suspend () -> EVENT_OUT
 	): EVENT_OUT {
-		return decide(flowOf(command)) { cmd ->
+		return decide(flowOf(command)) { _ ->
 			buildEvent()
 		}.first()
 	}
@@ -101,7 +101,7 @@ ENTITY : WithS2State<STATE> {
 		command: S2Command<ID>,
 		exec: suspend ENTITY.() -> EVENT_OUT
 	): EVENT_OUT  {
-		return decide(flowOf(command)) { cmd, entity ->
+		return decide(flowOf(command)) { _, entity ->
 			entity.exec()
 		}.first()
 	}
