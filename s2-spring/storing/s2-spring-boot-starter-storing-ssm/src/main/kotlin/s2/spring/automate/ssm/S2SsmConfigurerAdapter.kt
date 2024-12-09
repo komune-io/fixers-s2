@@ -13,7 +13,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.dsl.automate.ssm.toSsm
 import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.executor.S2AutomateExecutorSpring
-import s2.spring.automate.ssm.persister.SsmAutomatePersisterFlow
+import s2.spring.automate.ssm.persister.SsmAutomatePersister
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.uri.ChaincodeUri
 import ssm.chaincode.dsl.query.SsmGetSessionLogsQueryFunction
@@ -48,7 +48,7 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		val automate = automate()
 		val signer = signerAgent()
 		val chaincodeUri = chaincodeUri()
-		SsmAutomatePersisterFlow<STATE, ID, ENTITY, Evt>(
+		SsmAutomatePersister<STATE, ID, ENTITY, Evt>(
 			ssmSessionStartFunction = ssmSessionStartFunction,
 			ssmSessionPerformActionFunction = ssmSessionPerformActionFunction,
 			objectMapper = objectMapper,

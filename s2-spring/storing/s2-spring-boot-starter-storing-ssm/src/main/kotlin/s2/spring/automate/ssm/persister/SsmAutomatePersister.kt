@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import org.slf4j.LoggerFactory
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -31,7 +30,7 @@ import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 
-class SsmAutomatePersisterFlow<STATE, ID, ENTITY, EVENT>(
+class SsmAutomatePersister<STATE, ID, ENTITY, EVENT>(
 	internal var ssmSessionStartFunction: SsmTxSessionStartFunction,
 	internal var ssmSessionPerformActionFunction: SsmTxSessionPerformActionFunction,
 	internal var ssmGetSessionLogsQueryFunction: SsmGetSessionLogsQueryFunction,
@@ -72,7 +71,7 @@ ENTITY : WithS2Id<ID> {
 
 	private suspend fun persistInternal(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<Pair<ENTITY, EVENT>> {
+	): Flow<Pair<ENTITY, EVENT>> = flow {
 		val collectedContexts = transitionContexts.toList()
 
 		val ssmStartCommands = collectedContexts.map { transitionContext ->
@@ -94,10 +93,8 @@ ENTITY : WithS2Id<ID> {
 
 		ssmSessionStartFunction.invoke(ssmStartCommands.asFlow()).collect()
 
-		return flow {
-			collectedContexts.forEach { transitionContext ->
-				emit(transitionContext.entity to transitionContext.event)
-			}
+		collectedContexts.forEach { transitionContext ->
+			emit(transitionContext.entity to transitionContext.event)
 		}
 	}
 
