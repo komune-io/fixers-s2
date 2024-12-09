@@ -59,8 +59,8 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
         val event = automateExecutor.doTransition(flowOf(command.asEnvelopeWithType(type ="Cmd"))) { cmd, entity ->
-            val (entity, event) =  entity.exec()
-            entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+            val (entityUpdated, event) = entity.exec()
+            entityUpdated to cmd.mapEnvelopeWithType({ event }, type = "Evt")
         }.first()
         publisher.publish(event)
         return event.data
