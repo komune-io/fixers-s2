@@ -4,7 +4,6 @@ import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
-import s2.automate.core.engine.BatchParams
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
