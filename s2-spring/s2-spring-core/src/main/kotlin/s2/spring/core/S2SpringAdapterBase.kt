@@ -2,7 +2,7 @@ package s2.spring.core
 
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
-import s2.automate.core.engine.BatchParams
+import s2.automate.core.engine.BatchProperties
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
@@ -41,6 +41,6 @@ EVENT: Evt{
 	)
 
 	abstract fun automate(): S2Automate
-	open var batchParams: BatchParams = BatchParams()
+	open var batchParams: BatchProperties = BatchProperties()
 
 }
