@@ -1,8 +1,9 @@
 package s2.spring.core
 
+import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
-import s2.automate.core.engine.BatchParams
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
@@ -40,7 +41,9 @@ EVENT: Evt{
 		TransitionStateGuard()
 	)
 
+	@Autowired
+	lateinit var batchParams: S2BatchProperties
+
 	abstract fun automate(): S2Automate
-	open var batchParams: BatchParams = BatchParams()
 
 }
