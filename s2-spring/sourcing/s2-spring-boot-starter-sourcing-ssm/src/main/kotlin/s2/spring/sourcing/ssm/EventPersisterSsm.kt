@@ -13,7 +13,7 @@ import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import s2.automate.core.context.asBatch
-import s2.automate.core.engine.BatchProperties
+import s2.automate.core.config.S2BatchProperties
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.model.WithS2Id
@@ -41,7 +41,7 @@ import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 class EventPersisterSsm<EVENT, ID>(
 	private val s2Automate: S2Automate,
 	private val eventType: KClass<EVENT>,
-	private val batchParams: BatchProperties,
+	private val batchParams: S2BatchProperties,
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>

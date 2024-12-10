@@ -1,15 +1,15 @@
 package s2.automate.core.context
 
 import f2.dsl.fnc.operators.Batch
-import s2.automate.core.engine.BatchProperties
+import s2.automate.core.config.S2BatchProperties
 
 
 class AutomateContext<AUTOMATE>(
 	val automate: AUTOMATE,
-	val batch: BatchProperties
+	val batch: S2BatchProperties
 )
 
-fun BatchProperties.asBatch() = Batch(
+fun S2BatchProperties.asBatch() = Batch(
 	size = size,
 	concurrency = concurrency
 )

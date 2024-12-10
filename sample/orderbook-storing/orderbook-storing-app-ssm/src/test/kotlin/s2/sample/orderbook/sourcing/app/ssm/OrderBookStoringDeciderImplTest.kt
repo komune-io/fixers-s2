@@ -11,7 +11,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.context.AutomateContext
-import s2.automate.core.engine.BatchProperties
+import s2.automate.core.config.S2BatchProperties
 import s2.sample.orderbook.sourcing.app.ssm.config.SpringTestBase
 import s2.sample.orderbook.storing.app.ssm.OrderBookDeciderImpl
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookAutomateConfig
@@ -58,7 +58,7 @@ internal class OrderBookStoringDeciderImplTest: SpringTestBase() {
 		val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 		val entity = ssmAutomatePersister.load(AutomateContext(
 			automate = orderBookAutomate("storing-test-1"),
-			BatchProperties()
+			S2BatchProperties()
 		), event.id)
 		Assertions.assertThat(entity?.name).isEqualTo("TheNewOrderBookAfterUpdate")
 		Assertions.assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
@@ -85,7 +85,7 @@ internal class OrderBookStoringDeciderImplTest: SpringTestBase() {
 			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 			val entity = ssmAutomatePersister.load(
 					AutomateContext(automate = orderBookAutomate("storing-test-2"),
-					BatchProperties()
+					S2BatchProperties()
 				),
 				event.id
 			)
@@ -115,7 +115,7 @@ internal class OrderBookStoringDeciderImplTest: SpringTestBase() {
 			val ssmAutomatePersister = orderBookAutomateConfig.aggregateRepository()
 			val entity = ssmAutomatePersister.load(AutomateContext(
 				automate = orderBookAutomate("storing-test-3"),
-				BatchProperties()
+				S2BatchProperties()
 			), event.id)
 //			assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
 			assertThat(entity?.status).isEqualTo(OrderBookState.Closed)
@@ -139,7 +139,7 @@ internal class OrderBookStoringDeciderImplTest: SpringTestBase() {
 			val entity = ssmAutomatePersister.load(
 				AutomateContext(
 					automate = orderBookAutomate("storing-test-4"),
-					BatchProperties()
+					S2BatchProperties()
 				),
 				event.id
 			)

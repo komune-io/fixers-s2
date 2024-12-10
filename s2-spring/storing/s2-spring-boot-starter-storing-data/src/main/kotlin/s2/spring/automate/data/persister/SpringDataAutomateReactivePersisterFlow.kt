@@ -11,7 +11,7 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.asBatch
-import s2.automate.core.engine.BatchProperties
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -21,7 +21,7 @@ import s2.dsl.automate.model.WithS2State
 
 class SpringDataAutomateReactivePersisterFlow<STATE, ID, ENTITY, EVENT>(
 	private val repository: ReactiveCrudRepository<ENTITY, ID>,
-	private val batchParams: BatchProperties,
+	private val batchParams: S2BatchProperties,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 EVENT : Evt,
 STATE : S2State,
