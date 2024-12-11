@@ -1,10 +1,10 @@
-package s2.spring.sourcing.ssm.config
+package s2.spring.core.config
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import s2.spring.core.config.S2Properties
+import org.springframework.core.annotation.Order
 import ssm.chaincode.dsl.config.SsmBatchProperties
 
 @Configuration
@@ -12,6 +12,7 @@ import ssm.chaincode.dsl.config.SsmBatchProperties
 open class SsmBatchConfiguration {
 
 	@Bean
+	@Order(1)
 	@ConditionalOnMissingBean(SsmBatchProperties::class)
 	open fun ssmBatchProperties(s2Properties: S2Properties): SsmBatchProperties? {
 		return s2Properties.batch?.let {
