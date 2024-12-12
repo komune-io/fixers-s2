@@ -21,7 +21,7 @@ import ssm.chaincode.dsl.model.uri.from
 import ssm.sdk.sign.extention.loadFromFile
 
 @Configuration
-class OrderBookAutomateConfig(orderBookS2Aggregate: OrderBookS2Aggregate)
+class OrderBookAutomateSsmPermissiveConfig(orderBookS2Aggregate: OrderBookS2Aggregate)
 	: S2SourcingSsmAdapter<
 		OrderBook,
 		OrderBookState,

@@ -6,5 +6,5 @@ plugins {
 }
 
 dependencies {
-    commonMainApi("io.komune.c2:ssm-chaincode-dsl:${Versions.ssm}")
+    commonMainApi("io.komune.c2:ssm-chaincode-dsl:${Versions.c2}")
 }

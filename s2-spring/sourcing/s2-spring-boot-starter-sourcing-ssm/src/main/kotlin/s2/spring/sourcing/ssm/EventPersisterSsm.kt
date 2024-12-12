@@ -2,7 +2,7 @@ package s2.spring.sourcing.ssm
 
 import f2.dsl.fnc.invoke
 import f2.dsl.fnc.invokeWith
-import f2.dsl.fnc.operators.flattenConcurrently
+import f2.dsl.fnc.operators.batch
 import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import s2.automate.core.engine.BatchParams
+import s2.automate.core.context.asBatch
+import s2.automate.core.config.S2BatchProperties
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
-import ssm.chaincode.dsl.config.chunk
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.SessionName
 import ssm.chaincode.dsl.model.SsmContext
@@ -41,7 +41,7 @@ import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
 class EventPersisterSsm<EVENT, ID>(
 	private val s2Automate: S2Automate,
 	private val eventType: KClass<EVENT>,
-	private val batchParams: BatchParams,
+	private val batchParams: S2BatchProperties,
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
@@ -67,7 +67,7 @@ EVENT: WithS2Id<ID>
 	@Suppress("MagicNumber")
 	override suspend fun loadAll(): Flow<EVENT> {
 		return listSessions()
-			.items.map { it.sessionName }.chunked(batchParams.chunk.size).flatMap {
+			.items.map { it.sessionName }.chunked(batchParams.size).flatMap {
 				getSessionLogs(it)
 			}.sortedBy {
 				it.state.iteration
@@ -75,7 +75,7 @@ EVENT: WithS2Id<ID>
 	}
 
 	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
-		return events.chunk(batchParams.chunk).map { chunkedEvents: List<EVENT> ->
+		return events.batch(batchParams.asBatch()) { chunkedEvents: List<EVENT> ->
 			checkDuplication(chunkedEvents)
 
 			val bySessionName = chunkedEvents.associateBy { buildSessionName(it) }
@@ -93,7 +93,7 @@ EVENT: WithS2Id<ID>
 				}
 				eventsByAction.map { it.event }
 			}
-		}.flattenConcurrently(batchParams.concurrency)
+		}
 	}
 
 	private fun checkDuplication(chunkedEvents: List<EVENT>) {

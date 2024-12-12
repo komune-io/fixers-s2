@@ -21,7 +21,7 @@ object Versions {
 	const val springframework = FixersVersions.Spring.framework
 	const val testcontainers = FixersVersions.Test.testcontainers
 
-	val ssm = FixersPluginVersions.fixers
+	val c2 = FixersPluginVersions.fixers
 	val f2 = FixersPluginVersions.fixers
 	val slf4j = FixersVersions.Logging.slf4j
 

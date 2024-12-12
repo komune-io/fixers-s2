@@ -1,1 +1,3 @@
 s2.spring.core.config.EventPublisherConfiguration
+s2.spring.core.config.BatchConfiguration
+s2.spring.core.config.SsmBatchConfiguration

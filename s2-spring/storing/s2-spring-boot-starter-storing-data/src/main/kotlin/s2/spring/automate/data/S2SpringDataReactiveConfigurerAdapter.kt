@@ -1,7 +1,6 @@
 package s2.spring.automate.data
 
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
-import s2.automate.core.engine.BatchParams
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate

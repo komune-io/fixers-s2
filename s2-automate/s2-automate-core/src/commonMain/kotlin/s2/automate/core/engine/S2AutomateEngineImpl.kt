@@ -3,14 +3,13 @@ package s2.automate.core.engine
 import f2.dsl.cqrs.Message
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
+import f2.dsl.fnc.operators.chunk
 import f2.dsl.fnc.operators.flattenConcurrently
 import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.toList
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateExited
@@ -35,8 +34,6 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
-import ssm.chaincode.dsl.config.InvokeChunkedProps
-import ssm.chaincode.dsl.config.chunk
 
 open class S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT>(
 	private val automateContext: AutomateContext<S2Automate>,
@@ -77,7 +74,7 @@ ENTITY : WithS2Id<ID> {
 				event = result.data,
 				entity = entityMutated
 			)
-		}.chunk(automateContext.batch.chunk).map {  transitionContexts ->
+		}.chunk(automateContext.batch.size).map {  transitionContexts ->
 			val transitionContextsFlow = transitionContexts.asFlow()
 					as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 			persist(transitionContextsFlow ).map { event ->
@@ -153,7 +150,7 @@ ENTITY : WithS2Id<ID> {
 	private suspend fun <COMMAND : S2Command<ID>> loadTransitionContext(
 		commands: EnvelopedFlow<COMMAND>
 	): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
-		return commands.chunk(automateContext.batch.chunk).map { commandsChunk ->
+		return commands.chunk(automateContext.batch.size).map { commandsChunk ->
 			val byIds = commandsChunk.associateBy { it.data.id }
 			commandsChunk.asFlow().mapNotNull { it.data.id }.let { ids ->
 				persister.load(automateContext, ids = ids)
