@@ -1,6 +1,7 @@
 package s2.spring.automate.ssm.persister
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import f2.dsl.fnc.operators.batchFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.collect
@@ -9,13 +10,16 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
+import s2.automate.core.context.asBatch
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
+import s2.dsl.automate.model.WithS2Iteration
 import s2.dsl.automate.model.WithS2State
 import ssm.chaincode.dsl.model.Agent
 import ssm.chaincode.dsl.model.SessionName
@@ -39,6 +43,7 @@ class SsmAutomatePersister<STATE, ID, ENTITY, EVENT>(
 	internal var entityType: Class<ENTITY>,
 	internal var agentSigner: Agent,
 	internal var objectMapper: ObjectMapper,
+	internal var batch: S2BatchProperties,
 	internal var permisive: Boolean = false
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
@@ -60,7 +65,6 @@ ENTITY : WithS2Id<ID> {
 			}
 			objectMapper.readValue(lastTransaction!!.state.public as String, entityType)
 		}
-
 	}
 
 	override suspend fun persistInit(
@@ -69,7 +73,7 @@ ENTITY : WithS2Id<ID> {
 		return persistInternal(transitionContexts).map { it.second }
 	}
 
-	private suspend fun persistInternal(
+	private fun persistInternal(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<Pair<ENTITY, EVENT>> = flow {
 		val collectedContexts = transitionContexts.toList()
@@ -98,27 +102,38 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	private suspend fun getIterations(
+	private fun getIterations(
 		query: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>
 	): Flow<GetSessionResult<STATE, ID, ENTITY, EVENT>> {
-		val list = query.toList()
-		val bySession = list.associateBy { it.sessionId }
+		return if(entityType.isAssignableFrom(WithS2Iteration::class.java)) {
+			query.map {
+				val entity = it.transitionContext.entity as WithS2Iteration
+				val iteration = entity.s2Iteration()
+				GetSessionResult(
+					transitionContext = it.transitionContext,
+					sessionId = it.sessionId,
+					iteration = iteration
+				)
+			}
+		} else {
+			query.batchFlow(batch.asBatch()) { list ->
+				val bySession = list.associateBy { it.sessionId }
+				getSessions(list).map { session ->
+					val it = bySession[session.sessionName]!!
+					val iteration = session.logs.maxOfOrNull { it.state.iteration }
 
-		return getSessions(list.asFlow()).map { session ->
-			val it = bySession[session.sessionName]!!
-			val iteration = session.logs.maxOfOrNull { it.state.iteration }
-
-			GetSessionResult(
-				transitionContext = it.transitionContext,
-				sessionId = it.sessionId,
-				iteration = iteration ?: 0
-			)
+					GetSessionResult(
+						transitionContext = it.transitionContext,
+						sessionId = it.sessionId,
+						iteration = iteration ?: 0
+					)
+				}
+			}
 		}
-
 	}
 
 	private suspend fun getSessions(
-		queries: Flow<GetSessionQuery<STATE, ID, ENTITY, EVENT>>,
+		queries: List<GetSessionQuery<STATE, ID, ENTITY, EVENT>>,
 	): Flow<SsmGetSessionLogsQueryResult> = queries.map { query ->
 		SsmGetSessionLogsQuery(
 			sessionName = query.sessionId,
@@ -126,7 +141,7 @@ ENTITY : WithS2Id<ID> {
 			ssmName = query.transitionContext.automateContext.automate.name,
 		)
 	}.let {
-		ssmGetSessionLogsQueryFunction.invoke(it)
+		ssmGetSessionLogsQueryFunction.invoke(it.asFlow())
 	}
 
 	private suspend fun getSessionForAutomate(
@@ -176,7 +191,6 @@ ENTITY : WithS2Id<ID> {
 			emit(e.event)
 		}
 	}
-
 }
 
 data class GetSessionQuery<STATE, ID, ENTITY, EVENT>(

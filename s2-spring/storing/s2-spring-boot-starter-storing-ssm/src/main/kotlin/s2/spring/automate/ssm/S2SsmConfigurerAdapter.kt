@@ -57,6 +57,7 @@ AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 			chaincodeUri = chaincodeUri,
 			agentSigner = signer,
 			permisive = permisive,
+			batch = batchParams
 		).also {
 			ssmTxInitFunction.invoke(
 				SsmInitCommand(
