@@ -29,13 +29,16 @@ class S2SourcingAutomateBuilder {
 	inline fun <reified CMD: Cmd, reified EVT: Evt> transaction(exec: S2TransitionBuilder.() -> Unit) {
 		val builder = S2TransitionBuilder()
 		builder.exec()
-		S2Transition(
-			from = builder.from?.toValue(),
-			to = builder.to.toValue(),
-			role = builder.role.toValue(),
-			action = CMD::class.toValue(),
-			result = (builder.evt ?: EVT::class).toValue()
-		).let(transactions::add)
+		builder.from?.let(builder.froms::add)
+		builder.froms.map { from ->
+			S2Transition(
+				from = from.toValue(),
+				to = builder.to.toValue(),
+				role = builder.role.toValue(),
+				action = CMD::class.toValue(),
+				result = builder.evt?.toValue(),
+			).let(transactions::add)
+		}
 	}
 
 	inline fun <reified CMD: Cmd, reified EVT: Evt> selfTransaction(exec: S2SelfTransitionBuilder.() -> Unit) {
