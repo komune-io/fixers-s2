@@ -8,3 +8,7 @@ plugins {
 dependencies {
     commonMainApi("io.komune.c2:ssm-chaincode-dsl:${Versions.c2}")
 }
+
+tasks.withType<Test>().configureEach {
+	useJUnitPlatform()
+}
