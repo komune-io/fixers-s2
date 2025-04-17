@@ -1,6 +1,6 @@
 package s2.automate.core.sourcing
 
-import f2.dsl.fnc.operators.mapEnvelope
+import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.fnc.operators.mapEnvelopeWithType
 import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.flow.Flow
@@ -53,7 +53,7 @@ ENTITY : WithS2State<STATE> {
 			val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
 			val entity = projectionLoader.evolve(flowOf(event))!!
 			entity to evl
-		}.map { it.data }.also(publisher::publish)
+		}.mapAndPublishData()
 	}
 
 	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decide(
@@ -75,7 +75,11 @@ ENTITY : WithS2State<STATE> {
 			val event = exec(command.data, entity)
 			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
 			entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
-		}.map { it.data }.also(publisher::publish)
+		}.mapAndPublishData()
+	}
+
+	private fun <EVENT_OUT : EVENT> Flow<Envelope<EVENT_OUT>>.mapAndPublishData(): Flow<EVENT_OUT> = map { evl ->
+		evl.data.also { data -> publisher.publish(data) }
 	}
 
 	override suspend fun replayHistory() {
