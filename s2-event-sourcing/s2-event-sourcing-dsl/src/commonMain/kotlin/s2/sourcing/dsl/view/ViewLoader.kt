@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transform
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2Iteration
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
