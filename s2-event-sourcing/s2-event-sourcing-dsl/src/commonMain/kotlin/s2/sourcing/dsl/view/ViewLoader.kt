@@ -1,13 +1,11 @@
 package s2.sourcing.dsl.view
 
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.transform
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.Loader
@@ -21,9 +19,8 @@ EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
 	override suspend fun load(id: ID & Any): ENTITY? {
-		return eventRepository.load(id).let { events ->
-			load(events)
-		}
+		val events = eventRepository.load(id)
+		return load(events)
 	}
 
 	override suspend fun load(events: Flow<EVENT>): ENTITY? {
@@ -44,28 +41,55 @@ EVENT: WithS2Id<ID> {
 		}
 	}
 
-	override suspend fun reloadHistory(): List<ENTITY> = eventRepository.loadAll()
-		.groupBy { event -> event.s2Id() }
-		.reducePerKey(::load)
-		.mapNotNull{it}
-		.toList()
+	// Solution 2: Using LinkedHashMap to preserve insertion order
+	override suspend fun reloadHistory(): List<ENTITY> {
+		return eventRepository.loadAll()
+			.groupByOrdered(
+				{ event -> event.s2Id() },
+				{ a, b ->
+					when {
+						a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
+							@Suppress("UNCHECKED_CAST")
+							(a as Comparable<Any>).compareTo(b)
+						}
 
-	suspend fun <T, K> Flow<T>.groupBy(keySelector: suspend (T) -> K): Map<K, Flow<T>> {
-		val resultMap = mutableMapOf<K, MutableList<T>>()
+						else -> 0
+					}
+				}
+			)
+			.reducePerKeyOrdered(::load)
+			.mapNotNull { it }
+			.toList()
+	}
 
-		transform { value ->
+	private suspend fun <T, K> Flow<T>.groupByOrdered(
+		keySelector: suspend (T) -> K,
+		comparator: Comparator<T>,
+	): LinkedHashMap<K, Flow<T>> {
+		val resultMap = linkedMapOf<K, MutableList<T>>()
+
+		// Collect all elements while preserving key insertion order
+		collect { value ->
 			val key = keySelector(value)
 			val list = resultMap.getOrPut(key) { mutableListOf() }
 			list.add(value)
-			emit(resultMap)
-		}.toList()
+		}
 
-		return resultMap.mapValues { it.value.asFlow() }
+		// Convert to LinkedHashMap with sorted values per group
+		return LinkedHashMap<K, Flow<T>>().apply {
+			resultMap.forEach { (key, values) ->
+				put(key, values.sortedWith(comparator).asFlow())
+			}
+		}
 	}
 
-	private fun <T, K, R> Map<K, Flow<T>>.reducePerKey(reduce: suspend (Flow<T>) -> R): Flow<R> {
+	private fun <T, K, R> LinkedHashMap<K, Flow<T>>.reducePerKeyOrdered(
+		reduce: suspend (Flow<T>) -> R
+	): Flow<R> {
+		// LinkedHashMap.values preserves insertion order, no need to convert to list first
 		return this.values.asFlow().map { flow ->
 			reduce(flow)
 		}
 	}
+
 }
