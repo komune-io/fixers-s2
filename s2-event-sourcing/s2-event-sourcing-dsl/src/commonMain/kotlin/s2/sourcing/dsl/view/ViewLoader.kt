@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.transform
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
+import s2.dsl.automate.model.WithS2Iteration
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
@@ -42,48 +42,55 @@ EVENT: WithS2Id<ID> {
 		}
 	}
 
-	override suspend fun reloadHistory(): List<ENTITY> = eventRepository.loadAll()
-		.groupBy(
-			{ event -> event.s2Id() },
-            { a, b ->
-                when {
-                    a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
-                        @Suppress("UNCHECKED_CAST")
-                        (a as Comparable<Any>).compareTo(b)
-                    }
-                    else -> 0
-                }
-            }
-		)
-		.reducePerKey(::load)
-		.mapNotNull{it}
-		.toList()
+	// Solution 2: Using LinkedHashMap to preserve insertion order
+	override suspend fun reloadHistory(): List<ENTITY> {
+		return eventRepository.loadAll()
+			.groupByOrdered(
+				{ event -> event.s2Id() },
+				Comparator { a, b ->
+					when {
+						a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
+							@Suppress("UNCHECKED_CAST")
+							(a as Comparable<Any>).compareTo(b)
+						}
 
-	suspend fun <T, K> Flow<T>.groupBy(
+						else -> 0
+					}
+				}
+			)
+			.reducePerKeyOrdered(::load)
+			.mapNotNull { it }
+			.toList()
+	}
+
+	private suspend fun <T, K> Flow<T>.groupByOrdered(
 		keySelector: suspend (T) -> K,
-		comparator: Comparator<T>? = null,
-	): Map<K, Flow<T>> {
+		comparator: Comparator<T>,
+	): LinkedHashMap<K, Flow<T>> {
 		val resultMap = linkedMapOf<K, MutableList<T>>()
 
-		transform { value ->
+		// Collect all elements while preserving key insertion order
+		collect { value ->
 			val key = keySelector(value)
 			val list = resultMap.getOrPut(key) { mutableListOf() }
 			list.add(value)
-			emit(resultMap)
-		}.toList()
+		}
 
-		return resultMap.mapValues { values ->
-			if(comparator != null) {
-				values.value.sortedWith(comparator).asFlow()
-			} else {
-				values.value.asFlow()
+		// Convert to LinkedHashMap with sorted values per group
+		return LinkedHashMap<K, Flow<T>>().apply {
+			resultMap.forEach { (key, values) ->
+				put(key, values.sortedWith(comparator).asFlow())
 			}
 		}
 	}
 
-	private fun <T, K, R> Map<K, Flow<T>>.reducePerKey(reduce: suspend (Flow<T>) -> R): Flow<R> {
+	private fun <T, K, R> LinkedHashMap<K, Flow<T>>.reducePerKeyOrdered(
+		reduce: suspend (Flow<T>) -> R
+	): Flow<R> {
+		// LinkedHashMap.values preserves insertion order, no need to convert to list first
 		return this.values.asFlow().map { flow ->
 			reduce(flow)
 		}
 	}
+
 }
