@@ -32,8 +32,9 @@ class R2dbcEventRepository<EVENT, ID>(
 EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
-
-	val beanName: String = "${eventType.simpleName!!}Repository".lowercase()
+	private val sortByCreatedDate = Sort.by(
+		Sort.Order.asc("created_date")
+	)
 
 	fun delete(id: Long?): Mono<Void> {
 		return r2dbcEntityTemplate.delete(EventSourcing::class.java)
@@ -44,20 +45,21 @@ EVENT: WithS2Id<ID>
 	}
 
 	override suspend fun load(id: ID): Flow<EVENT> {
-		val order = Sort.Order.asc("created_date")
-		val sort = Sort.by(order)
+		val query = Query
+			.query(Criteria.where("obj_id").`is`(id!!))
+			.sort(sortByCreatedDate)
 		return r2dbcEntityTemplate.select(EventSourcing::class.java)
 			.from(tableName)
-			.matching(Query.query(Criteria.where("obj_id").`is`(id!!)).sort(sort))
+			.matching(query)
 			.flow().toEvents()
 	}
 
 	override suspend fun loadAll(): Flow<EVENT> {
-		val order = Sort.Order.asc("created_date")
-		val sort = Sort.by(order)
+		val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
+			.sort(sortByCreatedDate)
 		return r2dbcEntityTemplate.select(EventSourcing::class.java)
 			.from(tableName)
-			.matching(Query.query(Criteria.empty()).sort(sort))
+			.matching(query)
 			.flow().toEvents()
 	}
 
