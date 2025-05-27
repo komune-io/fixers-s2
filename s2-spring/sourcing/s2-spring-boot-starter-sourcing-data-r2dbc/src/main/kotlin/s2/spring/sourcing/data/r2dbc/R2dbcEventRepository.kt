@@ -9,6 +9,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
+import org.springframework.data.domain.Sort
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.flow
 import org.springframework.data.relational.core.query.Criteria
@@ -25,11 +26,14 @@ class R2dbcEventRepository<EVENT, ID>(
 	private val databaseClient: DatabaseClient,
 	private val r2dbcEntityTemplate: R2dbcEntityTemplate,
 	private val eventType: KClass<EVENT>,
+
 	private val tableName: String = "s2_event_sourcing_${eventType.simpleName!!}".lowercase()
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
+
+	val beanName: String = "${eventType.simpleName!!}Repository".lowercase()
 
 	fun delete(id: Long?): Mono<Void> {
 		return r2dbcEntityTemplate.delete(EventSourcing::class.java)
@@ -40,15 +44,20 @@ EVENT: WithS2Id<ID>
 	}
 
 	override suspend fun load(id: ID): Flow<EVENT> {
+		val order = Sort.Order.asc("created_date")
+		val sort = Sort.by(order)
 		return r2dbcEntityTemplate.select(EventSourcing::class.java)
 			.from(tableName)
-			.matching(Query.query(Criteria.where("obj_id").`is`(id!!)))
+			.matching(Query.query(Criteria.where("obj_id").`is`(id!!)).sort(sort))
 			.flow().toEvents()
 	}
 
 	override suspend fun loadAll(): Flow<EVENT> {
+		val order = Sort.Order.asc("created_date")
+		val sort = Sort.by(order)
 		return r2dbcEntityTemplate.select(EventSourcing::class.java)
 			.from(tableName)
+			.matching(Query.query(Criteria.empty()).sort(sort))
 			.flow().toEvents()
 	}
 
