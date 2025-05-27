@@ -64,7 +64,7 @@ EVENT: WithS2Id<ID> {
 		keySelector: suspend (T) -> K,
 		comparator: Comparator<T>? = null,
 	): Map<K, Flow<T>> {
-		val resultMap = mutableMapOf<K, MutableList<T>>()
+		val resultMap = linkedMapOf<K, MutableList<T>>()
 
 		transform { value ->
 			val key = keySelector(value)
