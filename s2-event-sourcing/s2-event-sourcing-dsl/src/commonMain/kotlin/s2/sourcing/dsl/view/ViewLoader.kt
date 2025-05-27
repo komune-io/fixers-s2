@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2Iteration
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
@@ -47,7 +46,7 @@ EVENT: WithS2Id<ID> {
 		return eventRepository.loadAll()
 			.groupByOrdered(
 				{ event -> event.s2Id() },
-				Comparator { a, b ->
+				{ a, b ->
 					when {
 						a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
 							@Suppress("UNCHECKED_CAST")
