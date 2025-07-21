@@ -16,11 +16,11 @@ test-pre:
 test:
 	./gradlew test
 
-publish:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=github ./gradlew publish
+state:
+	VERSION=$(VERSION) ./gradlew state
 
 promote:
-	VERSION=$(VERSION) PKG_MAVEN_REPO=sonatype_oss ./gradlew publish
+	VERSION=$(VERSION) ./gradlew promote
 
 .PHONY: version
 version:
