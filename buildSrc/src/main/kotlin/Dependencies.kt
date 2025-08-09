@@ -35,8 +35,9 @@ object Versions {
 fun RepositoryHandler.defaultRepo() {
 	mavenCentral()
 	maven { url = URI("https://central.sonatype.com/repository/maven-snapshots") }
-	maven { url = URI("https://repo.spring.io/milestone") }
-	mavenLocal()
+	if(System.getenv("MAVEN_LOCAL_USE") == "true") {
+		mavenLocal()
+	}
 }
 
 object Dependencies {
