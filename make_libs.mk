@@ -16,8 +16,8 @@ test-pre:
 test:
 	./gradlew test
 
-state:
-	VERSION=$(VERSION) ./gradlew state
+stage:
+	VERSION=$(VERSION) ./gradlew stage
 
 promote:
 	VERSION=$(VERSION) ./gradlew promote
