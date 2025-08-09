@@ -32,11 +32,12 @@ jobs:
       pages: write
       id-token: write
     with:
-      on-tag: 'stage_promote'
+      on-tag: 'stage promote'
       make-file: 'make_docs.mk'
       with-chromatic: false
-      storybook-dir: storybook
-      storybook-static-dir: storybook-static
+      base-dir: "storybook"
+      storybook-dir: "storybook"
+      storybook-static-dir: "storybook-static"
     secrets:
       NPM_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
