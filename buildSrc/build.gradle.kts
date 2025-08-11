@@ -11,5 +11,5 @@ repositories {
 }
 
 dependencies {
-	implementation("io.komune.fixers.gradle:dependencies:0.25.0")
+	implementation("io.komune.fixers.gradle:dependencies:0.26.0-SNAPSHOT")
 }
