@@ -4,15 +4,12 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import {DidHttpClientProvider} from "./did/context/DidHttpClientProvider";
-import {DidRSocketClientProvider} from "./did/context/DidRSocketClientProvider";
 
 ReactDOM.render(
     <React.StrictMode>
-        <DidRSocketClientProvider>
-            <DidHttpClientProvider>
-                <App/>
-            </DidHttpClientProvider>
-        </DidRSocketClientProvider>
+        <DidHttpClientProvider>
+            <App/>
+        </DidHttpClientProvider>
     </React.StrictMode>,
     document.getElementById('root')
 );

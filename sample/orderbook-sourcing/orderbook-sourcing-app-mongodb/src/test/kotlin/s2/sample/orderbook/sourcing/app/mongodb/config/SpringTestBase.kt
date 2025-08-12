@@ -1,5 +1,6 @@
 package s2.sample.orderbook.sourcing.app.mongodb.config
 
+import com.redis.testcontainers.RedisContainer
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
@@ -25,14 +26,19 @@ abstract class SpringTestBase {
 		val mongoContainer: MongoDBContainer =
 			MongoDBContainer(DockerImageName.parse("mongo:4.4"))
 
-		val redisContainer = GenericContainer<Nothing>("redis/redis-stack:6.2.2-v2-edge")
-			.apply { withExposedPorts(6379) }
+		var redisContainer =
+			RedisContainer(DockerImageName.parse("redis/redis-stack:latest"));
+
 	}
 
 	internal class Initializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
 		override fun initialize(configurableApplicationContext: ConfigurableApplicationContext) {
-			redisContainer.start()
-			mongoContainer.start()
+			if (!redisContainer.isRunning) {
+				redisContainer.start()
+			}
+			if (!mongoContainer.isRunning) {
+				mongoContainer.start()
+			}
 			TestPropertyValues.of(
 				"spring.data.mongodb.uri=${mongoContainer.replicaSetUrl}",
 				"spring.data.redis.host=${redisContainer.host}",

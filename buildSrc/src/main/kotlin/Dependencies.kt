@@ -26,10 +26,10 @@ object Versions {
 	val slf4j = FixersVersions.Logging.slf4j
 
 	const val postgresql = "42.7.3"
-	const val r2dbc = "1.0.5.RELEASE"
-	const val redisSpring = "3.2.0"
-	const val redisTestContainer = "2.2.2"
-	const val lettuce = "6.2.2.RELEASE"
+	const val r2dbc = "1.0.7.RELEASE"
+	const val redisSpring = "4.4.0"
+	const val redisTestContainer = "2.2.4"
+	const val lettuce = "6.7.1.RELEASE"
 }
 
 fun RepositoryHandler.defaultRepo() {
@@ -70,7 +70,8 @@ object Dependencies {
 
 		fun redis(scope: Scope) = scope.add(
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
-			"com.redis:spring-lettucemod:${Versions.redisSpring}",
+			"com.redis:lettucemod-spring:${Versions.redisSpring}",
+			"com.redis:lettucemod:${Versions.redisSpring}",
 			"io.lettuce:lettuce-core:${Versions.lettuce}"
 		)
 
@@ -96,7 +97,6 @@ object Dependencies {
 	fun testcontainersPostgres(scope: Scope, runtimeOnly: Scope) = scope.add(
 		"org.testcontainers:postgresql:${Versions.testcontainers}",
 		"org.testcontainers:r2dbc:${Versions.testcontainers}",
-		"com.redis:testcontainers-redis:${Versions.redisTestContainer}",
 	).also { testcontainers(scope) }
 		.also {
 			runtimeOnly.add(
@@ -104,6 +104,9 @@ object Dependencies {
 				"org.postgresql:r2dbc-postgresql:${Versions.r2dbc}"
 			)
 		}
+	fun testcontainersRedis(scope: Scope) = scope.add(
+		"com.redis:testcontainers-redis:${Versions.redisTestContainer}",
+	).also { testcontainers(scope) }
 
 	fun springTest(scope: Scope) = scope.add(
 		"org.springframework.boot:spring-boot-starter-test:${Versions.springBoot}",
@@ -111,6 +114,7 @@ object Dependencies {
 		junit(scope)
 	}
 
+	fun jackson(scope: Scope) = FixersDependencies.Jvm.Json.jackson(scope)
 	fun junit(scope: Scope) = FixersDependencies.Jvm.Test.junit(scope)
 	fun cucumber(scope: Scope) = FixersDependencies.Jvm.Test.cucumber(scope)
 }

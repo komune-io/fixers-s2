@@ -7,4 +7,3 @@ export type DidClientContextType = {
 };
 
 export const DidHttpClientContext = React.createContext<DidClientContextType>({initialized: false});
-export const DidRSocketClientContext = React.createContext<DidClientContextType>({initialized: false});
