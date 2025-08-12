@@ -55,6 +55,7 @@ include(
 
 include(
 	"sample:orderbook-sourcing",
+	"sample:orderbook-sourcing:orderbook-sourcing-core",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-mongodb",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-r2dbc",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm",
@@ -68,7 +69,6 @@ include(
 	"sample:did-sample",
 	"sample:did-sample:did-app",
 	"sample:did-sample:did-http:did-http-app",
-	"sample:did-sample:did-rsocket:did-rsocket-app",
 	"sample:did-sample:did-domain",
 	"sample:did-sample:did-ui"
 )

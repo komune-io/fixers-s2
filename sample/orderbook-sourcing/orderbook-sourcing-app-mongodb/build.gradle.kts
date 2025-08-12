@@ -7,13 +7,11 @@ plugins {
 
 dependencies {
 	api(project(":sample:orderbook-sourcing:orderbook-sourcing-domain"))
+	api(project(":sample:orderbook-sourcing:orderbook-sourcing-core"))
 
 	api(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb"))
 
-	Dependencies.Fixers.f2Http (::implementation)
-	Dependencies.kserializationJson (::implementation)
-	Dependencies.Spring.redis(::api)
-
 	Dependencies.testcontainers(::testImplementation)
+	Dependencies.testcontainersRedis(::testImplementation)
 	Dependencies.springTest(::testImplementation)
 }
