@@ -1,6 +1,9 @@
 name: Dev
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
   pull_request:
     types: [opened, synchronize, labeled]
   push:
@@ -9,7 +12,6 @@ on:
       - 'release/*'
     tags:
       - '*'
-  workflow_dispatch:
 
 jobs:
   libs:
