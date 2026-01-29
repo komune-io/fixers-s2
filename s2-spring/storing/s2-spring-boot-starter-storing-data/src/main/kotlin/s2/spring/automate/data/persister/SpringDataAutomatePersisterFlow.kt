@@ -16,18 +16,19 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class SpringDataAutomatePersisterFlow<STATE, ID, ENTITY, EVENT>(
+class SpringDataAutomatePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
 	private val repository: CrudRepository<ENTITY, ID>,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
+ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
+	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
 		return repository.findAllById(ids.toList()).asFlow()
 	}
 

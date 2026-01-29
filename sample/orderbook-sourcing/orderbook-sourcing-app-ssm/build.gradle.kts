@@ -12,10 +12,10 @@ dependencies {
 
 	implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}")
 
-	implementation("io.lettuce:lettuce-core:6.1.6.RELEASE")
+	implementation("io.lettuce:lettuce-core:${Versions.lettuce}")
 
-	Dependencies.Fixers.f2Http (::implementation)
-	Dependencies.kserializationJson (::implementation)
+	Dependencies.Fixers.f2Http(::implementation)
+	Dependencies.kserializationJson(::implementation)
 	Dependencies.arrow (::implementation, ::ksp)
 
 	Dependencies.testcontainers(::testImplementation)

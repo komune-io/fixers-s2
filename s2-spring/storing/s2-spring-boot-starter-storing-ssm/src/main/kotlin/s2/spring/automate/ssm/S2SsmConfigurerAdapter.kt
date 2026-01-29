@@ -1,6 +1,6 @@
 package s2.spring.automate.ssm
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired

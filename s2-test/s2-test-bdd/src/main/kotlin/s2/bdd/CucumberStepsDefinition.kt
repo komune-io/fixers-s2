@@ -45,6 +45,7 @@ abstract class CucumberStepsDefinition {
         }, block)
     }
 
+    @Suppress("ThrowsCount")
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     protected open fun step(propagateException: (Exception) -> Boolean = { true }, block: suspend () -> Unit) {
         runBlocking(GlobalScope.newCoroutineContext(authedContext())) {

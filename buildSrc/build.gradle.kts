@@ -10,6 +10,8 @@ repositories {
 	}
 }
 
+val fixersVersion = file("../VERSION").readText().trim()
+
 dependencies {
-	implementation("io.komune.fixers.gradle:dependencies:0.26.0-SNAPSHOT")
+	implementation("io.komune.fixers.gradle:dependencies:$fixersVersion")
 }
