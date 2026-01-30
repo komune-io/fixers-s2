@@ -30,3 +30,12 @@ jobs:
       JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_USERNAME }}
       JRELEASER_MAVENCENTRAL_PASSWORD: ${{ secrets.JRELEASER_MAVENCENTRAL_PASSWORD }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  sec:
+    needs: libs
+    uses: komune-io/fixers-gradle/.github/workflows/sec-workflow.yml@main
+    permissions:
+      contents: write
+      pull-requests: read
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
