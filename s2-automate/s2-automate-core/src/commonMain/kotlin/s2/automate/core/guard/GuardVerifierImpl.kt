@@ -34,8 +34,8 @@ class GuardVerifierImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 	}
 
 	private fun List<GuardResult>.flatten(): GuardResult {
-		val errors = flatMap { it.errors }
-		return GuardResult.error(errors.toList())
+		val errors = flatMap(GuardResult::errors)
+		return GuardResult.error(errors)
 	}
 
 	override suspend fun verifyInitTransition(
