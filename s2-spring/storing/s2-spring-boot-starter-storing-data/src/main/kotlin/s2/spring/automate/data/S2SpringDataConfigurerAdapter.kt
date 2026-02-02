@@ -11,10 +11,11 @@ import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.data.persister.SpringDataAutomatePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
-abstract class S2SpringDataConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>(
+abstract class S2SpringDataConfigurerAdapter<STATE, ID: Any, ENTITY, AGGREGATE>(
 	private val aggregateRepository: CrudRepository<ENTITY, ID>,
 ) : S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where
 STATE : S2State,
+ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {

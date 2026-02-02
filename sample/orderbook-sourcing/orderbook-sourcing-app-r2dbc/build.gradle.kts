@@ -11,7 +11,7 @@ dependencies {
 
 	api(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-r2dbc"))
 
-	Dependencies.testcontainersRedis(::testImplementation)
+	Dependencies.testcontainers(::testImplementation)
 	Dependencies.testcontainersPostgres(::testImplementation, ::runtimeOnly)
 	Dependencies.springTest(::testImplementation)
 }

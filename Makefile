@@ -4,27 +4,22 @@ VERSION = $(shell cat VERSION)
 
 ## New
 lint:
-	@make -f libs.mk lint
-	@make -f docs.mk lint
+	@make -f infra/make/libs.mk lint
 
 build:
-	@make -f libs.mk build
-	@make -f docs.mk build
+	@make -f infra/make/libs.mk build
 
 test-pre:
-	@make -f libs.mk test-pre
+	@make -f infra/make/libs.mk test-pre
 
 test:
-	@make -f libs.mk test
-	@make -f docs.mk test
+	@make -f infra/make/libs.mk test
 
 stage:
-	@make -f libs.mk stage
-	@make -f docs.mk stage
+	@make -f infra/make/libs.mk stage
 
 promote:
-	@make -f libs.mk promote
-	@make -f docs.mk promote
+	@make -f infra/make/libs.mk promote
 
 ## DEV ENVIRONMENT
 include infra/docker-compose/dev-compose.mk

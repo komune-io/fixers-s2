@@ -56,7 +56,7 @@ class RetryTaskChannel(
     }
 
 
-    @Suppress("NestedBlockDepth")
+    @Suppress("NestedBlockDepth", "ReturnCount")
     private suspend fun <T> retry(
         block: suspend () -> T
     ): Pair<T?, Throwable?> {

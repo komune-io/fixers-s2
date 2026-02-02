@@ -4,7 +4,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.assertj.core.api.Assertions
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 
-abstract class AssertionCrudEntity<ENTITY, ID: Any, ASSERTER>: AssertionEntity<ENTITY, ID, ASSERTER> {
+abstract class AssertionCrudEntity<ENTITY: Any, ID: Any, ASSERTER>: AssertionEntity<ENTITY, ID, ASSERTER> {
     protected abstract val repository: ReactiveCrudRepository<ENTITY, ID>
 
     override suspend fun exists(id: ID) {

@@ -4,7 +4,7 @@ plugins {
 
 	kotlin("kapt") version PluginVersions.kotlin apply false
 
-	id("com.moowork.node" ) version "1.2.0"
+	id("com.github.node-gradle.node") version "7.1.0"
 
 	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
 	id("io.komune.fixers.gradle.check") version PluginVersions.fixers
@@ -24,27 +24,13 @@ allprojects {
 }
 
 
-subprojects {
-	plugins.withType(dev.petuska.npm.publish.NpmPublishPlugin::class.java).whenPluginAdded {
-		the<dev.petuska.npm.publish.extension.NpmPublishExtension>().apply {
-			organization.set("komune")
-			registries {
-				register("npmjs") {
-					uri.set(uri("https://registry.npmjs.org"))
-					authToken.set(java.lang.System.getenv("NPM_TOKEN"))
-				}
-			}
-		}
-	}
-}
-
 tasks {
-	create<com.moowork.gradle.node.yarn.YarnTask>("installYarn") {
+	register<com.github.gradle.node.yarn.task.YarnTask>("installYarn") {
 		dependsOn("build")
 		args = listOf("install")
 	}
 
-	create<com.moowork.gradle.node.yarn.YarnTask>("storybook") {
+	register<com.github.gradle.node.yarn.task.YarnTask>("storybook") {
 		dependsOn("yarn_install")
 		args = listOf("storybook")
 	}
@@ -60,8 +46,11 @@ fixers {
 		description = "Fixers S2"
 		url = "https://github.com/komune-io/fixers-s2"
 	}
+	npm {
+		organization = "komune"
+	}
 	sonar {
 		organization = "komune-io"
-		projectKey = "komune-io_connect-s2"
+		projectKey = "komune-io_fixers-s2"
 	}
 }

@@ -1,6 +1,6 @@
 package s2.spring.automate.ssm.persister
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import f2.dsl.fnc.operators.batchFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow

@@ -1,11 +1,8 @@
 package s2.sample.orderbook.sourcing.core.redis
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.readValue
 import com.redis.lettucemod.api.StatefulRedisModulesConnection
 import com.redis.lettucemod.search.CreateOptions
 import com.redis.lettucemod.search.Field
@@ -50,7 +47,7 @@ class RedisSnapView(
 			true
 		}
 
-	final inline fun <reified MODEL> buildId(value: String) = "${'$'}{MODEL::class.simpleName}-${'$'}value"
+	final inline fun <reified MODEL> buildId(value: String) = "${MODEL::class.simpleName}-$value"
 
 	final suspend inline fun <reified MODEL> save(id: String, entity: MODEL): MODEL =
 		searchConnection.withConnection { conn ->
@@ -183,7 +180,8 @@ class RedisSnapView(
 	final suspend inline fun <reified MODEL> all(): Flow<MODEL> =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()
-			val searchResult = connection.ftSearch(MODEL::class.simpleName, "*").awaitSingle()
+			val searchOptions = SearchOptions.builder<String, String>().build()
+			val searchResult = connection.ftSearch(MODEL::class.simpleName, "*", searchOptions).awaitSingle()
 			searchResult.mapNotNull { document ->
 				document["$"]?.let { objectMapper.readValue<MODEL>(it) }
 			}.asFlow()

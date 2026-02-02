@@ -10,5 +10,4 @@ dependencies {
 
 	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
 	Dependencies.Spring.dataCommons(::implementation)
-
 }

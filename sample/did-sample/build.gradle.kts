@@ -1,18 +1,5 @@
 plugins {
 	id("org.springframework.boot") version PluginVersions.springBoot apply false
-
-}
-
-subprojects {
-	plugins.withType(JavaPlugin::class.java).whenPluginAdded {
-		the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().apply {
-			imports {
-				mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES) {
-					bomProperty("kotlin.version", PluginVersions.kotlin)
-				}
-			}
-		}
-	}
 }
 
 tasks {
@@ -22,12 +9,11 @@ tasks {
 
 	register("kts", Copy::class) {
 		dependsOn("cleanKts")
-		from("${this.project.buildDir.absolutePath}/js/packages/") {
+		from("${layout.buildDirectory.get().asFile.absolutePath}/js/packages/") {
 			exclude("*-test")
 		}
 
 		into("did-ui/kotlin")
 		includeEmptyDirs = false
 	}
-
 }

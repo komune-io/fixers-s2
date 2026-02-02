@@ -12,6 +12,5 @@ dependencies {
 	api(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb"))
 
 	Dependencies.testcontainers(::testImplementation)
-	Dependencies.testcontainersRedis(::testImplementation)
 	Dependencies.springTest(::testImplementation)
 }
