@@ -20,7 +20,12 @@ object Versions {
 	const val springBoot = FixersVersions.Spring.boot
 	const val springframework = FixersVersions.Spring.framework
 	const val testcontainers = FixersVersions.Test.testcontainers
-
+	object Testcontainers {
+		val postgres = "1.21.4"
+		val mongo = "1.21.4"
+		val junitJupiter = "1.21.4"
+		val r2dbc = "1.21.4"
+	}
 	val c2 = FixersPluginVersions.fixers
 	val f2 = FixersPluginVersions.fixers
 	val slf4j = FixersVersions.Logging.slf4j
@@ -70,9 +75,10 @@ object Dependencies {
 
 		fun redis(scope: Scope) = scope.add(
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
-			"com.redis:lettucemod-spring:${Versions.redisSpring}",
 			"com.redis:lettucemod:${Versions.redisSpring}",
-			"io.lettuce:lettuce-core:${Versions.lettuce}"
+			"io.lettuce:lettuce-core:${Versions.lettuce}",
+			"org.apache.commons:commons-pool2:2.12.0",
+			"com.fasterxml.jackson.core:jackson-databind:2.18.3"
 		)
 
 		fun mongo(scope: Scope) = scope.add(
@@ -90,13 +96,13 @@ object Dependencies {
 
 	fun testcontainers(scope: Scope) = scope.add(
 		"org.springframework.boot:spring-boot-testcontainers:${Versions.springBoot}",
-		"org.testcontainers:junit-jupiter:${Versions.testcontainers}",
-		"org.testcontainers:mongodb:${Versions.testcontainers}",
+		"org.testcontainers:junit-jupiter:${Versions.Testcontainers.junitJupiter}",
+		"org.testcontainers:mongodb:${Versions.Testcontainers.mongo}",
 	)
 
 	fun testcontainersPostgres(scope: Scope, runtimeOnly: Scope) = scope.add(
-		"org.testcontainers:postgresql:${Versions.testcontainers}",
-		"org.testcontainers:r2dbc:${Versions.testcontainers}",
+		"org.testcontainers:postgresql:${Versions.Testcontainers.postgres}",
+		"org.testcontainers:r2dbc:${Versions.Testcontainers.r2dbc}",
 	).also { testcontainers(scope) }
 		.also {
 			runtimeOnly.add(
