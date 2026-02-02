@@ -51,6 +51,6 @@ fixers {
 	}
 	sonar {
 		organization = "komune-io"
-		projectKey = "komune-io_connect-s2"
+		projectKey = "komune-io_fixers-s2"
 	}
 }
