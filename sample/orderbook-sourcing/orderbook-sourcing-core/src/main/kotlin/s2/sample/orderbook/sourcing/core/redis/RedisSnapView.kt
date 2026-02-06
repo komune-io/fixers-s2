@@ -1,8 +1,5 @@
 package s2.sample.orderbook.sourcing.core.redis
 
-import tools.jackson.databind.ObjectMapper
-import tools.jackson.databind.node.ObjectNode
-import tools.jackson.module.kotlin.readValue
 import com.redis.lettucemod.api.StatefulRedisModulesConnection
 import com.redis.lettucemod.search.CreateOptions
 import com.redis.lettucemod.search.Field
@@ -21,6 +18,9 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.apache.commons.pool2.impl.GenericObjectPool
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.readValue
 
 @Component
 class RedisSnapView(

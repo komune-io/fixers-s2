@@ -1,6 +1,5 @@
 package s2.spring.automate.ssm
 
-import tools.jackson.databind.ObjectMapper
 import f2.dsl.fnc.invoke
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,6 +20,7 @@ import ssm.tx.dsl.features.ssm.SsmInitCommand
 import ssm.tx.dsl.features.ssm.SsmTxInitFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
+import tools.jackson.databind.ObjectMapper
 
 abstract class S2SsmConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE> :
 	S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where

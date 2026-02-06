@@ -2,12 +2,12 @@ package s2.sample.orderbook.sourcing.app.mongodb.config
 
 import com.redis.lettucemod.RedisModulesClient
 import com.redis.lettucemod.api.StatefulRedisModulesConnection
+import io.lettuce.core.support.ConnectionPoolSupport
 import org.apache.commons.pool2.impl.GenericObjectPool
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import io.lettuce.core.support.ConnectionPoolSupport
 
 @Configuration
 class RedisConfig {
