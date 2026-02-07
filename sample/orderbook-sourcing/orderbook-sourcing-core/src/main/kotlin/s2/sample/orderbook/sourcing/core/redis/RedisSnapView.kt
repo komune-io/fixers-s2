@@ -1,6 +1,7 @@
 package s2.sample.orderbook.sourcing.core.redis
 
 import com.redis.lettucemod.api.StatefulRedisModulesConnection
+import com.redis.lettucemod.api.reactive.RediSearchReactiveCommands
 import com.redis.lettucemod.search.CreateOptions
 import com.redis.lettucemod.search.Field
 import com.redis.lettucemod.search.Language
@@ -32,7 +33,7 @@ class RedisSnapView(
 		const val TYPE = "type"
 	}
 
-	final suspend inline fun <reified MODEL> get(id: String): MODEL? =
+	suspend inline fun <reified MODEL> get(id: String): MODEL? =
 		searchConnection.withConnection { conn ->
 			val reactive = conn.reactive()
 			reactive.jsonGet(buildId<MODEL>(id))
@@ -41,15 +42,15 @@ class RedisSnapView(
 				}
 		}
 
-	final suspend inline fun <reified MODEL> delete(id: String): Boolean =
+	suspend inline fun <reified MODEL> delete(id: String): Boolean =
 		searchConnection.withConnection { conn ->
 			conn.reactive().jsonDel(buildId<MODEL>(id)).awaitSingleOrNull()
 			true
 		}
 
-	final inline fun <reified MODEL> buildId(value: String) = "${MODEL::class.simpleName}-$value"
+	inline fun <reified MODEL> buildId(value: String) = "${MODEL::class.simpleName}-$value"
 
-	final suspend inline fun <reified MODEL> save(id: String, entity: MODEL): MODEL =
+	suspend inline fun <reified MODEL> save(id: String, entity: MODEL): MODEL =
 		searchConnection.withConnection { conn ->
 			val reactive = conn.reactive()
 			val json = objectMapper.valueToTree<ObjectNode>(entity).apply {
@@ -64,19 +65,19 @@ class RedisSnapView(
 				?: error("JSON not found after save")
 		}
 
-	final suspend inline fun <reified MODEL> dropIndex() =
+	suspend inline fun <reified MODEL> dropIndex() =
 		searchConnection.withConnection { conn ->
-			val connection = conn.reactive()
+			val connection: RediSearchReactiveCommands<String, String> = conn.reactive()
 			val indexName = MODEL::class.simpleName
 			try {
 				connection.ftCreate(indexName).awaitFirstOrNull()
-				connection.ftDropindex(indexName).awaitFirstOrNull()
+                connection.ftDropindex(indexName).awaitFirstOrNull()
 			} catch (e: Exception) {
 				logger.debug("Index[${'$'}{indexName}] nothing to drop", e)
 			}
 		}
 
-	final suspend inline fun <reified MODEL> createIndex(vararg fields: RedisIndexField) =
+	suspend inline fun <reified MODEL> createIndex(vararg fields: RedisIndexField) =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()
 			val indexName = MODEL::class.simpleName
@@ -112,7 +113,7 @@ class RedisSnapView(
 			}
 		}
 
-	final suspend inline fun <reified MODEL> createIndex() {
+	suspend inline fun <reified MODEL> createIndex() {
 		val fields = MODEL::class.java.declaredFields
 			.filter { it.name != "Companion" }
 			.filter { it.type == String::class.java }
@@ -120,7 +121,7 @@ class RedisSnapView(
 		createIndex<MODEL>(*fields.toTypedArray())
 	}
 
-	final suspend inline fun <reified MODEL> searchById(field: String, id: String): PageQueryResult<MODEL> =
+	suspend inline fun <reified MODEL> searchById(field: String, id: String): PageQueryResult<MODEL> =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()
 			val searchOptions = SearchOptions.builder<String, String>()
@@ -140,7 +141,7 @@ class RedisSnapView(
 			)
 		}
 
-	final suspend inline fun <reified MODEL : Any> search(
+	suspend inline fun <reified MODEL : Any> search(
 		query: String?,
 		pagination: OffsetPagination?,
 		sortBy: String?
@@ -172,12 +173,12 @@ class RedisSnapView(
 		)
 	}
 
-	final suspend inline fun <reified MODEL> count(): Long =
+	suspend inline fun <reified MODEL> count(): Long =
 		searchConnection.withConnection { conn ->
 			conn.reactive().ftSearch(MODEL::class.simpleName, "*").map { it.count }.awaitSingle()
 		}
 
-	final suspend inline fun <reified MODEL> all(): Flow<MODEL> =
+	suspend inline fun <reified MODEL> all(): Flow<MODEL> =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()
 			val searchOptions = SearchOptions.builder<String, String>().build()

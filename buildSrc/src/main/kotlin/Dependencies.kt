@@ -19,22 +19,23 @@ object Versions {
 
 	const val springBoot = FixersVersions.Spring.boot
 	const val springframework = FixersVersions.Spring.framework
-	const val testcontainers = FixersVersions.Test.testcontainers
 	object Testcontainers {
-		val postgres = "1.21.4"
-		val mongo = "1.21.4"
-		val junitJupiter = "1.21.4"
-		val r2dbc = "1.21.4"
+        const val postgres = "1.21.4"
+        const val mongo = "1.21.4"
+        const val junitJupiter = "1.21.4"
+        const val r2dbc = "1.21.4"
+        const val redis = "2.2.4"
 	}
 	val c2 = FixersPluginVersions.fixers
 	val f2 = FixersPluginVersions.fixers
 	val slf4j = FixersVersions.Logging.slf4j
 
+	val commonsPool = "2.13.1"
 	const val postgresql = "42.7.3"
-	const val r2dbc = "1.0.7.RELEASE"
-	const val redisSpring = "4.4.0"
-	const val redisTestContainer = "2.2.4"
-	const val lettuce = "6.7.1.RELEASE"
+	const val r2dbc = "1.1.1.RELEASE"
+	const val redisSpring = "4.5.0"
+
+	const val lettuce = "7.3.0.RELEASE"
 }
 
 fun RepositoryHandler.defaultRepo() {
@@ -48,11 +49,35 @@ fun RepositoryHandler.defaultRepo() {
 object Dependencies {
 	fun kserializationJson(scope: Scope) = FixersDependencies.Jvm.Json.kSerialization(scope)
 
+	fun slf4j(scope: Scope) = scope.add(
+		"org.slf4j:slf4j-api:${Versions.slf4j}",
+	)
+
 	object Fixers {
 		fun f2Http(scope: Scope) = scope.add(
 			"io.komune.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
-		)fun f2Auth(scope: Scope) = scope.add(
+		)
+		fun f2Auth(scope: Scope) = scope.add(
 			"io.komune.f2:f2-spring-boot-starter-auth:${Versions.f2}",
+		)
+		fun f2ClientKtor(scope: Scope) = scope.add(
+			"io.komune.f2:f2-client-ktor:${Versions.f2}",
+		)
+	}
+
+	object C2 {
+		fun ssmChaincodeDsl(scope: Scope) = scope.add(
+			"io.komune.c2:ssm-chaincode-dsl:${Versions.c2}",
+		)
+		fun ssmSourcing(scope: Scope) = scope.add(
+			"io.komune.c2:ssm-chaincode-spring-boot-starter:${Versions.c2}",
+			"io.komune.c2:ssm-data-spring-boot-starter:${Versions.c2}",
+			"io.komune.c2:ssm-tx-spring-boot-starter:${Versions.c2}",
+		)
+		fun ssmStoring(scope: Scope) = scope.add(
+			"io.komune.c2:ssm-chaincode-spring-boot-starter:${Versions.c2}",
+			"io.komune.c2:ssm-tx-spring-boot-starter:${Versions.c2}",
+			"io.komune.c2:ssm-tx-init-ssm-spring-boot-starter:${Versions.c2}",
 		)
 	}
 
@@ -77,8 +102,8 @@ object Dependencies {
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
 			"com.redis:lettucemod:${Versions.redisSpring}",
 			"io.lettuce:lettuce-core:${Versions.lettuce}",
-			"org.apache.commons:commons-pool2:2.12.0",
-			"com.fasterxml.jackson.core:jackson-databind:2.18.3"
+			"com.fasterxml.jackson.core:jackson-databind:2.18.3",
+			"org.apache.commons:commons-pool2:${Versions.commonsPool}",
 		)
 
 		fun mongo(scope: Scope) = scope.add(
@@ -111,7 +136,7 @@ object Dependencies {
 			)
 		}
 	fun testcontainersRedis(scope: Scope) = scope.add(
-		"com.redis:testcontainers-redis:${Versions.redisTestContainer}",
+		"com.redis:testcontainers-redis:${Versions.Testcontainers.redis}",
 	).also { testcontainers(scope) }
 
 	fun springTest(scope: Scope) = scope.add(

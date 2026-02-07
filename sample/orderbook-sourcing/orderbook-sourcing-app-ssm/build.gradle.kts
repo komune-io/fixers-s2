@@ -10,9 +10,7 @@ dependencies {
 	implementation(project(":sample:orderbook-sourcing:orderbook-sourcing-domain"))
 	implementation(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-ssm"))
 
-	implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}")
-
-	implementation("io.lettuce:lettuce-core:${Versions.lettuce}")
+	Dependencies.Spring.redis(::implementation)
 
 	Dependencies.Fixers.f2Http(::implementation)
 	Dependencies.kserializationJson(::implementation)

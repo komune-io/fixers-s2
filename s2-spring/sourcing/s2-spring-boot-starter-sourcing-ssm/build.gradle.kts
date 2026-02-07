@@ -9,8 +9,5 @@ dependencies {
 
 	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
 
-	api("io.komune.c2:ssm-chaincode-spring-boot-starter:${Versions.c2}")
-	api("io.komune.c2:ssm-data-spring-boot-starter:${Versions.c2}")
-
-	api("io.komune.c2:ssm-tx-spring-boot-starter:${Versions.c2}")
+	Dependencies.C2.ssmSourcing(::api)
 }
