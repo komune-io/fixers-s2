@@ -1,5 +1,6 @@
 package s2.sample.did.http.app
 
+import f2.client.function
 import f2.client.ktor.http.httpClientBuilder
 import java.util.UUID
 import java.util.function.Function
