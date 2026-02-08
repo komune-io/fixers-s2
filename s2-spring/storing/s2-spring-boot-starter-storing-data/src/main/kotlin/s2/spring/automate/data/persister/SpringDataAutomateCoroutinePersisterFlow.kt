@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.asBatch
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State

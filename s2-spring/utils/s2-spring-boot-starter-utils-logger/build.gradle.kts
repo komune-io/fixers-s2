@@ -4,5 +4,5 @@ plugins {
 }
 
 dependencies {
-	api("org.slf4j:slf4j-api:${Versions.slf4j}")
+	Dependencies.slf4j(::api)
 }

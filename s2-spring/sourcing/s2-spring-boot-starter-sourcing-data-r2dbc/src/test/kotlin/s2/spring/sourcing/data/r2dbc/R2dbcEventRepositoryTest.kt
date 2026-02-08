@@ -1,8 +1,11 @@
 package s2.spring.sourcing.data.r2dbc
 
+import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -12,10 +15,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
 import s2.spring.sourcing.data.r2dbc.config.SpringTestBase
-import java.time.LocalDateTime
-import java.util.UUID
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 @Serializable
 data class TestEvent(

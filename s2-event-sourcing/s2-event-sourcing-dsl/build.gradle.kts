@@ -6,7 +6,3 @@ plugins {
 dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
 }
-
-tasks.withType<Test>().configureEach {
-	useJUnitPlatform()
-}

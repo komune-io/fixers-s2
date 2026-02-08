@@ -7,11 +7,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.asFlux
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.asBatch
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate

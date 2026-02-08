@@ -53,12 +53,12 @@ abstract class CucumberStepsDefinition {
                 block()
             } catch (e: CucumberDataTableException) {
                 val actualException = (e.cause as? CucumberInvocationTargetException)
-                    ?.invocationTargetExceptionCause
+                    ?.cause
                     ?: e
                 actualException.printStackTrace()
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
-                val actualException = e.invocationTargetExceptionCause ?: e
+                val actualException = e.cause ?: e
                 actualException.printStackTrace()
                 throw actualException
             } catch (e: Exception) {

@@ -1,6 +1,5 @@
 package s2.spring.automate.ssm.persister
 
-import tools.jackson.databind.ObjectMapper
 import f2.dsl.fnc.operators.batchFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -33,6 +32,7 @@ import ssm.tx.dsl.features.ssm.SsmSessionPerformActionCommand
 import ssm.tx.dsl.features.ssm.SsmSessionStartCommand
 import ssm.tx.dsl.features.ssm.SsmTxSessionPerformActionFunction
 import ssm.tx.dsl.features.ssm.SsmTxSessionStartFunction
+import tools.jackson.databind.ObjectMapper
 
 class SsmAutomatePersister<STATE, ID, ENTITY, EVENT>(
 	internal var ssmSessionStartFunction: SsmTxSessionStartFunction,

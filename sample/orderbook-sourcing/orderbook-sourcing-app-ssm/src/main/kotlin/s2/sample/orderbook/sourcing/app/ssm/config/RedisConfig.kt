@@ -1,6 +1,5 @@
 package s2.sample.orderbook.sourcing.app.ssm.config
 
-import tools.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
@@ -10,6 +9,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext
 import org.springframework.data.redis.serializer.RedisSerializationContext.RedisSerializationContextBuilder
 import org.springframework.data.redis.serializer.StringRedisSerializer
 import s2.sample.subautomate.domain.model.OrderBook
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
 
 @Configuration
