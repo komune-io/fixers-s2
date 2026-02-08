@@ -15,7 +15,7 @@ object PluginVersions {
 }
 
 object Versions {
-	const val arrow = "1.0.2-alpha.42"
+	const val arrow = "2.2.1.1"
 
 	const val springBoot = FixersVersions.Spring.boot
 	const val springframework = FixersVersions.Spring.framework
@@ -33,8 +33,6 @@ object Versions {
 	val commonsPool = "2.13.1"
 	const val postgresql = "42.7.3"
 	const val r2dbc = "1.1.1.RELEASE"
-	const val redisSpring = "4.5.0"
-
 	const val lettuce = "7.3.0.RELEASE"
 }
 
@@ -100,7 +98,6 @@ object Dependencies {
 
 		fun redis(scope: Scope) = scope.add(
 			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
-			"com.redis:lettucemod:${Versions.redisSpring}",
 			"io.lettuce:lettuce-core:${Versions.lettuce}",
 			"com.fasterxml.jackson.core:jackson-databind:2.18.3",
 			"org.apache.commons:commons-pool2:${Versions.commonsPool}",
