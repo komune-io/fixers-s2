@@ -4,7 +4,6 @@ VERSION = $(shell cat VERSION)
 
 clean:
 	./gradlew clean
-	rm -rf node_modules
 
 lint:
 	./gradlew detekt
