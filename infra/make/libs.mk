@@ -1,6 +1,9 @@
 VERSION = $(shell cat VERSION)
 
-.PHONY: lint build test publish promote version
+.PHONY: clean lint build test publish promote version
+
+clean:
+	./gradlew clean
 
 lint:
 	./gradlew detekt
