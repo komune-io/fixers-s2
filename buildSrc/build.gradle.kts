@@ -10,7 +10,7 @@ repositories {
 	maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
 }
 
-val fixersVersion = "0.27.0-SNAPSHOT"
+val fixersVersion = "0.27.3"
 
 dependencies {
 	implementation("io.komune.fixers.gradle:dependencies:$fixersVersion")
