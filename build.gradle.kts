@@ -8,11 +8,11 @@ plugins {
 
 	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
 	id("io.komune.fixers.gradle.check") version PluginVersions.fixers
+	id("io.komune.fixers.gradle.publish") version PluginVersions.fixers
 	id("io.komune.fixers.gradle.d2") version PluginVersions.d2
 
 	id("io.komune.fixers.gradle.kotlin.mpp") version PluginVersions.fixers apply false
 	id("io.komune.fixers.gradle.kotlin.jvm") version PluginVersions.fixers apply false
-	id("io.komune.fixers.gradle.publish") version PluginVersions.fixers apply false
 }
 
 allprojects {
