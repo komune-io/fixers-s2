@@ -48,18 +48,18 @@ object Dependencies {
 	fun kserializationJson(scope: Scope) = FixersDependencies.Jvm.Json.kSerialization(scope)
 
 	fun slf4j(scope: Scope) = scope.add(
-		"org.slf4j:slf4j-api:${Versions.slf4j}",
+		"org.slf4j:slf4j-api",
 	)
 
 	object Fixers {
 		fun f2Http(scope: Scope) = scope.add(
-			"io.komune.f2:f2-spring-boot-starter-function-http:${Versions.f2}",
+			"io.komune.f2:f2-spring-boot-starter-function-http",
 		)
 		fun f2Auth(scope: Scope) = scope.add(
-			"io.komune.f2:f2-spring-boot-starter-auth:${Versions.f2}",
+			"io.komune.f2:f2-spring-boot-starter-auth",
 		)
 		fun f2ClientKtor(scope: Scope) = scope.add(
-			"io.komune.f2:f2-client-ktor:${Versions.f2}",
+			"io.komune.f2:f2-client-ktor",
 		)
 	}
 
@@ -81,11 +81,11 @@ object Dependencies {
 
 
 	fun arrow(scope: Scope, ksp: Scope) = scope.add(
-		"io.arrow-kt:arrow-core:${Versions.arrow}",
-		"io.arrow-kt:arrow-optics:${Versions.arrow}",
+		"io.arrow-kt:arrow-core",
+		"io.arrow-kt:arrow-optics",
 	).also {
 		ksp.add(
-			"io.arrow-kt:arrow-optics-ksp-plugin:${Versions.arrow}"
+			"io.arrow-kt:arrow-optics-ksp-plugin"
 		)
 	}
 
@@ -93,34 +93,35 @@ object Dependencies {
 		fun dataCommons(scope: Scope) = FixersDependencies.Jvm.Spring.dataCommons(scope)
 		fun autoConfigure(scope: Scope, ksp: Scope) = FixersDependencies.Jvm.Spring.autoConfigure(scope, ksp)
 		fun security(scope: Scope) = scope.add(
-				"org.springframework.boot:spring-boot-starter-security:${FixersVersions.Spring.security}"
+				"org.springframework.boot:spring-boot-starter-security"
 		)
 
 		fun redis(scope: Scope) = scope.add(
-			"org.springframework.boot:spring-boot-starter-data-redis-reactive:${Versions.springBoot}",
+			"org.springframework.boot:spring-boot-starter-data-redis-reactive",
 			"io.lettuce:lettuce-core:${Versions.lettuce}",
 			"com.fasterxml.jackson.core:jackson-databind:2.18.3",
 			"org.apache.commons:commons-pool2:${Versions.commonsPool}",
 		)
 
 		fun mongo(scope: Scope) = scope.add(
-			"org.springframework.boot:spring-boot-starter-data-mongodb-reactive:${Versions.springBoot}"
+			"org.springframework.boot:spring-boot-starter-data-mongodb-reactive"
 		)
 
 		fun r2dbc(scope: Scope) = scope.add(
-			"org.springframework.boot:spring-boot-starter-data-r2dbc:${Versions.springBoot}",
+			"org.springframework.boot:spring-boot-starter-data-r2dbc",
 		)
 
 		fun tx(scope: Scope) = scope.add(
-			"org.springframework:spring-tx:${Versions.springframework}"
+			"org.springframework:spring-tx"
 		)
 	}
 
 	fun testcontainers(scope: Scope) = scope.add(
-		"org.springframework.boot:spring-boot-testcontainers:${Versions.springBoot}",
+		"org.springframework.boot:spring-boot-testcontainers",
 		"org.testcontainers:junit-jupiter:${Versions.Testcontainers.junitJupiter}",
 		"org.testcontainers:mongodb:${Versions.Testcontainers.mongo}",
 	)
+
 
 	fun testcontainersPostgres(scope: Scope, runtimeOnly: Scope) = scope.add(
 		"org.testcontainers:postgresql:${Versions.Testcontainers.postgres}",
@@ -137,7 +138,7 @@ object Dependencies {
 	).also { testcontainers(scope) }
 
 	fun springTest(scope: Scope) = scope.add(
-		"org.springframework.boot:spring-boot-starter-test:${Versions.springBoot}",
+		"org.springframework.boot:spring-boot-starter-test",
 	).also {
 		junit(scope)
 	}

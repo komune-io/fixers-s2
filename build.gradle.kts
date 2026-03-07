@@ -23,6 +23,19 @@ allprojects {
 	}
 }
 
+subprojects {
+	pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+		dependencies {
+			"implementation"(platform("io.komune.f2:f2-bom:${Versions.f2}"))
+		}
+	}
+	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+		dependencies {
+			"commonMainImplementation"(platform("io.komune.f2:f2-bom:${Versions.f2}"))
+		}
+	}
+}
+
 
 tasks {
 	register<com.github.gradle.node.yarn.task.YarnTask>("installYarn") {
