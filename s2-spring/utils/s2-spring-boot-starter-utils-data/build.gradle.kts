@@ -1,9 +1,9 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("io.komune.fixers.gradle.publish")
+	alias(libs.plugins.fixers.kotlin.jvm)
+	alias(libs.plugins.fixers.publish)
 }
 
 dependencies {
 	api(project(":s2-automate:s2-automate-dsl"))
-	Dependencies.Spring.dataCommons(::api)
+	api(libs.bundles.spring.data.commons)
 }

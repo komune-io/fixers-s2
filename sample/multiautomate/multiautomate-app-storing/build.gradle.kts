@@ -1,12 +1,12 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
+	alias(libs.plugins.fixers.kotlin.jvm)
 
-	kotlin("plugin.spring")
+	alias(libs.plugins.kotlin.spring)
 }
 
 dependencies {
 	api(project(":s2-spring:storing:s2-spring-boot-starter-storing-data"))
 
-	Dependencies.Fixers.f2Http(::implementation)
-	Dependencies.Spring.mongo(::api)
+	implementation(libs.f2.spring.starter.function.http)
+	api(libs.spring.boot.starter.data.mongodb.reactive)
 }

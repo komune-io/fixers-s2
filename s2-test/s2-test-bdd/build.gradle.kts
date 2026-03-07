@@ -1,17 +1,17 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	kotlin("plugin.spring")
-	id("io.komune.fixers.gradle.publish")
+	alias(libs.plugins.fixers.kotlin.jvm)
+	alias(libs.plugins.kotlin.spring)
+	alias(libs.plugins.fixers.publish)
 }
 
 dependencies {
 
-	Dependencies.Spring.dataCommons(::implementation)
-	Dependencies.Fixers.f2Auth(::implementation)
+	implementation(libs.bundles.spring.data.commons)
+	implementation(libs.f2.spring.starter.auth)
 
-	Dependencies.cucumber(::api)
-	Dependencies.Fixers.f2Http(::api)
+	api(libs.bundles.cucumber)
+	api(libs.f2.spring.starter.function.http)
 	api(project(":s2-automate:s2-automate-core"))
 	api(project(":s2-automate:s2-automate-dsl"))
-	Dependencies.junit(::api)
+	api(libs.bundles.test.junit)
 }
