@@ -1,11 +1,11 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.mpp")
-	kotlin("plugin.serialization")
+	alias(libs.plugins.fixers.kotlin.mpp)
+	alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
 	commonMainImplementation(project(":s2-automate:s2-automate-dsl"))
-	Dependencies.Fixers.f2ClientKtor(::commonMainApi)
+	commonMainApi(libs.f2.client.ktor)
 
 	jvmTestImplementation(project(":s2-automate:s2-automate-documenter"))
 }
