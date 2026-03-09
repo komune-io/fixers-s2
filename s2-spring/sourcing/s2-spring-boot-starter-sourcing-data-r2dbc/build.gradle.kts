@@ -12,8 +12,8 @@ dependencies {
 	// Test dependencies
 	testImplementation(libs.bundles.testcontainers)
 	testImplementation(libs.bundles.testcontainers.postgres)
-	runtimeOnly(libs.postgresql)
-	runtimeOnly(libs.r2dbc.postgresql)
+	testRuntimeOnly(libs.postgresql)
+	testRuntimeOnly(libs.r2dbc.postgresql)
 	testImplementation(libs.spring.boot.starter.test)
 	testImplementation(libs.bundles.test.junit)
 }
