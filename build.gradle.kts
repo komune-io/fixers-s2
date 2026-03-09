@@ -26,12 +26,12 @@ allprojects {
 subprojects {
 	pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
 		dependencies {
-			"implementation"(platform(libs.f2.bom))
+			"api"(platform(libs.f2.bom))
 		}
 	}
 	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
 		dependencies {
-			"commonMainImplementation"(platform(libs.f2.bom))
+			"commonMainApi"(platform(libs.f2.bom))
 		}
 	}
 }
