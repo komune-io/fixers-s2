@@ -1,22 +1,25 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("org.springframework.boot") version PluginVersions.springBoot
-	kotlin("plugin.spring")
-	id("com.google.devtools.ksp") version PluginVersions.ksp
-	kotlin("plugin.serialization")
+	alias(libs.plugins.fixers.kotlin.jvm)
+	alias(libs.plugins.spring.boot)
+	alias(libs.plugins.kotlin.spring)
+	alias(libs.plugins.ksp)
+	alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
 	implementation(project(":sample:orderbook-sourcing:orderbook-sourcing-domain"))
 	implementation(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-ssm"))
 
-	Dependencies.Spring.redis(::implementation)
+	implementation(libs.bundles.spring.redis)
 
-	Dependencies.Fixers.f2Http(::implementation)
-	Dependencies.kserializationJson(::implementation)
-	Dependencies.arrow (::implementation, ::ksp)
+	implementation(libs.f2.spring.starter.function.http)
+	implementation(libs.bundles.kserialization.json)
+	implementation(libs.arrow.core)
+	implementation(libs.arrow.optics)
+	ksp(libs.arrow.optics.ksp)
 
-	Dependencies.testcontainers(::testImplementation)
+	testImplementation(libs.bundles.testcontainers)
 
-	Dependencies.springTest(::testImplementation)
+	testImplementation(libs.spring.boot.starter.test)
+	testImplementation(libs.bundles.test.junit)
 }

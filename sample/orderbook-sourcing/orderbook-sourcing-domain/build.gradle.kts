@@ -1,10 +1,12 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.mpp")
-	id("com.google.devtools.ksp") version PluginVersions.ksp
-	kotlin("plugin.serialization")
+	alias(libs.plugins.fixers.kotlin.mpp)
+	alias(libs.plugins.ksp)
+	alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
-	Dependencies.arrow (::commonMainApi, ::kspJvm)
+	commonMainApi(libs.arrow.core)
+	commonMainApi(libs.arrow.optics)
+	ksp(libs.arrow.optics.ksp)
 }

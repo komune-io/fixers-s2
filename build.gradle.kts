@@ -1,25 +1,38 @@
 plugins {
-	kotlin("plugin.spring") version PluginVersions.kotlin apply false
-	kotlin("plugin.serialization") version PluginVersions.kotlin apply false
-
-	kotlin("kapt") version PluginVersions.kotlin apply false
-
-	id("com.github.node-gradle.node") version "7.1.0"
-
-	id("io.komune.fixers.gradle.config") version PluginVersions.fixers
-	id("io.komune.fixers.gradle.check") version PluginVersions.fixers
-	id("io.komune.fixers.gradle.publish") version PluginVersions.fixers
-	id("io.komune.fixers.gradle.d2") version PluginVersions.d2
-
-	id("io.komune.fixers.gradle.kotlin.mpp") version PluginVersions.fixers apply false
-	id("io.komune.fixers.gradle.kotlin.jvm") version PluginVersions.fixers apply false
+	alias(libs.plugins.kotlin.spring) apply false
+	alias(libs.plugins.kotlin.serialization) apply false
+	alias(libs.plugins.kotlin.kapt) apply false
+	alias(libs.plugins.node.gradle)
+	alias(libs.plugins.fixers.config)
+	alias(libs.plugins.fixers.check)
+	alias(libs.plugins.fixers.publish)
+	alias(libs.plugins.fixers.d2)
+	alias(libs.plugins.fixers.kotlin.mpp) apply false
+	alias(libs.plugins.fixers.kotlin.jvm) apply false
 }
 
 allprojects {
 	group = "io.komune.s2"
 	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
 	repositories {
-		defaultRepo()
+		if (System.getenv("MAVEN_LOCAL_USE") == "true") {
+			mavenLocal()
+		}
+		mavenCentral()
+		maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
+	}
+}
+
+subprojects {
+	pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+		dependencies {
+			"api"(platform(libs.f2.bom))
+		}
+	}
+	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+		dependencies {
+			"commonMainApi"(platform(libs.f2.bom))
+		}
 	}
 }
 

@@ -1,7 +1,7 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("io.komune.fixers.gradle.publish")
-	kotlin("kapt")
+	alias(libs.plugins.fixers.kotlin.jvm)
+	alias(libs.plugins.fixers.publish)
+	alias(libs.plugins.kotlin.kapt)
 }
 
 dependencies {
@@ -9,5 +9,5 @@ dependencies {
 	api(project(":s2-spring:storing:s2-spring-boot-starter-storing"))
 	api(project(":s2-spring:utils:s2-spring-boot-starter-utils-data"))
 
-	Dependencies.Spring.dataCommons(::implementation)
+	implementation(libs.bundles.spring.data.commons)
 }

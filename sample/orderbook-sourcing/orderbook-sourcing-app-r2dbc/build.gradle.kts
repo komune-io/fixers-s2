@@ -1,8 +1,8 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("org.springframework.boot") version PluginVersions.springBoot
-	kotlin("plugin.spring")
-	kotlin("plugin.serialization")
+	alias(libs.plugins.fixers.kotlin.jvm)
+	alias(libs.plugins.spring.boot)
+	alias(libs.plugins.kotlin.spring)
+	alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
@@ -11,7 +11,10 @@ dependencies {
 
 	api(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-r2dbc"))
 
-	Dependencies.testcontainers(::testImplementation)
-	Dependencies.testcontainersPostgres(::testImplementation, ::runtimeOnly)
-	Dependencies.springTest(::testImplementation)
+	testImplementation(libs.bundles.testcontainers)
+	testImplementation(libs.bundles.testcontainers.postgres)
+	runtimeOnly(libs.postgresql)
+	runtimeOnly(libs.r2dbc.postgresql)
+	testImplementation(libs.spring.boot.starter.test)
+	testImplementation(libs.bundles.test.junit)
 }
