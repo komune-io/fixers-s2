@@ -8,5 +8,5 @@ dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
 	commonMainApi(libs.arrow.core)
 	commonMainApi(libs.arrow.optics)
-	add("kspCommonMainMetadata", libs.arrow.optics.ksp)
+	ksp(libs.arrow.optics.ksp)
 }
