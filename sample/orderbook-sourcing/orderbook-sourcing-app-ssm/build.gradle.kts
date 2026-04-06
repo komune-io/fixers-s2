@@ -1,9 +1,9 @@
 plugins {
-	alias(libs.plugins.fixers.kotlin.jvm)
-	alias(libs.plugins.spring.boot)
-	alias(libs.plugins.kotlin.spring)
-	alias(libs.plugins.ksp)
-	alias(libs.plugins.kotlin.serialization)
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
+	alias(catalogue.plugins.spring.boot)
+	alias(catalogue.plugins.kotlin.spring)
+	alias(catalogue.plugins.ksp)
+	alias(catalogue.plugins.kotlin.serialization)
 }
 
 dependencies {
@@ -11,15 +11,13 @@ dependencies {
 	implementation(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-ssm"))
 
 	implementation(libs.bundles.spring.redis)
-
-	implementation(libs.f2.spring.starter.function.http)
-	implementation(libs.bundles.kserialization.json)
+	implementation(catalogue.spring.boot.starter.function.http)
+	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.arrow.core)
 	implementation(libs.arrow.optics)
 	ksp(libs.arrow.optics.ksp)
 
 	testImplementation(libs.bundles.testcontainers)
-
 	testImplementation(libs.spring.boot.starter.test)
 	testImplementation(libs.bundles.test.junit)
 }

@@ -1,5 +1,5 @@
 plugins {
-	alias(libs.plugins.spring.boot) apply false
+	alias(catalogue.plugins.spring.boot) apply false
 }
 
 tasks {

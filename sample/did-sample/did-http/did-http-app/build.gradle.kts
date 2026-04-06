@@ -1,7 +1,7 @@
 plugins {
-	alias(libs.plugins.kotlin.spring)
-	alias(libs.plugins.fixers.kotlin.jvm)
-	alias(libs.plugins.spring.boot)
+	alias(catalogue.plugins.kotlin.spring)
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
+	alias(catalogue.plugins.spring.boot)
 }
 
 springBoot {
@@ -11,7 +11,7 @@ springBoot {
 dependencies {
 	implementation(project(":sample:did-sample:did-app"))
 
-	implementation(libs.f2.spring.starter.function.http)
+	implementation(catalogue.spring.boot.starter.function.http)
 	testImplementation(libs.spring.boot.starter.test)
 	testImplementation(libs.bundles.test.junit)
 }

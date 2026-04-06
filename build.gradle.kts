@@ -1,41 +1,17 @@
 plugins {
-	alias(libs.plugins.kotlin.spring) apply false
-	alias(libs.plugins.kotlin.serialization) apply false
-	alias(libs.plugins.kotlin.kapt) apply false
+	alias(catalogue.plugins.kotlin.spring) apply false
+	alias(catalogue.plugins.kotlin.serialization) apply false
+	alias(catalogue.plugins.kotlin.kapt) apply false
 	alias(libs.plugins.node.gradle)
-	alias(libs.plugins.fixers.config)
-	alias(libs.plugins.fixers.check)
-	alias(libs.plugins.fixers.publish)
-	alias(libs.plugins.fixers.d2)
-	alias(libs.plugins.fixers.kotlin.mpp) apply false
-	alias(libs.plugins.fixers.kotlin.jvm) apply false
-}
 
-allprojects {
-	group = "io.komune.s2"
-	version = System.getenv("VERSION") ?: "experimental-SNAPSHOT"
-	repositories {
-		if (System.getenv("MAVEN_LOCAL_USE") == "true") {
-			mavenLocal()
-		}
-		mavenCentral()
-		maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
-	}
-}
+	alias(catalogue.plugins.f2.bom)
+	alias(catalogue.plugins.fixers.gradle.config)
+	alias(catalogue.plugins.fixers.gradle.check)
 
-subprojects {
-	pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-		dependencies {
-			"api"(platform(libs.f2.bom))
-		}
-	}
-	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-		dependencies {
-			"commonMainApi"(platform(libs.f2.bom))
-		}
-	}
+	alias(catalogue.plugins.fixers.gradle.kotlin.mpp) apply false
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm) apply false
+	alias(catalogue.plugins.fixers.gradle.publish) apply false
 }
-
 
 tasks {
 	register<com.github.gradle.node.yarn.task.YarnTask>("installYarn") {
@@ -50,11 +26,9 @@ tasks {
 }
 
 fixers {
-	d2 {
-		outputDirectory = file("storybook/d2/")
-	}
 	bundle {
 		id = "s2"
+		group = "io.komune.s2"
 		name = "S2"
 		description = "Fixers S2"
 		url = "https://github.com/komune-io/fixers-s2"
