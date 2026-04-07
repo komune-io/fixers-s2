@@ -10,7 +10,7 @@ plugins {
 
 	alias(catalogue.plugins.fixers.gradle.kotlin.mpp) apply false
 	alias(catalogue.plugins.fixers.gradle.kotlin.jvm) apply false
-	alias(catalogue.plugins.fixers.gradle.publish) apply false
+	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
 tasks {
