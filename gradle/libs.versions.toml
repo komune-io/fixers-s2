@@ -63,10 +63,10 @@ arrow-optics-ksp = { group = "io.arrow-kt", name = "arrow-optics-ksp-plugin" }
 lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson-databind" }
 commons-pool2 = { group = "org.apache.commons", name = "commons-pool2", version.ref = "commons-pool" }
-testcontainers-junit-jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
-testcontainers-mongodb = { group = "org.testcontainers", name = "mongodb" }
-testcontainers-postgresql = { group = "org.testcontainers", name = "postgresql" }
-testcontainers-r2dbc = { group = "org.testcontainers", name = "r2dbc" }
+testcontainers-junit-jupiter = { group = "org.testcontainers", name = "testcontainers-junit-jupiter" }
+testcontainers-mongodb = { group = "org.testcontainers", name = "testcontainers-mongodb" }
+testcontainers-postgresql = { group = "org.testcontainers", name = "testcontainers-postgresql" }
+testcontainers-r2dbc = { group = "org.testcontainers", name = "testcontainers-r2dbc" }
 testcontainers-redis = { group = "com.redis", name = "testcontainers-redis", version.ref = "testcontainers-redis" }
 postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 r2dbc-postgresql = { group = "org.postgresql", name = "r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
