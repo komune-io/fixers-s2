@@ -1,10 +1,17 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.mpp")
-	id("com.google.devtools.ksp") version PluginVersions.ksp
-	kotlin("plugin.serialization")
+	alias(catalogue.plugins.fixers.gradle.kotlin.mpp)
+	alias(catalogue.plugins.ksp)
+	alias(catalogue.plugins.kotlin.serialization)
+}
+
+// Workaround for Kotlin/JS production compiler crash with KSP-generated arrow-optics code
+tasks.matching { it.name == "compileProductionLibraryKotlinJs" }.configureEach {
+	enabled = false
 }
 
 dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
-	Dependencies.arrow (::commonMainApi, ::kspJvm)
+	commonMainApi(libs.arrow.core)
+	commonMainApi(libs.arrow.optics)
+	kspJvm(libs.arrow.optics.ksp)
 }

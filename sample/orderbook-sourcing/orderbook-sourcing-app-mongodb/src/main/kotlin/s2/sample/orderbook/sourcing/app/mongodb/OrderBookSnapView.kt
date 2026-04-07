@@ -1,9 +1,9 @@
 package s2.sample.orderbook.sourcing.app.mongodb
 
-import com.redis.lettucemod.search.Field
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component
+import s2.sample.orderbook.sourcing.core.redis.RedisFieldType
 import s2.sample.orderbook.sourcing.core.redis.RedisIndexField
 import s2.sample.orderbook.sourcing.core.redis.RedisSnapView
 import s2.sample.subautomate.domain.model.OrderBook
@@ -17,7 +17,7 @@ class OrderBookSnapView(
     @PostConstruct
     fun init() = runBlocking {
         redisSnapView.createIndex<OrderBook>(
-            RedisIndexField(OrderBook::id.name, Field.Type.TAG)
+            RedisIndexField(OrderBook::id.name, RedisFieldType.TAG)
         )
     }
 

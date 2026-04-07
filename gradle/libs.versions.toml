@@ -1,0 +1,87 @@
+[versions]
+fixers = "0.30.0-SNAPSHOT"
+testcontainers-redis = "2.2.4"
+postgresql = "42.7.3"
+r2dbc-postgresql = "1.1.1.RELEASE"
+lettuce = "7.3.0.RELEASE"
+commons-pool = "2.13.1"
+jackson-databind = "2.18.3"
+node-gradle = "7.1.0"
+
+[libraries]
+# C2 modules
+c2-ssm-chaincode-dsl = { group = "io.komune.c2", name = "ssm-chaincode-dsl", version.ref = "fixers" }
+c2-ssm-chaincode-spring-boot-starter = { group = "io.komune.c2", name = "ssm-chaincode-spring-boot-starter", version.ref = "fixers" }
+c2-ssm-data-spring-boot-starter = { group = "io.komune.c2", name = "ssm-data-spring-boot-starter", version.ref = "fixers" }
+c2-ssm-tx-spring-boot-starter = { group = "io.komune.c2", name = "ssm-tx-spring-boot-starter", version.ref = "fixers" }
+c2-ssm-tx-init-ssm-spring-boot-starter = { group = "io.komune.c2", name = "ssm-tx-init-ssm-spring-boot-starter", version.ref = "fixers" }
+
+# Spring Boot (versions from BOM)
+spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
+spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
+spring-boot-starter-security = { group = "org.springframework.boot", name = "spring-boot-starter-security" }
+spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+spring-boot-starter-data-redis-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis-reactive" }
+spring-boot-starter-data-mongodb-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb-reactive" }
+spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc" }
+spring-boot-testcontainers = { group = "org.springframework.boot", name = "spring-boot-testcontainers" }
+
+# Spring Framework (versions from BOM)
+spring-context = { group = "org.springframework", name = "spring-context" }
+spring-tx = { group = "org.springframework", name = "spring-tx" }
+spring-data-commons = { group = "org.springframework.data", name = "spring-data-commons" }
+
+# Jakarta (versions from BOM)
+jakarta-persistence-api = { group = "jakarta.persistence", name = "jakarta.persistence-api" }
+
+# JSON (versions from BOM)
+jackson-module-kotlin = { group = "tools.jackson.module", name = "jackson-module-kotlin" }
+kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json" }
+
+# Logging (versions from BOM)
+slf4j-api = { group = "org.slf4j", name = "slf4j-api" }
+
+# Test (versions from BOM)
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
+junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api" }
+junit-platform-suite = { group = "org.junit.platform", name = "junit-platform-suite" }
+assertj-core = { group = "org.assertj", name = "assertj-core" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test" }
+
+# Cucumber (versions from BOM)
+cucumber-java = { group = "io.cucumber", name = "cucumber-java" }
+cucumber-java8 = { group = "io.cucumber", name = "cucumber-java8" }
+cucumber-junit-platform-engine = { group = "io.cucumber", name = "cucumber-junit-platform-engine" }
+
+# Arrow (versions from BOM)
+arrow-core = { group = "io.arrow-kt", name = "arrow-core" }
+arrow-optics = { group = "io.arrow-kt", name = "arrow-optics" }
+arrow-optics-ksp = { group = "io.arrow-kt", name = "arrow-optics-ksp-plugin" }
+
+# Project-specific (not in BOM)
+lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson-databind" }
+commons-pool2 = { group = "org.apache.commons", name = "commons-pool2", version.ref = "commons-pool" }
+testcontainers-junit-jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
+testcontainers-mongodb = { group = "org.testcontainers", name = "mongodb" }
+testcontainers-postgresql = { group = "org.testcontainers", name = "postgresql" }
+testcontainers-r2dbc = { group = "org.testcontainers", name = "r2dbc" }
+testcontainers-redis = { group = "com.redis", name = "testcontainers-redis", version.ref = "testcontainers-redis" }
+postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
+r2dbc-postgresql = { group = "org.postgresql", name = "r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
+
+[bundles]
+c2-ssm-sourcing = ["c2-ssm-chaincode-spring-boot-starter", "c2-ssm-data-spring-boot-starter", "c2-ssm-tx-spring-boot-starter"]
+c2-ssm-storing = ["c2-ssm-chaincode-spring-boot-starter", "c2-ssm-tx-spring-boot-starter", "c2-ssm-tx-init-ssm-spring-boot-starter"]
+spring-data-commons = ["jakarta-persistence-api", "spring-context", "spring-data-commons"]
+spring-redis = ["spring-boot-starter-data-redis-reactive", "lettuce-core", "jackson-databind", "commons-pool2"]
+test-junit = ["junit-jupiter", "junit-jupiter-api", "junit-platform-suite", "assertj-core", "kotlinx-coroutines-test"]
+cucumber = ["cucumber-java", "cucumber-java8", "cucumber-junit-platform-engine"]
+kserialization-json = ["kotlinx-serialization-core", "kotlinx-serialization-json"]
+testcontainers = ["spring-boot-testcontainers", "testcontainers-junit-jupiter", "testcontainers-mongodb"]
+testcontainers-postgres = ["testcontainers-postgresql", "testcontainers-r2dbc"]
+
+[plugins]
+# Project-specific only — fixers, kotlin, spring-boot, ksp plugins come from the catalogue
+node-gradle = { id = "com.github.node-gradle.node", version.ref = "node-gradle" }

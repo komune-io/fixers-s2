@@ -10,8 +10,8 @@ import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import s2.automate.core.context.AutomateContext
 import s2.automate.core.config.S2BatchProperties
+import s2.automate.core.context.AutomateContext
 import s2.sample.orderbook.sourcing.app.ssm.config.SpringTestBase
 import s2.sample.orderbook.storing.app.ssm.OrderBookDeciderImpl
 import s2.sample.orderbook.storing.app.ssm.config.OrderBookAutomateConfig

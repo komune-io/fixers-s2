@@ -3,7 +3,7 @@ package s2.bdd.repository
 import org.assertj.core.api.Assertions
 import org.springframework.data.repository.CrudRepository
 
-abstract class AssertionBlockingCrudEntity<ENTITY, ID: Any, ASSERTER>: AssertionEntity<ENTITY, ID, ASSERTER> {
+abstract class AssertionBlockingCrudEntity<ENTITY: Any, ID: Any, ASSERTER>: AssertionEntity<ENTITY, ID, ASSERTER> {
     protected abstract val repository: CrudRepository<ENTITY, ID>
 
     override suspend fun exists(id: ID) {

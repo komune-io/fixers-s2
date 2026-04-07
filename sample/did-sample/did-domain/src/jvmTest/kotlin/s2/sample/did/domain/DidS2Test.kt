@@ -1,6 +1,5 @@
 package s2.sample.did.domain
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import s2.automate.documenter.S2Documenter

@@ -1,5 +1,6 @@
 package s2.sample.did.http.app
 
+import f2.client.function
 import f2.client.ktor.http.httpClientBuilder
 import java.util.UUID
 import java.util.function.Function
@@ -27,7 +28,7 @@ import s2.sample.did.domain.features.DidCreatedEvent
 class S2DidHttpAppTest {
 
 	@Value("\${local.server.port}")
-	protected var port: Int = 8080
+	private var port: Int = 8080
 
 	@Test
 	fun testBasicAggregateFnc() = runBlocking<Unit> {

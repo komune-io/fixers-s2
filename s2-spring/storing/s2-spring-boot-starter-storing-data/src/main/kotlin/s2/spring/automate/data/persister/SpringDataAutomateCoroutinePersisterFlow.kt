@@ -6,30 +6,31 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.asBatch
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class SpringDataAutomateCoroutinePersisterFlow<STATE, ID, ENTITY, EVENT>(
+class SpringDataAutomateCoroutinePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
 	private val repository: CoroutineCrudRepository<ENTITY, ID>,
 	private val batchParams: S2BatchProperties,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
+ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY> {
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
 		return repository.findAllById(ids)
 	}
 

@@ -1,8 +1,8 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("io.komune.fixers.gradle.publish")
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
+	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
 dependencies {
-	api("org.slf4j:slf4j-api:${Versions.slf4j}")
+	api(libs.slf4j.api)
 }

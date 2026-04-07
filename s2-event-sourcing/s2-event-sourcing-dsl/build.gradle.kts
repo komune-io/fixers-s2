@@ -1,12 +1,8 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.mpp")
-	id("io.komune.fixers.gradle.publish")
+	alias(catalogue.plugins.fixers.gradle.kotlin.mpp)
+	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
 dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
-}
-
-tasks.withType<Test>().configureEach {
-	useJUnitPlatform()
 }

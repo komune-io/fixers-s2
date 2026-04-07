@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import s2.automate.core.context.asBatch
 import s2.automate.core.config.S2BatchProperties
+import s2.automate.core.context.asBatch
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.model.WithS2Id

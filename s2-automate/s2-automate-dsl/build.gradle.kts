@@ -1,14 +1,9 @@
-
 plugins {
-	id("io.komune.fixers.gradle.kotlin.mpp")
-	id("io.komune.fixers.gradle.publish")
-	kotlin("plugin.serialization")
+	alias(catalogue.plugins.fixers.gradle.kotlin.mpp)
+	alias(catalogue.plugins.fixers.gradle.publish)
+	alias(catalogue.plugins.kotlin.serialization)
 }
 
 dependencies {
-    commonMainApi("io.komune.c2:ssm-chaincode-dsl:${Versions.c2}")
-}
-
-tasks.withType<Test>().configureEach {
-	useJUnitPlatform()
+	commonMainApi(libs.c2.ssm.chaincode.dsl)
 }

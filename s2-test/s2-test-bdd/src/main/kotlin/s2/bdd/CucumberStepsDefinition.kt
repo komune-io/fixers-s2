@@ -3,7 +3,7 @@ package s2.bdd
 import f2.dsl.cqrs.exception.F2Exception
 import io.cucumber.core.backend.CucumberInvocationTargetException
 import io.cucumber.datatable.CucumberDataTableException
-import io.komune.f2.spring.boot.auth.config.WebSecurityConfig
+import io.komune.f2.spring.boot.auth.ROLE_PREFIX
 import java.util.UUID
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +45,7 @@ abstract class CucumberStepsDefinition {
         }, block)
     }
 
+    @Suppress("ThrowsCount")
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     protected open fun step(propagateException: (Exception) -> Boolean = { true }, block: suspend () -> Unit) {
         runBlocking(GlobalScope.newCoroutineContext(authedContext())) {
@@ -52,12 +53,12 @@ abstract class CucumberStepsDefinition {
                 block()
             } catch (e: CucumberDataTableException) {
                 val actualException = (e.cause as? CucumberInvocationTargetException)
-                    ?.invocationTargetExceptionCause
+                    ?.cause
                     ?: e
                 actualException.printStackTrace()
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
-                val actualException = e.invocationTargetExceptionCause ?: e
+                val actualException = e.cause ?: e
                 actualException.printStackTrace()
                 throw actualException
             } catch (e: Exception) {
@@ -87,7 +88,7 @@ abstract class CucumberStepsDefinition {
         ).let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
             .let { jwt ->
                 JwtAuthenticationToken(jwt, authedUser.roles.map {
-                    SimpleGrantedAuthority("${WebSecurityConfig.ROLE_PREFIX}$it")
+                    SimpleGrantedAuthority("${ROLE_PREFIX}$it")
                 })
             }
             .let(::SecurityContextImpl)

@@ -5,7 +5,6 @@ import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import s2.dsl.automate.S2Automate
 

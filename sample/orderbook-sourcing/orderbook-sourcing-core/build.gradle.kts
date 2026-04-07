@@ -1,10 +1,14 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
 }
 
 dependencies {
-	Dependencies.Spring.redis(::api)
-	Dependencies.Fixers.f2Http (::api)
-	Dependencies.jackson (::api)
-	Dependencies.kserializationJson (::api)
+	api(libs.bundles.spring.redis)
+	api(catalogue.spring.boot.starter.function.http)
+	api(libs.jackson.module.kotlin)
+	api(libs.kotlinx.serialization.json)
+
+	testImplementation(libs.bundles.test.junit)
+	testImplementation(libs.testcontainers.redis)
+	testImplementation(libs.bundles.testcontainers)
 }

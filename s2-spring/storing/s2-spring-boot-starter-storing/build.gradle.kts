@@ -1,11 +1,11 @@
 plugins {
-	id("io.komune.fixers.gradle.kotlin.jvm")
-	id("io.komune.fixers.gradle.publish")
-	kotlin("kapt")
+	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
+	alias(catalogue.plugins.fixers.gradle.publish)
+	alias(catalogue.plugins.kotlin.kapt)
 }
 
 dependencies {
 	api(project(":s2-spring:s2-spring-core"))
-
-	Dependencies.Spring.autoConfigure(::implementation, ::kapt)
+	implementation(libs.spring.boot.autoconfigure)
+	kapt(libs.spring.boot.configuration.processor)
 }
