@@ -9,12 +9,9 @@ jackson-databind = "2.21.2"
 node-gradle = "7.1.0"
 
 [libraries]
-# C2 modules
-c2-ssm-chaincode-dsl = { group = "io.komune.c2", name = "ssm-chaincode-dsl", version.ref = "fixers" }
-c2-ssm-chaincode-spring-boot-starter = { group = "io.komune.c2", name = "ssm-chaincode-spring-boot-starter", version.ref = "fixers" }
-c2-ssm-data-spring-boot-starter = { group = "io.komune.c2", name = "ssm-data-spring-boot-starter", version.ref = "fixers" }
-c2-ssm-tx-spring-boot-starter = { group = "io.komune.c2", name = "ssm-tx-spring-boot-starter", version.ref = "fixers" }
-c2-ssm-tx-init-ssm-spring-boot-starter = { group = "io.komune.c2", name = "ssm-tx-init-ssm-spring-boot-starter", version.ref = "fixers" }
+# F2 (versions from BOM)
+f2-dsl-cqrs = { group = "io.komune.f2", name = "f2-dsl-cqrs" }
+f2-dsl-function = { group = "io.komune.f2", name = "f2-dsl-function" }
 
 # Spring Boot (versions from BOM)
 spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
@@ -72,8 +69,6 @@ postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "pos
 r2dbc-postgresql = { group = "org.postgresql", name = "r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 
 [bundles]
-c2-ssm-sourcing = ["c2-ssm-chaincode-spring-boot-starter", "c2-ssm-data-spring-boot-starter", "c2-ssm-tx-spring-boot-starter"]
-c2-ssm-storing = ["c2-ssm-chaincode-spring-boot-starter", "c2-ssm-tx-spring-boot-starter", "c2-ssm-tx-init-ssm-spring-boot-starter"]
 spring-data-commons = ["jakarta-persistence-api", "spring-context", "spring-data-commons"]
 spring-redis = ["spring-boot-starter-data-redis-reactive", "lettuce-core", "jackson-databind", "commons-pool2"]
 test-junit = ["junit-jupiter", "junit-jupiter-api", "junit-platform-suite", "assertj-core", "kotlinx-coroutines-test"]

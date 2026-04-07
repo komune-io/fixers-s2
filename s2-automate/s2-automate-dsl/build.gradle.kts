@@ -5,5 +5,5 @@ plugins {
 }
 
 dependencies {
-	commonMainApi(libs.c2.ssm.chaincode.dsl)
+	commonMainApi(libs.f2.dsl.cqrs)
 }
