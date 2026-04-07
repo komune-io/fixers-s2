@@ -1,7 +1,7 @@
 [versions]
 fixers = "0.30.0-SNAPSHOT"
 testcontainers-redis = "2.2.4"
-postgresql = "42.7.3"
+postgresql = "42.7.10"
 r2dbc-postgresql = "1.1.1.RELEASE"
 lettuce = "7.3.0.RELEASE"
 commons-pool = "2.13.1"
