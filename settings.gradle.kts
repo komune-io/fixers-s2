@@ -78,4 +78,3 @@ include(
 	"sample:orderbook-sourcing:orderbook-sourcing-app-r2dbc",
 	"sample:orderbook-sourcing:orderbook-sourcing-domain",
 )
-
