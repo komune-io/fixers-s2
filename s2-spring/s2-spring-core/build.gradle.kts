@@ -8,5 +8,4 @@ dependencies {
 	api(project(":s2-automate:s2-automate-core"))
 	implementation(libs.spring.boot.autoconfigure)
 	kapt(libs.spring.boot.configuration.processor)
-
 }
