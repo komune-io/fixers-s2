@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-Guidance for Claude Code (claude.ai/code) working with code in this repo.
-
 ## Project Overview
 
 S2 = Kotlin multiplatform framework. Models domain object lifecycles via finite state machines (FSM) + CQRS. Supports event-sourced and state-stored approaches. Persists to databases (Spring Data MongoDB, R2DBC) or Hyperledger Fabric blockchain (Blockchain-SSM).
