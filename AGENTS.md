@@ -21,24 +21,6 @@ VERSION=$(cat VERSION) ./gradlew clean build publishToMavenLocal -x test
 ./gradlew :module:path:test --tests "FullyQualifiedClassName.methodName"
 ```
 
-## Dev Environment (Docker)
-
-Tests need infrastructure (CouchDB for blockchain, etc.). Use Make targets:
-
-```bash
-# Start all dev services
-make dev up
-
-# Initialize blockchain (required before tests)
-make dev bclan-init logs
-
-# Stop services
-make dev down
-
-# View logs
-make dev logs
-```
-
 ## Module Architecture
 
 ### Core Libraries (Kotlin Multiplatform)
