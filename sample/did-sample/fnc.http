@@ -1,5 +1,0 @@
-###
-POST http://localhost:8080/createDid
-Content-Type: application/json
-
-[{"id":"test1","type":{"value":"Create"}}]

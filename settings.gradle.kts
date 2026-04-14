@@ -51,7 +51,6 @@ include(
 include(
 	"s2-spring:storing:s2-spring-boot-starter-storing",
 	"s2-spring:storing:s2-spring-boot-starter-storing-data",
-	"s2-spring:storing:s2-spring-boot-starter-storing-ssm"
 )
 
 include(
@@ -59,7 +58,6 @@ include(
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-r2dbc",
-	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-ssm",
 )
 
 include(
@@ -78,17 +76,5 @@ include(
 	"sample:orderbook-sourcing:orderbook-sourcing-core",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-mongodb",
 	"sample:orderbook-sourcing:orderbook-sourcing-app-r2dbc",
-	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm",
-	"sample:orderbook-sourcing:orderbook-sourcing-app-ssm-permissive",
 	"sample:orderbook-sourcing:orderbook-sourcing-domain",
-
-	"sample:orderbook-storing:orderbook-storing-app-ssm"
-)
-
-include(
-	"sample:did-sample",
-	"sample:did-sample:did-app",
-	"sample:did-sample:did-http:did-http-app",
-	"sample:did-sample:did-domain",
-	"sample:did-sample:did-ui"
 )

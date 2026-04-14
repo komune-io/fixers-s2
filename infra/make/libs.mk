@@ -11,11 +11,6 @@ lint:
 build:
 	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
 
-test-pre:
-	make dev up
-	make dev bclan-init logs
-	make dev up
-
 test:
 	./gradlew test
 
