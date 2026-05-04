@@ -5,7 +5,6 @@ postgresql = "42.7.11"
 r2dbc-postgresql = "1.1.1.RELEASE"
 lettuce = "7.3.0.RELEASE"
 commons-pool = "2.13.1"
-jackson-databind = "2.21.2"
 node-gradle = "7.1.0"
 
 [libraries]
@@ -16,7 +15,6 @@ f2-dsl-function = { group = "io.komune.f2", name = "f2-dsl-function" }
 # Spring Boot (versions from BOM)
 spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
-spring-boot-starter-security = { group = "org.springframework.boot", name = "spring-boot-starter-security" }
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
 spring-boot-starter-data-redis-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis-reactive" }
 spring-boot-starter-data-mongodb-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb-reactive" }
@@ -58,7 +56,7 @@ arrow-optics-ksp = { group = "io.arrow-kt", name = "arrow-optics-ksp-plugin" }
 
 # Project-specific (not in BOM)
 lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
-jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson-databind" }
+jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind" }
 commons-pool2 = { group = "org.apache.commons", name = "commons-pool2", version.ref = "commons-pool" }
 testcontainers-junit-jupiter = { group = "org.testcontainers", name = "testcontainers-junit-jupiter" }
 testcontainers-mongodb = { group = "org.testcontainers", name = "testcontainers-mongodb" }
