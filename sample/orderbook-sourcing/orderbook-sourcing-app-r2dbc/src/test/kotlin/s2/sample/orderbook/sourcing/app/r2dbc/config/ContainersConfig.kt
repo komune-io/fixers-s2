@@ -3,7 +3,7 @@ package s2.sample.orderbook.sourcing.app.r2dbc.config
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 
 @TestConfiguration(proxyBeanMethods = false)
 class ContainersConfig {
@@ -14,7 +14,7 @@ class ContainersConfig {
 
     @Bean
     @ServiceConnection
-    fun postgres(): PostgreSQLContainer<*> {
+    fun postgres(): PostgreSQLContainer {
         return PostgreSQLContainer(POSTGRES_IMAGE)
             .withUsername("admin")
             .withPassword("admin")
