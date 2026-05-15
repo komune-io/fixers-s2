@@ -28,6 +28,7 @@ import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -85,6 +86,50 @@ ENTITY : WithS2Id<ID> {
 		}.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "Evt")
 	}
 
+	override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createWithOutcomes(
+		commands: EnvelopedFlow<COMMAND>,
+		decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
+	): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
+		return commands.map { command ->
+			prepareCreationContext(decide, command)
+		}.let { persistContext ->
+			@Suppress("UNCHECKED_CAST")
+			persistInitWithOutcomes(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
+		}.map {
+			@Suppress("UNCHECKED_CAST")
+			it as Envelope<PersistOutcome<EVENT_OUT>>
+		}
+	}
+
+	override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
+		commands: EnvelopedFlow<COMMAND>,
+		exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
+	): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
+		return loadTransitionContext(commands).map { (entity, transitionContext)->
+			guardExecutor.evaluateTransition(transitionContext)
+			val fromState = entity.s2State()
+			val (entityMutated, result) = exec(transitionContext.command, entity)
+			TransitionAppliedContext(
+				automateContext = automateContext,
+				from = fromState,
+				msg = transitionContext.command.data,
+				event = result.data,
+				entity = entityMutated
+			)
+		}.chunk(automateContext.batch.size).map { transitionContexts ->
+			val transitionContextsFlow = transitionContexts.asFlow()
+					as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+			persistWithOutcomes(transitionContextsFlow).map { outcome ->
+				if (outcome is PersistOutcome.Committed) {
+					val context = transitionContexts.find { it.event == outcome.event }!!
+					sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+				}
+				@Suppress("UNCHECKED_CAST")
+				outcome as PersistOutcome<EVENT_OUT>
+			}
+		}.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "Evt")
+	}
+
 	private suspend fun persistInit(
 		contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): EnvelopedFlow<EVENT> {
@@ -103,6 +148,27 @@ ENTITY : WithS2Id<ID> {
 			guardExecutor.verifyTransition(it)
 		}.let {
 			persister.persist(it)
+		}
+	}
+
+	private suspend fun persistInitWithOutcomes(
+		contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): EnvelopedFlow<PersistOutcome<EVENT>> {
+		return contexts.map {
+			guardExecutor.verifyInitTransition(it)
+			it
+		}.let {
+			persister.persistInitWithOutcomes(it).mapToEnvelope(type = "Evt")
+		}
+	}
+
+	private suspend fun persistWithOutcomes(
+		contexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+	): Flow<PersistOutcome<EVENT>> {
+		return contexts.map {
+			guardExecutor.verifyTransition(it)
+		}.let {
+			persister.persistWithOutcomes(it)
 		}
 	}
 

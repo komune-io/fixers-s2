@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
+import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -135,6 +136,40 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         ).onEach {
             publisher.publish(it)
         }
+    }
+
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        commands: Flow<COMMAND>,
+        build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
+    ): Flow<PersistOutcome<EVENT_OUT>> {
+        return automateExecutor.createWithOutcomes(commands.mapToEnvelope(type = "Cmd"),
+            { cmd ->
+                val (entity, event) = build(cmd.data)
+                entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+            }
+        ).onEach { envelopedOutcome ->
+            val outcome = envelopedOutcome.data
+            if (outcome is PersistOutcome.Committed) {
+                publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
+            }
+        }.map { it.data }
+    }
+
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+        commands: Flow<COMMAND>,
+        exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
+    ): Flow<PersistOutcome<EVENT_OUT>> {
+        return automateExecutor.doTransitionWithOutcomes(commands.mapToEnvelope(type = "Cmd"),
+            { cmd, entity ->
+                val (updatedEntity, event) = exec(cmd.data, entity)
+                updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+            }
+        ).onEach { envelopedOutcome ->
+            val outcome = envelopedOutcome.data
+            if (outcome is PersistOutcome.Committed) {
+                publisher.publish(outcome.event as Any)
+            }
+        }.map { it.data }
     }
 
 }
