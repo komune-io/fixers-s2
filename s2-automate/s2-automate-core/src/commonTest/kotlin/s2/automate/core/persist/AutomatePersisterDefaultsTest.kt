@@ -8,12 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * The default implementations of `persistWithOutcomes` / `persistInitWithOutcomes`
- * must wrap each emitted event in `PersistOutcome.Committed` with an empty
- * `commandId`. Persisters that need real per-item outcomes (ssm) override
- * the new methods directly.
- */
 class AutomatePersisterDefaultsTest {
 
 	@Test

@@ -26,22 +26,12 @@ ENTITY : WithS2Id<ID> {
 
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
 
-	/**
-	 * Per-item outcome variant of [persistInit]. Default wraps each emission in
-	 * [PersistOutcome.Committed] with an empty `commandId`; persisters that can
-	 * surface partial-failure information (e.g. ssm chaincode) override this to
-	 * emit the appropriate variant per item. See `tasks/blockchain/error-management.html`.
-	 */
 	suspend fun persistInitWithOutcomes(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = persistInit(transitionContexts).map { event ->
 		PersistOutcome.Committed(commandId = "", event = event, transactionId = "", blockNumber = 0L)
 	}
 
-	/**
-	 * Per-item outcome variant of [persist]. Default wraps each emission in
-	 * [PersistOutcome.Committed]; override to surface real per-item outcomes.
-	 */
 	suspend fun persistWithOutcomes(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = persist(transitionContexts).map { event ->
