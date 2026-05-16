@@ -7,8 +7,8 @@ import kotlin.test.assertNull
 class PersistOutcomeTest {
 
     @Test
-    fun `Committed carries commandId, event, transactionId, blockNumber`() {
-        val outcome = PersistOutcome.Committed(
+    fun `Success carries commandId, event, transactionId, blockNumber`() {
+        val outcome = PersistOutcome.Success(
             commandId = "cmd-1",
             event = "EVT",
             transactionId = "tx-abc",
@@ -46,6 +46,6 @@ class PersistOutcomeTest {
     fun `successful event extraction returns null on failure variants`() {
         val rejected: PersistOutcome<String> = PersistOutcome.Rejected("c", "X", "Y")
         assertNull(rejected.eventOrNull())
-        assertEquals("EVT", PersistOutcome.Committed("c", "EVT", "t", 1L).eventOrNull())
+        assertEquals("EVT", PersistOutcome.Success("c", "EVT", "t", 1L).eventOrNull())
     }
 }

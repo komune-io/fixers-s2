@@ -139,7 +139,7 @@ class S2AutomateEngineImplWithOutcomesTest {
         }
 
         private fun toOutcome(kind: OutcomeKind, event: TestEvent): PersistOutcome<TestEvent> = when (kind) {
-            OutcomeKind.COMMITTED -> PersistOutcome.Committed("cmd", event, "tx", 1L)
+            OutcomeKind.COMMITTED -> PersistOutcome.Success("cmd", event, "tx", 1L)
             OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", "ERR", "rejected")
             OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", "TRANSIENT", "transient")
             OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate("cmd", "INDET", "indeterminate")
@@ -230,7 +230,7 @@ class S2AutomateEngineImplWithOutcomesTest {
 
         assertEquals(5, results.size, "Expected 5 outcomes from createWithOutcomes")
         val data = results.map { it.data }
-        assertEquals(3, data.filterIsInstance<PersistOutcome.Committed<*>>().size)
+        assertEquals(3, data.filterIsInstance<PersistOutcome.Success<*>>().size)
         assertEquals(1, data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
         assertEquals(1, data.filterIsInstance<PersistOutcome.Transient<*>>().size)
     }
@@ -254,7 +254,7 @@ class S2AutomateEngineImplWithOutcomesTest {
 
         assertEquals(5, results.size, "Expected 5 outcomes from doTransitionWithOutcomes")
         val data = results.map { it.data }
-        assertEquals(3, data.filterIsInstance<PersistOutcome.Committed<*>>().size)
+        assertEquals(3, data.filterIsInstance<PersistOutcome.Success<*>>().size)
         assertEquals(1, data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
         assertEquals(1, data.filterIsInstance<PersistOutcome.Transient<*>>().size)
     }

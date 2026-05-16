@@ -29,12 +29,12 @@ ENTITY : WithS2Id<ID> {
 	suspend fun persistInitWithOutcomes(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = persistInit(transitionContexts).map { event ->
-		PersistOutcome.Committed(commandId = "", event = event, transactionId = "", blockNumber = 0L)
+		PersistOutcome.Success(commandId = "", event = event, transactionId = "", blockNumber = 0L)
 	}
 
 	suspend fun persistWithOutcomes(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = persist(transitionContexts).map { event ->
-		PersistOutcome.Committed(commandId = "", event = event, transactionId = "", blockNumber = 0L)
+		PersistOutcome.Success(commandId = "", event = event, transactionId = "", blockNumber = 0L)
 	}
 }

@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class AutomatePersisterDefaultsTest {
 
 	@Test
-	fun `default persistWithOutcomes wraps each event in Committed with empty commandId`() = runTest {
+	fun `default persistWithOutcomes wraps each event in Success with empty commandId`() = runTest {
 		val persister = StubLegacyPersister(eventsToEmit = listOf("e1", "e2", "e3"))
 
 		val outcomes: List<PersistOutcome<String>> = persister
@@ -19,14 +19,14 @@ class AutomatePersisterDefaultsTest {
 			.toList()
 
 		assertEquals(3, outcomes.size)
-		assertTrue(outcomes.all { it is PersistOutcome.Committed<String> })
-		val events = outcomes.filterIsInstance<PersistOutcome.Committed<String>>().map { it.event }
+		assertTrue(outcomes.all { it is PersistOutcome.Success<String> })
+		val events = outcomes.filterIsInstance<PersistOutcome.Success<String>>().map { it.event }
 		assertEquals(listOf("e1", "e2", "e3"), events)
 		assertTrue(outcomes.all { it.commandId.isEmpty() })
 	}
 
 	@Test
-	fun `default persistInitWithOutcomes wraps each event in Committed with empty commandId`() = runTest {
+	fun `default persistInitWithOutcomes wraps each event in Success with empty commandId`() = runTest {
 		val persister = StubLegacyPersister(eventsToEmit = listOf("init1", "init2"))
 
 		val outcomes: List<PersistOutcome<String>> = persister
@@ -34,7 +34,7 @@ class AutomatePersisterDefaultsTest {
 			.toList()
 
 		assertEquals(2, outcomes.size)
-		assertTrue(outcomes.all { it is PersistOutcome.Committed<String> })
+		assertTrue(outcomes.all { it is PersistOutcome.Success<String> })
 	}
 
 	private class StubLegacyPersister(private val eventsToEmit: List<String>) {
@@ -44,7 +44,7 @@ class AutomatePersisterDefaultsTest {
 		suspend fun persistWithOutcomes(@Suppress("UNUSED_PARAMETER") ctx: Flow<Any>): Flow<PersistOutcome<String>> {
 			return kotlinx.coroutines.flow.flow {
 				persist(ctx).collect { event ->
-					emit(PersistOutcome.Committed(commandId = "", event = event, transactionId = "", blockNumber = 0L))
+					emit(PersistOutcome.Success(commandId = "", event = event, transactionId = "", blockNumber = 0L))
 				}
 			}
 		}
@@ -52,7 +52,7 @@ class AutomatePersisterDefaultsTest {
 		suspend fun persistInitWithOutcomes(@Suppress("UNUSED_PARAMETER") ctx: Flow<Any>): Flow<PersistOutcome<String>> {
 			return kotlinx.coroutines.flow.flow {
 				persistInit(ctx).collect { event ->
-					emit(PersistOutcome.Committed(commandId = "", event = event, transactionId = "", blockNumber = 0L))
+					emit(PersistOutcome.Success(commandId = "", event = event, transactionId = "", blockNumber = 0L))
 				}
 			}
 		}

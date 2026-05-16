@@ -44,11 +44,11 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- sentinel flows ----
 
     private val sentinelInitFlow: Flow<PersistOutcome<TestEvt>> = flowOf(
-        PersistOutcome.Committed("cmd-init", TestEvt("sentinel-init"), "tx", 1L)
+        PersistOutcome.Success("cmd-init", TestEvt("sentinel-init"), "tx", 1L)
     )
 
     private val sentinelTransFlow: Flow<PersistOutcome<TestEvt>> = flowOf(
-        PersistOutcome.Committed("cmd-trans", TestEvt("sentinel-trans"), "tx", 2L)
+        PersistOutcome.Success("cmd-trans", TestEvt("sentinel-trans"), "tx", 2L)
     )
 
     // ---- no-op engine (never called in this test) ----
@@ -69,7 +69,11 @@ class S2AutomateExecutorSpringPassthroughTest {
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("should not be called")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransitionWithOutcomes(
+        override suspend fun <
+            COMMAND : S2Command<String>,
+            ENTITY_OUT : TestEntity,
+            EVENT_OUT : Evt,
+        > doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("should not be called")

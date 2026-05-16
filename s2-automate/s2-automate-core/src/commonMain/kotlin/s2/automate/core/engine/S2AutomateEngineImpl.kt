@@ -120,7 +120,7 @@ ENTITY : WithS2Id<ID> {
 			val transitionContextsFlow = transitionContexts.asFlow()
 					as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 			persistWithOutcomes(transitionContextsFlow).map { outcome ->
-				if (outcome is PersistOutcome.Committed) {
+				if (outcome is PersistOutcome.Success) {
 					val context = transitionContexts.find { it.event == outcome.event }!!
 					sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
 				}

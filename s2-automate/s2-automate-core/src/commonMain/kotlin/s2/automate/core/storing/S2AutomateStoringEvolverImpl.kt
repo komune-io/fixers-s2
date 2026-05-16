@@ -149,7 +149,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             }
         ).onEach { envelopedOutcome ->
             val outcome = envelopedOutcome.data
-            if (outcome is PersistOutcome.Committed) {
+            if (outcome is PersistOutcome.Success) {
                 publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
             }
         }.map { it.data }
@@ -166,7 +166,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             }
         ).onEach { envelopedOutcome ->
             val outcome = envelopedOutcome.data
-            if (outcome is PersistOutcome.Committed) {
+            if (outcome is PersistOutcome.Success) {
                 publisher.publish(outcome.event as Any)
             }
         }.map { it.data }
