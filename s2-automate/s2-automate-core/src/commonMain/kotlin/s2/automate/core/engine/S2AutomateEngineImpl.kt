@@ -127,7 +127,7 @@ ENTITY : WithS2Id<ID> {
 				@Suppress("UNCHECKED_CAST")
 				outcome as PersistOutcome<EVENT_OUT>
 			}
-		}.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "Evt")
+		}.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
 	}
 
 	private suspend fun persistInit(
@@ -158,7 +158,7 @@ ENTITY : WithS2Id<ID> {
 			guardExecutor.verifyInitTransition(it)
 			it
 		}.let {
-			persister.persistInitWithOutcomes(it).mapToEnvelope(type = "Evt")
+			persister.persistInitWithOutcomes(it).mapToEnvelope(type = "PersistOutcome")
 		}
 	}
 
