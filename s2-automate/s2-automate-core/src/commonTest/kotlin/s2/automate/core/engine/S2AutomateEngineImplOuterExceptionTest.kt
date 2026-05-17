@@ -23,6 +23,8 @@ import s2.automate.core.error.ERROR_INVALID_TRANSITION
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.ErrorClass
+import s2.automate.core.persist.ErrorOrigin
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
@@ -258,6 +260,8 @@ class S2AutomateEngineImplOuterExceptionTest {
                 outcome.errorCode,
                 "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
             )
+            assertEquals(ErrorClass.BUSINESS, outcome.errorClass, "Guard rejections must be BUSINESS class")
+            assertEquals(ErrorOrigin.S2, outcome.errorOrigin, "Guard rejections must originate from S2")
         }
         val commandIds = results.map { it.data.commandId }.toSet()
         assertTrue(
@@ -295,6 +299,8 @@ class S2AutomateEngineImplOuterExceptionTest {
                 outcome.errorCode,
                 "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
             )
+            assertEquals(ErrorClass.BUSINESS, outcome.errorClass, "Guard rejections must be BUSINESS class")
+            assertEquals(ErrorOrigin.S2, outcome.errorOrigin, "Guard rejections must originate from S2")
         }
         val commandIds = results.map { it.data.commandId }.toSet()
         assertTrue(
@@ -330,6 +336,8 @@ class S2AutomateEngineImplOuterExceptionTest {
             outcome.errorCode,
             "errorCode must be ERROR_ENTITY_NOT_FOUND"
         )
+        assertEquals(ErrorClass.INPUT, outcome.errorClass, "entity-not-found must be INPUT class")
+        assertEquals(ErrorOrigin.S2, outcome.errorOrigin, "entity-not-found must originate from S2")
     }
 
     @Test
@@ -361,6 +369,8 @@ class S2AutomateEngineImplOuterExceptionTest {
             outcome.errorCode,
             "errorCode must be LAMBDA_THROW"
         )
+        assertEquals(ErrorClass.UNKNOWN, outcome.errorClass, "lambda throw must be UNKNOWN class")
+        assertEquals(ErrorOrigin.S2, outcome.errorOrigin, "lambda throw must originate from S2")
     }
 
     @Test
@@ -401,5 +411,7 @@ class S2AutomateEngineImplOuterExceptionTest {
             "exec exploded" in outcome.errorMessage,
             "errorMessage must contain the exception message"
         )
+        assertEquals(ErrorClass.UNKNOWN, outcome.errorClass, "exec lambda throw must be UNKNOWN class")
+        assertEquals(ErrorOrigin.S2, outcome.errorOrigin, "exec lambda throw must originate from S2")
     }
 }

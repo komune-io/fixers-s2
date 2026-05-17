@@ -29,6 +29,8 @@ import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.ErrorClass
+import s2.automate.core.persist.ErrorOrigin
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
@@ -398,21 +400,34 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	private fun <EVENT_OUT> Throwable.toPersistOutcome(commandId: String): PersistOutcome<EVENT_OUT> {
-		return if (this is AutomateException) {
-			val code = errors.firstOrNull()?.type ?: "AUTOMATE_ERROR"
-			PersistOutcome.Rejected(
-				commandId = commandId,
-				errorCode = code,
-				errorMessage = message ?: code
-			)
-		} else {
-			PersistOutcome.Indeterminate(
-				commandId = commandId,
-				errorCode = "LAMBDA_THROW",
-				errorMessage = message ?: "Unknown error"
-			)
+	private fun <EVENT_OUT> Throwable.toPersistOutcome(commandId: String): PersistOutcome<EVENT_OUT> = when (this) {
+		is AutomateException -> {
+			val code = errors.firstOrNull()?.type ?: "GUARD_REJECTED"
+			if (code == "ERROR_ENTITY_NOT_FOUND") {
+				PersistOutcome.Rejected(
+					commandId = commandId,
+					errorCode = code,
+					errorMessage = message ?: "",
+					errorClass = ErrorClass.INPUT,
+					errorOrigin = ErrorOrigin.S2,
+				)
+			} else {
+				PersistOutcome.Rejected(
+					commandId = commandId,
+					errorCode = code,
+					errorMessage = message ?: "",
+					errorClass = ErrorClass.BUSINESS,
+					errorOrigin = ErrorOrigin.S2,
+				)
+			}
 		}
+		else -> PersistOutcome.Indeterminate(
+			commandId = commandId,
+			errorCode = "LAMBDA_THROW",
+			errorMessage = message ?: this::class.simpleName ?: "unknown",
+			errorClass = ErrorClass.UNKNOWN,
+			errorOrigin = ErrorOrigin.S2,
+		)
 	}
 }
 
