@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.persist.PersistOutcome
@@ -151,6 +152,8 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             val outcome = envelopedOutcome.data
             if (outcome is PersistOutcome.Success) {
                 publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
+            } else if (outcome is PersistOutcome.Failure) {
+                publisher.automatePersistFailure(outcome.toAutomatePersistFailure())
             }
         }.map { it.data }
     }
@@ -168,8 +171,27 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             val outcome = envelopedOutcome.data
             if (outcome is PersistOutcome.Success) {
                 publisher.publish(outcome.event as Any)
+            } else if (outcome is PersistOutcome.Failure) {
+                publisher.automatePersistFailure(outcome.toAutomatePersistFailure())
             }
         }.map { it.data }
     }
 
+}
+
+private fun PersistOutcome.Failure<*>.toAutomatePersistFailure(): AutomatePersistFailure {
+    val category = when (this) {
+        is PersistOutcome.Rejected -> "Rejected"
+        is PersistOutcome.Transient -> "Transient"
+        is PersistOutcome.Indeterminate -> "Indeterminate"
+        is PersistOutcome.Conflict -> "Conflict"
+    }
+    return AutomatePersistFailure(
+        commandId = commandId,
+        errorCategory = category,
+        errorCode = errorCode,
+        errorMessage = errorMessage,
+        errorClass = errorClass,
+        errorOrigin = errorOrigin,
+    )
 }

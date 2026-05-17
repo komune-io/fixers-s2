@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.persist.PersistOutcome
@@ -116,6 +117,8 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
+        val failureEvents get() = published.filterIsInstance<AutomatePersistFailure>()
+        val successEvents get() = published.filter { it !is AutomatePersistFailure }
         override fun <EVENT> publish(event: EVENT & Any) {
             published.add(event)
         }
@@ -189,11 +192,12 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(3, pub.published.size, "publisher must fire exactly 3 times for 3 Committed outcomes")
+        assertEquals(3, pub.successEvents.size, "publisher must fire exactly 3 success events for 3 Committed outcomes")
+        assertEquals(2, pub.failureEvents.size, "publisher must fire exactly 2 failure events for 2 non-Committed outcomes")
     }
 
     @Test
-    fun `publisher does NOT fire for Rejected Transient Indeterminate Conflict on init path`() = runTest {
+    fun `publisher fires AutomatePersistFailure for Rejected Transient Indeterminate Conflict on init path`() = runTest {
         val pub = RecordingPublisher()
         val engine = IndexedStubEngine(initPattern = allFailing, transitionPattern = emptyList())
         val evolver = makeEvolver(engine, pub)
@@ -205,7 +209,8 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertTrue(pub.published.isEmpty(), "publisher must not fire for failure outcomes; got: ${pub.published}")
+        assertEquals(4, pub.failureEvents.size, "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes")
+        assertTrue(pub.successEvents.isEmpty(), "publisher must not fire success events for failure outcomes; got: ${pub.successEvents}")
     }
 
     @Test
@@ -221,11 +226,12 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(3, pub.published.size, "publisher must fire exactly 3 times for 3 Committed outcomes")
+        assertEquals(3, pub.successEvents.size, "publisher must fire exactly 3 success events for 3 Committed outcomes")
+        assertEquals(2, pub.failureEvents.size, "publisher must fire exactly 2 failure events for 2 non-Committed outcomes")
     }
 
     @Test
-    fun `publisher does NOT fire for Rejected Transient Indeterminate Conflict on transition path`() = runTest {
+    fun `publisher fires AutomatePersistFailure for Rejected Transient Indeterminate Conflict on transition path`() = runTest {
         val pub = RecordingPublisher()
         val engine = IndexedStubEngine(initPattern = emptyList(), transitionPattern = allFailing)
         val evolver = makeEvolver(engine, pub)
@@ -237,7 +243,8 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertTrue(pub.published.isEmpty(), "publisher must not fire for failure outcomes; got: ${pub.published}")
+        assertEquals(4, pub.failureEvents.size, "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes")
+        assertTrue(pub.successEvents.isEmpty(), "publisher must not fire success events for failure outcomes; got: ${pub.successEvents}")
     }
 
     @Test
