@@ -117,7 +117,11 @@ ENTITY : WithS2Id<ID> {
 		val failures = mutableListOf<PersistOutcome<EVENT>>()
 		val successCtxs = mutableListOf<InitTransitionAppliedContext<
 			STATE, ID, ENTITY, EVENT, S2Automate>>()
-		prepared.toList().forEach { either ->
+		// Trade-off: all commands are buffered in memory here so failures can be separated from
+		// successes before the persister is called. The transition path avoids this by chunking
+		// upstream; init has no equivalent upstream batching boundary.
+		val materialised = prepared.toList()
+		materialised.forEach { either ->
 			when (either) {
 				is Either.Left -> successCtxs.add(either.value)
 				is Either.Right -> failures.add(either.value)

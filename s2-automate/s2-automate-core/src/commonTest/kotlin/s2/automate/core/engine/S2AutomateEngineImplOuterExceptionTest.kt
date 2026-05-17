@@ -19,6 +19,7 @@ import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
+import s2.automate.core.error.ERROR_INVALID_TRANSITION
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
@@ -38,6 +39,9 @@ import kotlin.test.assertTrue
 
 /** Specific exception used in tests to simulate a decide-lambda failure. */
 private class DecideExplodedException(message: String) : Exception(message)
+
+/** Specific exception used in tests to simulate an exec-lambda failure. */
+private class ExecExplodedException(message: String) : Exception(message)
 
 /**
  * Tests that outer exceptions (guard rejections, entity-not-found, decide/exec lambda throws)
@@ -94,13 +98,15 @@ class S2AutomateEngineImplOuterExceptionTest {
         GuardVerifier<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) {
-            throw ERROR_ENTITY_NOT_FOUND("guard-reject").asException()
+            // Use ERROR_INVALID_TRANSITION so guard-rejection tests are distinguishable from
+            // entity-not-found tests at the errorCode level.
+            throw ERROR_INVALID_TRANSITION("any", "guard-reject").asException()
         }
 
         override suspend fun <COMMAND : Cmd> evaluateTransition(
             context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
         ) {
-            throw ERROR_ENTITY_NOT_FOUND("guard-reject").asException()
+            throw ERROR_INVALID_TRANSITION("any", "guard-reject").asException()
         }
 
         override suspend fun verifyInitTransition(
@@ -247,6 +253,11 @@ class S2AutomateEngineImplOuterExceptionTest {
                 outcome,
                 "Expected Rejected but got ${outcome::class.simpleName} for commandId=${outcome.commandId}"
             )
+            assertEquals(
+                "ERROR_INVALID_TRANSITION",
+                outcome.errorCode,
+                "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
+            )
         }
         val commandIds = results.map { it.data.commandId }.toSet()
         assertTrue(
@@ -278,6 +289,11 @@ class S2AutomateEngineImplOuterExceptionTest {
             assertIs<PersistOutcome.Rejected<*>>(
                 outcome,
                 "Expected Rejected but got ${outcome::class.simpleName} for commandId=${outcome.commandId}"
+            )
+            assertEquals(
+                "ERROR_INVALID_TRANSITION",
+                outcome.errorCode,
+                "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
             )
         }
         val commandIds = results.map { it.data.commandId }.toSet()
@@ -344,6 +360,46 @@ class S2AutomateEngineImplOuterExceptionTest {
             "LAMBDA_THROW",
             outcome.errorCode,
             "errorCode must be LAMBDA_THROW"
+        )
+    }
+
+    @Test
+    fun `exec lambda throw on transition becomes Indeterminate, not bubble`() = runTest {
+        val engine = makeEngine(
+            guard = PassthroughGuardVerifier(),
+            persister = PassthroughPersister(),
+        )
+
+        val commands: EnvelopedFlow<DoCmd> = flowOf(
+            DoCmd("cmd-1").asEnvelopeWithType("Cmd", id = "cmd-1")
+        )
+
+        val results = engine.doTransitionWithOutcomes(commands) { _, _ ->
+            throw ExecExplodedException("exec exploded")
+            @Suppress("UNREACHABLE_CODE")
+            TestEntity("cmd-1", TestState.Active) to
+                DoneEvt("cmd-1").asEnvelopeWithType("Evt")
+        }.toList()
+
+        assertEquals(1, results.size, "Expected one outcome, not a thrown exception")
+        val outcome = results.single().data
+        assertIs<PersistOutcome.Indeterminate<*>>(
+            outcome,
+            "exec lambda throw must surface as Indeterminate, got ${outcome::class.simpleName}"
+        )
+        assertEquals(
+            "LAMBDA_THROW",
+            outcome.errorCode,
+            "errorCode must be LAMBDA_THROW"
+        )
+        assertEquals(
+            "cmd-1",
+            outcome.commandId,
+            "commandId must match the input command"
+        )
+        assertTrue(
+            "exec exploded" in outcome.errorMessage,
+            "errorMessage must contain the exception message"
         )
     }
 }
