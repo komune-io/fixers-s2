@@ -13,6 +13,7 @@ import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.persist.PersistOutcome
+import s2.automate.core.persist.category
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -179,19 +180,10 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
 
 }
 
-private fun PersistOutcome.Failure<*>.toAutomatePersistFailure(): AutomatePersistFailure {
-    val category = when (this) {
-        is PersistOutcome.Rejected -> "Rejected"
-        is PersistOutcome.Transient -> "Transient"
-        is PersistOutcome.Indeterminate -> "Indeterminate"
-        is PersistOutcome.Conflict -> "Conflict"
-    }
-    return AutomatePersistFailure(
+private fun PersistOutcome.Failure<*>.toAutomatePersistFailure(): AutomatePersistFailure =
+    AutomatePersistFailure(
         commandId = commandId,
         errorCategory = category,
         errorCode = errorCode,
         errorMessage = errorMessage,
-        errorClass = errorClass,
-        errorOrigin = errorOrigin,
     )
-}

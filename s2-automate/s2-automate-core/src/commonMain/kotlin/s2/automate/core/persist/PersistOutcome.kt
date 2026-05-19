@@ -6,8 +6,6 @@ sealed interface PersistOutcome<EVENT> {
     sealed interface Failure<EVENT> : PersistOutcome<EVENT> {
         val errorCode: String
         val errorMessage: String
-        val errorClass: ErrorClass
-        val errorOrigin: ErrorOrigin
     }
 
     data class Success<EVENT>(
@@ -42,32 +40,24 @@ sealed interface PersistOutcome<EVENT> {
         override val commandId: String,
         override val errorCode: String,
         override val errorMessage: String,
-        override val errorClass: ErrorClass = ErrorClass.UNKNOWN,
-        override val errorOrigin: ErrorOrigin = ErrorOrigin.UNKNOWN,
     ) : Failure<EVENT>
 
     data class Transient<EVENT>(
         override val commandId: String,
         override val errorCode: String,
         override val errorMessage: String,
-        override val errorClass: ErrorClass = ErrorClass.UNKNOWN,
-        override val errorOrigin: ErrorOrigin = ErrorOrigin.UNKNOWN,
     ) : Failure<EVENT>
 
     data class Indeterminate<EVENT>(
         override val commandId: String,
         override val errorCode: String,
         override val errorMessage: String,
-        override val errorClass: ErrorClass = ErrorClass.UNKNOWN,
-        override val errorOrigin: ErrorOrigin = ErrorOrigin.UNKNOWN,
     ) : Failure<EVENT>
 
     data class Conflict<EVENT>(
         override val commandId: String,
         override val errorCode: String,
         override val errorMessage: String,
-        override val errorClass: ErrorClass = ErrorClass.UNKNOWN,
-        override val errorOrigin: ErrorOrigin = ErrorOrigin.UNKNOWN,
     ) : Failure<EVENT>
 
     fun eventOrNull(): EVENT? = (this as? Success<EVENT>)?.event

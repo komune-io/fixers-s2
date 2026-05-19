@@ -1,7 +1,6 @@
 package s2.automate.core.appevent
 
-import s2.automate.core.persist.ErrorClass
-import s2.automate.core.persist.ErrorOrigin
+import s2.automate.core.persist.ErrorCategory
 
 /**
  * Notification when a PersistOutcome.Failure is produced by the persister.
@@ -11,17 +10,13 @@ import s2.automate.core.persist.ErrorOrigin
  * observers can implement dead-letter, alerting, or metrics.
  *
  * @param commandId the command that triggered the transition
- * @param errorCategory discriminator: "Rejected" | "Transient" | "Indeterminate" | "Conflict"
+ * @param errorCategory retry/remediation policy discriminator
  * @param errorCode machine-readable code from the persister
  * @param errorMessage human-readable description from the persister
- * @param errorClass broad error kind (business, auth, network, …)
- * @param errorOrigin subsystem that produced the failure
  */
 data class AutomatePersistFailure(
     val commandId: String,
-    val errorCategory: String,
+    val errorCategory: ErrorCategory,
     val errorCode: String,
     val errorMessage: String,
-    val errorClass: ErrorClass,
-    val errorOrigin: ErrorOrigin,
 ) : AppEvent
