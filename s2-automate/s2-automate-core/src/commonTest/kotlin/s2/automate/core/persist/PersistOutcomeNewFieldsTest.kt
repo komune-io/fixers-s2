@@ -2,25 +2,25 @@ package s2.automate.core.persist
 
 import s2.dsl.automate.s2error
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class PersistOutcomeNewFieldsTest {
 
     @Test
-    fun `Success carries optional payload`() {
+    fun `Success carries optional metadata map`() {
         val outcome = PersistOutcome.Success(
-            commandId = "cmd-1", event = "EVT", transactionId = "tx", blockNumber = 1L,
-            payload = byteArrayOf(0x42),
+            msgId = "cmd-1",
+            event = "EVT",
+            metadata = mapOf("transactionId" to "tx", "blockNumber" to "1"),
         )
-        assertContentEquals(byteArrayOf(0x42), outcome.payload)
+        assertEquals("tx", outcome.metadata["transactionId"])
+        assertEquals("1", outcome.metadata["blockNumber"])
     }
 
     @Test
-    fun `Success payload defaults to null for callers that don't provide it`() {
-        val outcome = PersistOutcome.Success("c", "EVT", "tx", 1L)
-        assertNull(outcome.payload)
+    fun `Success metadata defaults to emptyMap for callers that don't provide it`() {
+        val outcome = PersistOutcome.Success(msgId = "c", event = "EVT")
+        assertEquals(emptyMap(), outcome.metadata)
     }
 
     @Test

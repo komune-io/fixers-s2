@@ -90,7 +90,7 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
      *
      * [initPattern] / [transitionPattern] specify which kind of outcome to produce per
      * context item (cycling if pattern is shorter). For Committed, the actual context
-     * event is used so commandId-based lookup works.
+     * event is used so msgId-based lookup works.
      */
     private class StubPersister(
         private val initPattern: List<OutcomeKind>,
@@ -129,21 +129,21 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         ): Flow<PersistOutcome<TestEvent>> {
             val ctxs = transitionContexts.toList()
             return ctxs.mapIndexed { i, ctx ->
-                // Use the actual commandId from the context so B.3 correlation works correctly.
-                toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msg.id.toString())
+                // Use the actual msgId from the context so B.3 correlation works correctly.
+                toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msgId)
             }.asFlow()
         }
 
         private fun toOutcome(
             kind: OutcomeKind,
             event: TestEvent,
-            commandId: String = "cmd",
+            msgId: String = "cmd",
         ): PersistOutcome<TestEvent> = when (kind) {
-            OutcomeKind.COMMITTED -> PersistOutcome.Success(commandId, event, "tx", 1L)
-            OutcomeKind.REJECTED -> PersistOutcome.Rejected(commandId, s2error("ERR", "rejected"))
-            OutcomeKind.TRANSIENT -> PersistOutcome.Transient(commandId, s2error("TRANSIENT", "transient"))
-            OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate(commandId, s2error("INDET", "indeterminate"))
-            OutcomeKind.CONFLICT -> PersistOutcome.Conflict(commandId, s2error("CONFLICT", "conflict"))
+            OutcomeKind.COMMITTED -> PersistOutcome.Success(msgId = msgId, event = event)
+            OutcomeKind.REJECTED -> PersistOutcome.Rejected(msgId, s2error("ERR", "rejected"))
+            OutcomeKind.TRANSIENT -> PersistOutcome.Transient(msgId, s2error("TRANSIENT", "transient"))
+            OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate(msgId, s2error("INDET", "indeterminate"))
+            OutcomeKind.CONFLICT -> PersistOutcome.Conflict(msgId, s2error("CONFLICT", "conflict"))
         }
     }
 

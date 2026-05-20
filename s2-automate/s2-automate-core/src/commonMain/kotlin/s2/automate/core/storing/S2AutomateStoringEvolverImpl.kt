@@ -183,7 +183,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
 
 private fun PersistOutcome.Failure<*>.toAutomatePersistFailure(): AutomatePersistFailure =
     AutomatePersistFailure(
-        commandId = commandId,
+        msgId = msgId,
         category = category,
         error = error,
     )

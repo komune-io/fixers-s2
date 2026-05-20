@@ -56,6 +56,7 @@ ENTITY : WithS2Id<ID> {
             guardExecutor.evaluateInit(initTransitionContext)
             InitTransitionAppliedContext(
                 automateContext = automateContext,
+                msgId = command.id,
                 msg = command.data,
                 event = event.data,
                 entity = entity
@@ -81,6 +82,7 @@ ENTITY : WithS2Id<ID> {
         guardExecutor.evaluateInit(initTransitionContext)
         return InitTransitionAppliedContext(
             automateContext = automateContext,
+            msgId = command.id,
             msg = command.data,
             event = event.data,
             entity = entity

@@ -7,6 +7,7 @@ import s2.dsl.automate.model.WithS2State
 
 class InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 	val automateContext: AutomateContext<AUTOMATE>,
+	val msgId: String,
 	val msg: S2InitCommand,
 	val event: EVENT,
 	val entity: ENTITY,

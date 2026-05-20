@@ -122,16 +122,14 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
     // ---- helpers ----
 
-    private fun rejected(commandId: String = "c1") = PersistOutcome.Rejected<Evt>(
-        commandId = commandId,
+    private fun rejected(msgId: String = "c1") = PersistOutcome.Rejected<Evt>(
+        msgId = msgId,
         error = s2error("ENDORSE_POLICY", "policy not met"),
     )
 
     private fun success() = PersistOutcome.Success<Evt>(
-        commandId = "ok",
+        msgId = "ok",
         event = CreatedEvt("e1"),
-        transactionId = "tx1",
-        blockNumber = 1L,
     )
 
     // ---- tests: init path ----
@@ -150,7 +148,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         assertEquals(1, pub.errorEvents.size)
         val err = pub.errorEvents.single()
-        assertEquals("c1", err.commandId)
+        assertEquals("c1", err.msgId)
         assertEquals(ErrorCategory.Rejected, err.category)
         assertEquals("ENDORSE_POLICY", err.error.type)
         assertEquals("policy not met", err.error.description)
@@ -213,7 +211,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         assertEquals(1, pub.errorEvents.size)
         val err = pub.errorEvents.single()
-        assertEquals("c1", err.commandId)
+        assertEquals("c1", err.msgId)
         assertEquals(ErrorCategory.Rejected, err.category)
     }
 

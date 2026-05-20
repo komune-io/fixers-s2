@@ -82,7 +82,7 @@ ENTITY : WithS2Id<ID> {
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
     }
 
-    // B.2: batched load per chunk; B.3: commandId-keyed correlation
+    // B.2: batched load per chunk; B.3: msgId-keyed correlation
     override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
         commands: EnvelopedFlow<COMMAND>,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -117,6 +117,7 @@ ENTITY : WithS2Id<ID> {
                     @Suppress("UNCHECKED_CAST")
                     TransitionAppliedContext(
                         automateContext = automateContext,
+                        msgId = transitionContext.command.id,
                         from = fromState,
                         msg = transitionContext.command.data,
                         event = result.data,
@@ -131,14 +132,14 @@ ENTITY : WithS2Id<ID> {
                 )
             }
 
-            // B.3: O(1) commandId-keyed correlation map
+            // B.3: O(1) msgId-keyed correlation map
             val persistedOutcomes: List<PersistOutcome<EVENT>> = if (successCtxs.isNotEmpty()) {
-                val ctxByCommandId = successCtxs.associateBy { it.msg.id.toString() }
+                val ctxByMsgId = successCtxs.associateBy { it.msgId }
                 persistWithOutcomes(successCtxs.asFlow()).toList().also { outcomes ->
                     outcomes.forEach { outcome ->
                         if (outcome is PersistOutcome.Success) {
-                            // B.3: use commandId for O(N) lookup instead of event-equality O(N²)
-                            val ctx = ctxByCommandId[outcome.commandId]
+                            // B.3: use msgId for O(N) lookup instead of event-equality O(N²)
+                            val ctx = ctxByMsgId[outcome.msgId]
                             ctx?.let {
                                 sendEndDoTransitionEvent(
                                     it.entity.s2State(), it.from, it.msg, it.entity
@@ -179,14 +180,14 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    private fun <EVENT_OUT> Throwable.toPersistOutcome(commandId: String): PersistOutcome<EVENT_OUT> =
+    private fun <EVENT_OUT> Throwable.toPersistOutcome(msgId: String): PersistOutcome<EVENT_OUT> =
         when (this) {
             is AutomateException -> PersistOutcome.Rejected(
-                commandId = commandId,
+                msgId = msgId,
                 error = errors.firstOrNull() ?: ERROR_UNKNOWN(this),
             )
             else -> PersistOutcome.Indeterminate(
-                commandId = commandId,
+                msgId = msgId,
                 error = ERROR_PERSIST_LAMBDA_THROW(this),
             )
         }

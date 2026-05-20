@@ -131,14 +131,14 @@ class S2AutomateOutcomeEngineImplReactivityTest {
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->
-            PersistOutcome.Success(commandId = "", event = ctx.event, transactionId = "tx", blockNumber = 1L)
+            PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
         }
 
         override suspend fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->
-            PersistOutcome.Success(commandId = "", event = ctx.event, transactionId = "tx", blockNumber = 1L)
+            PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
         }
     }
 

@@ -43,7 +43,7 @@ private class ExecExplodedException(message: String) : Exception(message)
 
 /**
  * Tests that outer exceptions (guard rejections, entity-not-found, decide/exec lambda throws)
- * surface as per-commandId PersistOutcome.Rejected / Indeterminate instead of aborting the
+ * surface as per-msgId PersistOutcome.Rejected / Indeterminate instead of aborting the
  * whole batch with an exception.
  */
 class S2AutomateOutcomeEngineImplOuterExceptionTest {
@@ -185,10 +185,8 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(
-                commandId = "",
+                msgId = ctx.msgId,
                 event = ctx.event,
-                transactionId = "tx",
-                blockNumber = 1L
             )
         }
 
@@ -197,10 +195,8 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(
-                commandId = "",
+                msgId = ctx.msgId,
                 event = ctx.event,
-                transactionId = "tx",
-                blockNumber = 1L
             )
         }
     }
@@ -245,7 +241,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             val outcome = envelope.data
             assertIs<PersistOutcome.Rejected<*>>(
                 outcome,
-                "Expected Rejected but got ${outcome::class.simpleName} for commandId=${outcome.commandId}"
+                "Expected Rejected but got ${outcome::class.simpleName} for msgId=${outcome.msgId}"
             )
             assertEquals(
                 "ERROR_INVALID_TRANSITION",
@@ -253,15 +249,15 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
             )
         }
-        val commandIds = results.map { it.data.commandId }.toSet()
+        val msgIds = results.map { it.data.msgId }.toSet()
         assertTrue(
-            commandIds.containsAll(setOf("id1", "id2")),
-            "commandIds in outcomes should match the input commands; got $commandIds"
+            msgIds.containsAll(setOf("id1", "id2")),
+            "msgIds in outcomes should match the input commands; got $msgIds"
         )
     }
 
     @Test
-    fun `guard rejection on transition surfaces per-commandId, not whole-batch throw`() = runTest {
+    fun `guard rejection on transition surfaces per-msgId, not whole-batch throw`() = runTest {
         val engine = makeEngine(
             guard = RejectingGuardVerifier(),
             persister = PassthroughPersister(),
@@ -282,7 +278,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             val outcome = envelope.data
             assertIs<PersistOutcome.Rejected<*>>(
                 outcome,
-                "Expected Rejected but got ${outcome::class.simpleName} for commandId=${outcome.commandId}"
+                "Expected Rejected but got ${outcome::class.simpleName} for msgId=${outcome.msgId}"
             )
             assertEquals(
                 "ERROR_INVALID_TRANSITION",
@@ -290,10 +286,10 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
             )
         }
-        val commandIds = results.map { it.data.commandId }.toSet()
+        val msgIds = results.map { it.data.msgId }.toSet()
         assertTrue(
-            commandIds.containsAll(setOf("id1", "id2", "id3")),
-            "commandIds in outcomes should match the input commands; got $commandIds"
+            msgIds.containsAll(setOf("id1", "id2", "id3")),
+            "msgIds in outcomes should match the input commands; got $msgIds"
         )
     }
 
@@ -388,8 +384,8 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         )
         assertEquals(
             "cmd-1",
-            outcome.commandId,
-            "commandId must match the input command"
+            outcome.msgId,
+            "msgId must match the input command"
         )
         assertTrue(
             "exec exploded" in outcome.error.description,

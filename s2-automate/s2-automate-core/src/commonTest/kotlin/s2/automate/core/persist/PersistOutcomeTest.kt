@@ -8,26 +8,30 @@ import kotlin.test.assertNull
 class PersistOutcomeTest {
 
     @Test
-    fun `Success carries commandId, event, transactionId, blockNumber`() {
+    fun `Success carries msgId, event, and optional metadata`() {
         val outcome = PersistOutcome.Success(
-            commandId = "cmd-1",
+            msgId = "msg-1",
             event = "EVT",
-            transactionId = "tx-abc",
-            blockNumber = 42L,
+            metadata = mapOf("transactionId" to "tx-abc"),
         )
-        assertEquals("cmd-1", outcome.commandId)
+        assertEquals("msg-1", outcome.msgId)
         assertEquals("EVT", outcome.event)
-        assertEquals("tx-abc", outcome.transactionId)
-        assertEquals(42L, outcome.blockNumber)
+        assertEquals("tx-abc", outcome.metadata["transactionId"])
     }
 
     @Test
-    fun `Rejected carries commandId, error and no event`() {
+    fun `Success metadata defaults to emptyMap`() {
+        val outcome = PersistOutcome.Success(msgId = "msg-2", event = "EVT")
+        assertEquals(emptyMap(), outcome.metadata)
+    }
+
+    @Test
+    fun `Rejected carries msgId, error and no event`() {
         val outcome = PersistOutcome.Rejected<String>(
-            commandId = "cmd-2",
+            msgId = "msg-2",
             error = s2error("SESSION_NOT_FOUND", "session abc missing"),
         )
-        assertEquals("cmd-2", outcome.commandId)
+        assertEquals("msg-2", outcome.msgId)
         assertEquals("SESSION_NOT_FOUND", outcome.error.type)
         assertEquals("session abc missing", outcome.error.description)
     }
@@ -46,6 +50,6 @@ class PersistOutcomeTest {
     fun `successful event extraction returns null on failure variants`() {
         val rejected: PersistOutcome<String> = PersistOutcome.Rejected("c", s2error("X", "Y"))
         assertNull(rejected.eventOrNull())
-        assertEquals("EVT", PersistOutcome.Success("c", "EVT", "t", 1L).eventOrNull())
+        assertEquals("EVT", PersistOutcome.Success("c", "EVT").eventOrNull())
     }
 }

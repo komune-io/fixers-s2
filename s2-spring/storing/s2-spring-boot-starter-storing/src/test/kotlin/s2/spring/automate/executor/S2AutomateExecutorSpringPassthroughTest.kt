@@ -45,11 +45,11 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- sentinel flows ----
 
     private val sentinelInitFlow: Flow<PersistOutcome<TestEvt>> = flowOf(
-        PersistOutcome.Success("cmd-init", TestEvt("sentinel-init"), "tx", 1L)
+        PersistOutcome.Success(msgId = "cmd-init", event = TestEvt("sentinel-init"))
     )
 
     private val sentinelTransFlow: Flow<PersistOutcome<TestEvt>> = flowOf(
-        PersistOutcome.Success("cmd-trans", TestEvt("sentinel-trans"), "tx", 2L)
+        PersistOutcome.Success(msgId = "cmd-trans", event = TestEvt("sentinel-trans"))
     )
 
     // ---- no-op legacy engine (never called in this test) ----

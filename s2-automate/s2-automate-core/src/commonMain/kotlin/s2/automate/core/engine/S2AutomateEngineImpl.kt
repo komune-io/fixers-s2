@@ -57,6 +57,7 @@ ENTITY : WithS2Id<ID> {
             val (entityMutated, result) = exec(transitionContext.command, entity)
             TransitionAppliedContext(
                 automateContext = automateContext,
+                msgId = transitionContext.command.id,
                 from = fromState,
                 msg = transitionContext.command.data,
                 event = result.data,

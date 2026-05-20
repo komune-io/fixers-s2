@@ -61,7 +61,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     enum class OutcomeKind { COMMITTED, REJECTED, TRANSIENT, INDETERMINATE, CONFLICT }
 
     private fun toOutcome(kind: OutcomeKind, event: Evt): PersistOutcome<Evt> = when (kind) {
-        OutcomeKind.COMMITTED -> PersistOutcome.Success("cmd", event, "tx", 1L)
+        OutcomeKind.COMMITTED -> PersistOutcome.Success(msgId = "cmd", event = event)
         OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", s2error("ERR", "rejected"))
         OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", s2error("TRANSIENT", "transient"))
         OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate("cmd", s2error("INDET", "indeterminate"))
