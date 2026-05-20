@@ -255,8 +255,8 @@ class S2AutomateEngineImplOuterExceptionTest {
             )
             assertEquals(
                 "ERROR_INVALID_TRANSITION",
-                outcome.errorCode,
-                "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
+                outcome.error.type,
+                "Guard-rejection error.type must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
             )
         }
         val commandIds = results.map { it.data.commandId }.toSet()
@@ -292,8 +292,8 @@ class S2AutomateEngineImplOuterExceptionTest {
             )
             assertEquals(
                 "ERROR_INVALID_TRANSITION",
-                outcome.errorCode,
-                "Guard-rejection errorCode must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
+                outcome.error.type,
+                "Guard-rejection error.type must be ERROR_INVALID_TRANSITION, not entity-not-found's code"
             )
         }
         val commandIds = results.map { it.data.commandId }.toSet()
@@ -327,8 +327,8 @@ class S2AutomateEngineImplOuterExceptionTest {
         )
         assertEquals(
             "ERROR_ENTITY_NOT_FOUND",
-            outcome.errorCode,
-            "errorCode must be ERROR_ENTITY_NOT_FOUND"
+            outcome.error.type,
+            "error.type must be ERROR_ENTITY_NOT_FOUND"
         )
     }
 
@@ -357,9 +357,9 @@ class S2AutomateEngineImplOuterExceptionTest {
             "lambda throw must surface as Indeterminate, got ${outcome::class.simpleName}"
         )
         assertEquals(
-            "LAMBDA_THROW",
-            outcome.errorCode,
-            "errorCode must be LAMBDA_THROW"
+            "ERROR_PERSIST_LAMBDA_THROW",
+            outcome.error.type,
+            "error.type must be ERROR_PERSIST_LAMBDA_THROW"
         )
     }
 
@@ -388,9 +388,9 @@ class S2AutomateEngineImplOuterExceptionTest {
             "exec lambda throw must surface as Indeterminate, got ${outcome::class.simpleName}"
         )
         assertEquals(
-            "LAMBDA_THROW",
-            outcome.errorCode,
-            "errorCode must be LAMBDA_THROW"
+            "ERROR_PERSIST_LAMBDA_THROW",
+            outcome.error.type,
+            "error.type must be ERROR_PERSIST_LAMBDA_THROW"
         )
         assertEquals(
             "cmd-1",
@@ -398,8 +398,8 @@ class S2AutomateEngineImplOuterExceptionTest {
             "commandId must match the input command"
         )
         assertTrue(
-            "exec exploded" in outcome.errorMessage,
-            "errorMessage must contain the exception message"
+            "exec exploded" in outcome.error.description,
+            "error.description must contain the exception message"
         )
     }
 }

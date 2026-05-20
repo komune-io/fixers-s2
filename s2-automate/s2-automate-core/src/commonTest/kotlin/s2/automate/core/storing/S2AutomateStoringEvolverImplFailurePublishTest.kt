@@ -20,6 +20,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
+import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -114,8 +115,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
     private fun rejected(commandId: String = "c1") = PersistOutcome.Rejected<Evt>(
         commandId = commandId,
-        errorCode = "ENDORSE_POLICY",
-        errorMessage = "policy not met",
+        error = s2error("ENDORSE_POLICY", "policy not met"),
     )
 
     private fun success() = PersistOutcome.Success<Evt>(
@@ -142,9 +142,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         assertEquals(1, pub.errorEvents.size)
         val err = pub.errorEvents.single()
         assertEquals("c1", err.commandId)
-        assertEquals(ErrorCategory.Rejected, err.errorCategory)
-        assertEquals("ENDORSE_POLICY", err.errorCode)
-        assertEquals("policy not met", err.errorMessage)
+        assertEquals(ErrorCategory.Rejected, err.category)
+        assertEquals("ENDORSE_POLICY", err.error.type)
+        assertEquals("policy not met", err.error.description)
     }
 
     @Test
@@ -165,10 +165,10 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     @Test
     fun `all 4 Failure categories produce AutomatePersistFailure with correct category string on init path`() = runTest {
         val outcomes: List<PersistOutcome<Evt>> = listOf(
-            PersistOutcome.Rejected("r", "RC", "msg"),
-            PersistOutcome.Transient("t", "TC", "msg"),
-            PersistOutcome.Indeterminate("i", "IC", "msg"),
-            PersistOutcome.Conflict("c", "CC", "msg"),
+            PersistOutcome.Rejected("r", s2error("RC", "msg")),
+            PersistOutcome.Transient("t", s2error("TC", "msg")),
+            PersistOutcome.Indeterminate("i", s2error("IC", "msg")),
+            PersistOutcome.Conflict("c", s2error("CC", "msg")),
         )
         val pub = RecordingPublisher()
         val evolver = makeEvolver(outcomes, pub)
@@ -181,7 +181,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         ).toList()
 
         assertEquals(4, pub.errorEvents.size)
-        val categories = pub.errorEvents.map { it.errorCategory }
+        val categories = pub.errorEvents.map { it.category }
         assertEquals(
             listOf(ErrorCategory.Rejected, ErrorCategory.Transient, ErrorCategory.Indeterminate, ErrorCategory.Conflict),
             categories
@@ -205,7 +205,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         assertEquals(1, pub.errorEvents.size)
         val err = pub.errorEvents.single()
         assertEquals("c1", err.commandId)
-        assertEquals(ErrorCategory.Rejected, err.errorCategory)
+        assertEquals(ErrorCategory.Rejected, err.category)
     }
 
     @Test
@@ -227,10 +227,10 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     fun `all 4 Failure categories produce AutomatePersistFailure with correct category string on transition path`() =
         runTest {
             val outcomes: List<PersistOutcome<Evt>> = listOf(
-                PersistOutcome.Rejected("r", "RC", "msg"),
-                PersistOutcome.Transient("t", "TC", "msg"),
-                PersistOutcome.Indeterminate("i", "IC", "msg"),
-                PersistOutcome.Conflict("c", "CC", "msg"),
+                PersistOutcome.Rejected("r", s2error("RC", "msg")),
+                PersistOutcome.Transient("t", s2error("TC", "msg")),
+                PersistOutcome.Indeterminate("i", s2error("IC", "msg")),
+                PersistOutcome.Conflict("c", s2error("CC", "msg")),
             )
             val pub = RecordingPublisher()
             val evolver = makeEvolver(outcomes, pub)
@@ -243,7 +243,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             ).toList()
 
             assertEquals(4, pub.errorEvents.size)
-            val categories = pub.errorEvents.map { it.errorCategory }
+            val categories = pub.errorEvents.map { it.category }
             assertEquals(
                 listOf(
                     ErrorCategory.Rejected, ErrorCategory.Transient,

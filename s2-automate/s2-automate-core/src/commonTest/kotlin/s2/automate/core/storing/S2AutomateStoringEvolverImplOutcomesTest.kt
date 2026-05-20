@@ -19,6 +19,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
+import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -60,10 +61,10 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
     private fun toOutcome(kind: OutcomeKind, event: Evt): PersistOutcome<Evt> = when (kind) {
         OutcomeKind.COMMITTED -> PersistOutcome.Success("cmd", event, "tx", 1L)
-        OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", "ERR", "rejected")
-        OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", "TRANSIENT", "transient")
-        OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate("cmd", "INDET", "indeterminate")
-        OutcomeKind.CONFLICT -> PersistOutcome.Conflict("cmd", "CONFLICT", "conflict")
+        OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", s2error("ERR", "rejected"))
+        OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", s2error("TRANSIENT", "transient"))
+        OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate("cmd", s2error("INDET", "indeterminate"))
+        OutcomeKind.CONFLICT -> PersistOutcome.Conflict("cmd", s2error("CONFLICT", "conflict"))
     }
 
     // ---- stub engine ----

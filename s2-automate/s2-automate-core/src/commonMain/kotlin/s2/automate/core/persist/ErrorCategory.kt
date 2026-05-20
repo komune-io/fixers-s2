@@ -8,19 +8,8 @@ package s2.automate.core.persist
  *  - [Indeterminate]: unclear if tx landed; state-check then retry
  *  - [Conflict]: concurrent write conflict (MVCC); refresh state then retry
  *
- * The specific reason for a failure (peer/code/etc.) lives in [PersistOutcome.Failure.errorCode].
+ * The specific reason for a failure lives in [PersistOutcome.Failure.error].
  */
 enum class ErrorCategory {
     Committed, Rejected, Transient, Indeterminate, Conflict,
-}
-
-/**
- * Bridges the sealed [PersistOutcome.Failure] subtype hierarchy to the [ErrorCategory] enum.
- * Useful for emitting wire/event types that carry a flat category discriminator.
- */
-val PersistOutcome.Failure<*>.category: ErrorCategory get() = when (this) {
-    is PersistOutcome.Rejected -> ErrorCategory.Rejected
-    is PersistOutcome.Transient -> ErrorCategory.Transient
-    is PersistOutcome.Indeterminate -> ErrorCategory.Indeterminate
-    is PersistOutcome.Conflict -> ErrorCategory.Conflict
 }

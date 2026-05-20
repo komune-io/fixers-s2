@@ -25,6 +25,7 @@ import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
+import s2.automate.core.error.ERROR_PERSIST_LAMBDA_THROW
 import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
@@ -399,11 +400,14 @@ ENTITY : WithS2Id<ID> {
 	}
 
 	private fun <EVENT_OUT> Throwable.toPersistOutcome(commandId: String): PersistOutcome<EVENT_OUT> = when (this) {
-		is AutomateException -> {
-			val code = errors.firstOrNull()?.type ?: "GUARD_REJECTED"
-			PersistOutcome.Rejected(commandId, code, message ?: "")
-		}
-		else -> PersistOutcome.Indeterminate(commandId, "LAMBDA_THROW", message ?: this::class.simpleName ?: "unknown")
+		is AutomateException -> PersistOutcome.Rejected(
+			commandId = commandId,
+			error = errors.firstOrNull() ?: ERROR_UNKNOWN(this),
+		)
+		else -> PersistOutcome.Indeterminate(
+			commandId = commandId,
+			error = ERROR_PERSIST_LAMBDA_THROW(this),
+		)
 	}
 }
 

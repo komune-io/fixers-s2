@@ -20,6 +20,14 @@ fun ERROR_INVALID_TRANSITION(state: String, command: String) =
 fun ERROR_ENTITY_NOT_FOUND(id: String) =
 	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 
+@Suppress("FunctionNaming")
+fun ERROR_PERSIST_LAMBDA_THROW(cause: Throwable) =
+    s2error(
+        code = "ERROR_PERSIST_LAMBDA_THROW",
+        description = cause.message ?: cause::class.simpleName ?: "unknown",
+        cause = cause,
+    )
+
 fun S2Error.asException() = AutomateException(listOf(this), this.cause)
 
 fun S2Error.throwException() {

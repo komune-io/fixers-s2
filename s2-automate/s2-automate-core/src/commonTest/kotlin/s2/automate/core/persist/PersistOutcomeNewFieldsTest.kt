@@ -1,5 +1,6 @@
 package s2.automate.core.persist
 
+import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -23,10 +24,10 @@ class PersistOutcomeNewFieldsTest {
     }
 
     @Test
-    fun `category extension maps each Failure subtype to the correct ErrorCategory`() {
-        assertEquals(ErrorCategory.Rejected, PersistOutcome.Rejected<String>("c", "X", "y").category)
-        assertEquals(ErrorCategory.Transient, PersistOutcome.Transient<String>("c", "X", "y").category)
-        assertEquals(ErrorCategory.Indeterminate, PersistOutcome.Indeterminate<String>("c", "X", "y").category)
-        assertEquals(ErrorCategory.Conflict, PersistOutcome.Conflict<String>("c", "X", "y").category)
+    fun `category member maps each Failure subtype to the correct ErrorCategory`() {
+        assertEquals(ErrorCategory.Rejected, PersistOutcome.Rejected<String>("c", s2error("X", "y")).category)
+        assertEquals(ErrorCategory.Transient, PersistOutcome.Transient<String>("c", s2error("X", "y")).category)
+        assertEquals(ErrorCategory.Indeterminate, PersistOutcome.Indeterminate<String>("c", s2error("X", "y")).category)
+        assertEquals(ErrorCategory.Conflict, PersistOutcome.Conflict<String>("c", s2error("X", "y")).category)
     }
 }
