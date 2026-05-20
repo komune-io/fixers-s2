@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
+import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.PersistOutcome
 import s2.automate.core.storing.S2AutomateStoringEvolverImpl
 import s2.dsl.automate.Evt
@@ -51,9 +52,9 @@ class S2AutomateExecutorSpringPassthroughTest {
         PersistOutcome.Success("cmd-trans", TestEvt("sentinel-trans"), "tx", 2L)
     )
 
-    // ---- no-op engine (never called in this test) ----
+    // ---- no-op legacy engine (never called in this test) ----
 
-    private object NoOpEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
+    private object NoOpLegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -63,7 +64,11 @@ class S2AutomateExecutorSpringPassthroughTest {
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("should not be called")
+    }
 
+    // ---- no-op outcome engine (never called in this test) ----
+
+    private object NoOpOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -90,7 +95,8 @@ class S2AutomateExecutorSpringPassthroughTest {
      * overloads to return the pre-configured sentinel flows.
      */
     private inner class StubEvolver : S2AutomateStoringEvolverImpl<TestState, TestEntity, String>(
-        automateExecutor = NoOpEngine,
+        automateExecutor = NoOpLegacyEngine,
+        outcomeExecutor = NoOpOutcomeEngine,
         publisher = NoOpPublisher
     ) {
         override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(

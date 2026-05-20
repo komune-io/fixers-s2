@@ -3,6 +3,7 @@ package s2.spring.automate
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
 import s2.automate.core.engine.S2AutomateEngineImpl
+import s2.automate.core.engine.S2AutomateOutcomeEngineImpl
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -20,7 +21,6 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher
 
@@ -32,10 +32,19 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 		return S2AutomateEngineImpl(automateContext, guardExecutor, persister, publisher)
 	}
 
+	open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> {
+		val automateContext = automateContext()
+		val publisher = automateAppEventPublisher(eventPublisher)
+		val guardExecutor = guardExecutor(publisher)
+		val persister = aggregateRepository()
+		return S2AutomateOutcomeEngineImpl(automateContext, guardExecutor, persister, publisher)
+	}
+
 	override fun afterPropertiesSet() {
 		val automateExecutor = aggregate()
+		val outcomeExecutor = outcomeAggregate()
 		val agg = executor()
-		agg.withContext(automateExecutor, eventPublisher)
+		agg.withContext(automateExecutor, outcomeExecutor, eventPublisher)
 	}
 
 	abstract override fun automate(): S2Automate

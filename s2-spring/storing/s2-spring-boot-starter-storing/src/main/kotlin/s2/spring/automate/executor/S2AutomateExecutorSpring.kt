@@ -4,6 +4,7 @@ import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngineImpl
+import s2.automate.core.engine.S2AutomateOutcomeEngineImpl
 import s2.automate.core.persist.PersistOutcome
 import s2.automate.core.storing.S2AutomateStoringEvolver
 import s2.automate.core.storing.S2AutomateStoringEvolverFlow
@@ -41,9 +42,10 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      */
     fun withContext(
         automateExecutorFlow: S2AutomateEngineImpl<STATE, ID, ENTITY, Evt>,
+        outcomeExecutorFlow: S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt>,
         publisher: AppEventPublisher
     ) {
-        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, publisher)
+        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, outcomeExecutorFlow, publisher)
     }
 
     /**

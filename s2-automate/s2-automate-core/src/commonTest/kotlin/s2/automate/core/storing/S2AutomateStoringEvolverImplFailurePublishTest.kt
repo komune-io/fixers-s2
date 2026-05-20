@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
+import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.ErrorCategory
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
@@ -61,17 +62,8 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         }
     }
 
-    /**
-     * Engine that returns a scripted sequence of [PersistOutcome] values.
-     * Cycles through [outcomes] for both init and transition paths.
-     */
-    private inner class ScriptedEngine(
-        private val outcomes: List<PersistOutcome<Evt>>,
-    ) : S2AutomateEngine<TestState, TestEntity, String, Evt> {
-
-        private var idx = 0
-
-        private fun nextOutcome(): PersistOutcome<Evt> = outcomes[idx++ % outcomes.size]
+    /** Legacy engine stub (create / doTransition only — no outcome methods). */
+    private class LegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
@@ -84,6 +76,19 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd ->
             exec(cmd, TestEntity(cmd.data.id, TestState.Created)).second
         }
+    }
+
+    /**
+     * Outcome engine stub that returns a scripted sequence of [PersistOutcome] values.
+     * Cycles through [outcomes] for both init and transition paths.
+     */
+    private inner class ScriptedOutcomeEngine(
+        private val outcomes: List<PersistOutcome<Evt>>,
+    ) : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
+
+        private var idx = 0
+
+        private fun nextOutcome(): PersistOutcome<Evt> = outcomes[idx++ % outcomes.size]
 
         @Suppress("UNCHECKED_CAST")
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
@@ -109,7 +114,11 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     private fun makeEvolver(
         outcomes: List<PersistOutcome<Evt>>,
         publisher: RecordingPublisher,
-    ) = S2AutomateStoringEvolverImpl(ScriptedEngine(outcomes), publisher)
+    ) = S2AutomateStoringEvolverImpl(
+        automateExecutor = LegacyEngine(),
+        outcomeExecutor = ScriptedOutcomeEngine(outcomes),
+        publisher = publisher
+    )
 
     // ---- helpers ----
 

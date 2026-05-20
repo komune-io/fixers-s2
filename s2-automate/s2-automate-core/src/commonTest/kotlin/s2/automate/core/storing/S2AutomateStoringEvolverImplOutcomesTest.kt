@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
+import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
@@ -67,19 +68,10 @@ class S2AutomateStoringEvolverImplOutcomesTest {
         OutcomeKind.CONFLICT -> PersistOutcome.Conflict("cmd", s2error("CONFLICT", "conflict"))
     }
 
-    // ---- stub engine ----
+    // ---- stub engines ----
 
-    /**
-     * Scripted engine that uses an internal counter to cycle through the given pattern.
-     * The EVENT type parameter is Evt so it's compatible with S2AutomateStoringEvolverImpl.
-     */
-    private inner class IndexedStubEngine(
-        private val initPattern: List<OutcomeKind>,
-        private val transitionPattern: List<OutcomeKind>,
-    ) : S2AutomateEngine<TestState, TestEntity, String, Evt> {
-
-        private var initIdx = 0
-        private var transIdx = 0
+    /** Legacy engine stub (create / doTransition only — no outcome methods). */
+    private inner class LegacyStubEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
@@ -93,6 +85,18 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             val entity = TestEntity(cmd.data.id, TestState.Created)
             exec(cmd, entity).second
         }
+    }
+
+    /**
+     * Outcome engine stub that uses an internal counter to cycle through the given pattern.
+     */
+    private inner class IndexedOutcomeStubEngine(
+        private val initPattern: List<OutcomeKind>,
+        private val transitionPattern: List<OutcomeKind>,
+    ) : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
+
+        private var initIdx = 0
+        private var transIdx = 0
 
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
@@ -142,17 +146,25 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     )
 
     private fun makeEvolver(
-        engine: S2AutomateEngine<TestState, TestEntity, String, Evt>,
+        initPattern: List<OutcomeKind>,
+        transitionPattern: List<OutcomeKind>,
         publisher: RecordingPublisher,
-    ) = S2AutomateStoringEvolverImpl(engine, publisher)
+    ) = S2AutomateStoringEvolverImpl(
+        automateExecutor = LegacyStubEngine(),
+        outcomeExecutor = IndexedOutcomeStubEngine(initPattern, transitionPattern),
+        publisher = publisher
+    )
 
     // ---- tests: init overload ----
 
     @Test
     fun `evolveWithOutcomes (init) returns one outcome per input`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = listOf(OutcomeKind.COMMITTED), transitionPattern = emptyList())
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = listOf(OutcomeKind.COMMITTED),
+            transitionPattern = emptyList(),
+            publisher = pub
+        )
 
         val results: List<PersistOutcome<CreatedEvt>> = evolver.evolveWithOutcomes(
             commands = (1..4).map { CreateCmd("id$it") }.asFlow(),
@@ -167,8 +179,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `evolveWithOutcomes (transition) returns one outcome per input`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = emptyList(), transitionPattern = listOf(OutcomeKind.COMMITTED))
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = emptyList(),
+            transitionPattern = listOf(OutcomeKind.COMMITTED),
+            publisher = pub
+        )
 
         val results: List<PersistOutcome<DoneEvt>> = evolver.evolveWithOutcomes(
             commands = (1..4).map { DoCmd("id$it") }.asFlow(),
@@ -183,8 +198,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `publisher fires exactly once per Committed outcome on init path`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = mixedPattern, transitionPattern = emptyList())
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = mixedPattern,
+            transitionPattern = emptyList(),
+            publisher = pub
+        )
 
         evolver.evolveWithOutcomes(
             commands = (1..5).map { CreateCmd("id$it") }.asFlow(),
@@ -200,8 +218,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `publisher fires AutomatePersistFailure for Rejected Transient Indeterminate Conflict on init path`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = allFailing, transitionPattern = emptyList())
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = allFailing,
+            transitionPattern = emptyList(),
+            publisher = pub
+        )
 
         evolver.evolveWithOutcomes(
             commands = (1..4).map { CreateCmd("id$it") }.asFlow(),
@@ -217,8 +238,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `publisher fires exactly once per Committed outcome on transition path`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = emptyList(), transitionPattern = mixedPattern)
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = emptyList(),
+            transitionPattern = mixedPattern,
+            publisher = pub
+        )
 
         evolver.evolveWithOutcomes(
             commands = (1..5).map { DoCmd("id$it") }.asFlow(),
@@ -234,8 +258,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `publisher fires AutomatePersistFailure for Rejected Transient Indeterminate Conflict on transition path`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(initPattern = emptyList(), transitionPattern = allFailing)
-        val evolver = makeEvolver(engine, pub)
+        val evolver = makeEvolver(
+            initPattern = emptyList(),
+            transitionPattern = allFailing,
+            publisher = pub
+        )
 
         evolver.evolveWithOutcomes(
             commands = (1..4).map { DoCmd("id$it") }.asFlow(),
@@ -251,11 +278,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `init path publishes mapped envelope (type=Evt)`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(
+        val evolver = makeEvolver(
             initPattern = listOf(OutcomeKind.COMMITTED),
-            transitionPattern = emptyList()
+            transitionPattern = emptyList(),
+            publisher = pub
         )
-        val evolver = makeEvolver(engine, pub)
 
         evolver.evolveWithOutcomes(
             commands = flowOf(CreateCmd("id1")),
@@ -282,11 +309,11 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     @Test
     fun `transition path publishes outcome event directly (not wrapped in envelope)`() = runTest {
         val pub = RecordingPublisher()
-        val engine = IndexedStubEngine(
+        val evolver = makeEvolver(
             initPattern = emptyList(),
-            transitionPattern = listOf(OutcomeKind.COMMITTED)
+            transitionPattern = listOf(OutcomeKind.COMMITTED),
+            publisher = pub
         )
-        val evolver = makeEvolver(engine, pub)
 
         evolver.evolveWithOutcomes(
             commands = flowOf(DoCmd("id1")),
