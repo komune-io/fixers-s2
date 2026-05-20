@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
@@ -181,44 +182,48 @@ class S2AutomateOutcomeEngineImplReactivityTest {
 
     // ---- B.1 guard: first output before upstream is exhausted ----
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `B1 createWithOutcomes emits first outcome before upstream completes`() = runTest {
         val persister = CountingPersister()
         // batch.size=2, slow upstream emits 6 commands with delays
         val engine = makeEngine(persister, batchSize = 2)
 
-        val firstOutputTimeMs = longArrayOf(-1L)
+        // Capture TestScope's virtual clock for use inside the flow builder
+        // (inside `flow { }` the receiver is FlowCollector, not TestScope).
+        val scheduler = testScheduler
+        val virtualNow: () -> Long = { scheduler.currentTime }
+
+        var firstOutputTimeMs = -1L
         var lastInputTimeMs = -1L
 
         val slowCommands: EnvelopedFlow<CreateCmd> = flow {
             for (i in 1..6) {
                 emit(CreateCmd("id$i").asEnvelopeWithType("Cmd"))
-                lastInputTimeMs = currentTimeMs()
+                lastInputTimeMs = virtualNow()
                 if (i < 6) delay(50L) // 50ms between each command; last has no trailing delay
             }
         }
 
-        val start = currentTimeMs()
+        val start = virtualNow()
         engine.createWithOutcomes(slowCommands) { cmd ->
             TestEntity(cmd.data.id, TestState.Created) to
                 CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
-        }.collect { envelope ->
-            if (firstOutputTimeMs[0] < 0L) {
-                firstOutputTimeMs[0] = currentTimeMs() - start
+        }.collect {
+            if (firstOutputTimeMs < 0L) {
+                firstOutputTimeMs = virtualNow() - start
             }
         }
 
         val totalInputDurationMs = lastInputTimeMs - start
         assertTrue(
-            firstOutputTimeMs[0] >= 0L,
+            firstOutputTimeMs >= 0L,
             "No output was emitted"
         )
         assertTrue(
-            firstOutputTimeMs[0] < totalInputDurationMs,
-            "First output (at +${firstOutputTimeMs[0]}ms) should appear before upstream finishes " +
-                "(at +${totalInputDurationMs}ms) — reactivity regression B.1"
+            firstOutputTimeMs < totalInputDurationMs,
+            "First output (at +${firstOutputTimeMs}ms virtual) should appear before upstream " +
+                "finishes (at +${totalInputDurationMs}ms virtual) — reactivity regression B.1"
         )
     }
-
-    private fun currentTimeMs(): Long = System.currentTimeMillis()
 }
