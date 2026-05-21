@@ -2,8 +2,12 @@ package s2.spring.automate.executor
 
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
+import s2.automate.core.appevent.listener.AutomateListener
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngineImpl
+import s2.automate.core.engine.S2AutomateOutcomeEngineImpl
+import s2.dsl.automate.S2Automate
+import s2.automate.core.persist.PersistOutcome
 import s2.automate.core.storing.S2AutomateStoringEvolver
 import s2.automate.core.storing.S2AutomateStoringEvolverFlow
 import s2.automate.core.storing.S2AutomateStoringEvolverImpl
@@ -40,9 +44,11 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      */
     fun withContext(
         automateExecutorFlow: S2AutomateEngineImpl<STATE, ID, ENTITY, Evt>,
-        publisher: AppEventPublisher
+        outcomeExecutorFlow: S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt>,
+        publisher: AppEventPublisher,
+        listener: AutomateListener<STATE, ID, ENTITY, S2Automate>,
     ) {
-        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, publisher)
+        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, outcomeExecutorFlow, publisher, listener)
     }
 
     /**
@@ -124,5 +130,15 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
         commands: EnvelopedFlow<COMMAND>,
         exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, exec)
+
+    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        commands: Flow<COMMAND>,
+        build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
+    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, build)
+
+    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+        commands: Flow<COMMAND>,
+        exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
+    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, exec)
 
 }

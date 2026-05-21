@@ -2,6 +2,7 @@ package s2.automate.core.storing
 
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
+import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
@@ -41,5 +42,15 @@ interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State
 	fun <COMMAND : S2Command<ID>, EVENT_OUT : EVENT> evolve(
 		fnc: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Decide<COMMAND, EVENT_OUT>
+
+	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveWithOutcomes(
+		commands: Flow<COMMAND>,
+		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
+	): Flow<PersistOutcome<EVENT_OUT>>
+
+	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveWithOutcomes(
+		commands: Flow<COMMAND>,
+		exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
+	): Flow<PersistOutcome<EVENT_OUT>>
 
 }

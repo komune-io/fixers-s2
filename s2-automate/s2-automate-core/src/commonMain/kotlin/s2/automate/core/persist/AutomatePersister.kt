@@ -1,6 +1,8 @@
 package s2.automate.core.persist
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -24,4 +26,24 @@ ENTITY : WithS2Id<ID> {
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
 
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
+
+	suspend fun persistInitWithOutcomes(
+		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+	): Flow<PersistOutcome<EVENT>> = flow {
+		transitionContexts.collect { ctx ->
+			persistInit(flowOf(ctx)).collect { event ->
+				emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
+			}
+		}
+	}
+
+	suspend fun persistWithOutcomes(
+		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+	): Flow<PersistOutcome<EVENT>> = flow {
+		transitionContexts.collect { ctx ->
+			persist(flowOf(ctx)).collect { event ->
+				emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
+			}
+		}
+	}
 }
