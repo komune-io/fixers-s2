@@ -2,8 +2,8 @@ package s2.automate.core.appevent.publisher
 
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
-import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.AutomateSessionError
+import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateEntered

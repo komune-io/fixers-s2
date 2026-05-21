@@ -9,12 +9,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.dsl.automate.S2Automate
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
+import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
