@@ -2,6 +2,7 @@ package s2.automate.core.appevent.listener
 
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
+import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
@@ -39,4 +40,6 @@ open class AutomateListenerAdapter<STATE, ID, ENTITY, AUTOMATE> : AutomateListen
 	override fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>) {}
 
 	override fun automateSessionError(event: AutomateSessionError) {}
+
+	override fun automatePersistFailure(event: AutomatePersistFailure) {}
 }

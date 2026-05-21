@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import s2.automate.core.appevent.listener.AutomateListenerAdapter
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.dsl.automate.S2Automate
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.PersistOutcome
@@ -97,7 +99,8 @@ class S2AutomateExecutorSpringPassthroughTest {
     private inner class StubEvolver : S2AutomateStoringEvolverImpl<TestState, TestEntity, String>(
         automateExecutor = NoOpLegacyEngine,
         outcomeExecutor = NoOpOutcomeEngine,
-        publisher = NoOpPublisher
+        publisher = NoOpPublisher,
+        listener = AutomateListenerAdapter<TestState, String, TestEntity, S2Automate>(),
     ) {
         override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,

@@ -43,8 +43,9 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	override fun afterPropertiesSet() {
 		val automateExecutor = aggregate()
 		val outcomeExecutor = outcomeAggregate()
+		val listener = automateAppEventPublisher(eventPublisher)
 		val agg = executor()
-		agg.withContext(automateExecutor, outcomeExecutor, eventPublisher)
+		agg.withContext(automateExecutor, outcomeExecutor, eventPublisher, listener)
 	}
 
 	abstract override fun automate(): S2Automate

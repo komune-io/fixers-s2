@@ -10,11 +10,13 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import s2.automate.core.appevent.AutomatePersistFailure
+import s2.automate.core.appevent.listener.AutomateListener
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
+import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
@@ -25,7 +27,8 @@ import s2.sourcing.dsl.Decide
 open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
     private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
     private val outcomeExecutor: S2AutomateOutcomeEngine<STATE, ENTITY, ID, Evt>,
-    private val publisher: AppEventPublisher
+    private val publisher: AppEventPublisher,
+    private val listener: AutomateListener<STATE, ID, ENTITY, S2Automate>,
 ) :
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
@@ -155,7 +158,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             if (outcome is PersistOutcome.Success) {
                 publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
             } else if (outcome is PersistOutcome.Failure) {
-                publisher.automatePersistFailure(outcome.toAutomatePersistFailure())
+                listener.automatePersistFailure(outcome.toAutomatePersistFailure())
             }
         }.map { it.data }
     }
@@ -174,7 +177,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
             if (outcome is PersistOutcome.Success) {
                 publisher.publish(outcome.event as Any)
             } else if (outcome is PersistOutcome.Failure) {
-                publisher.automatePersistFailure(outcome.toAutomatePersistFailure())
+                listener.automatePersistFailure(outcome.toAutomatePersistFailure())
             }
         }.map { it.data }
     }

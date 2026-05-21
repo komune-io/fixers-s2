@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.appevent.publisher.AutomateEventPublisher
+import s2.dsl.automate.S2Automate
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.ErrorCategory
@@ -117,7 +119,8 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     ) = S2AutomateStoringEvolverImpl(
         automateExecutor = LegacyEngine(),
         outcomeExecutor = ScriptedOutcomeEngine(outcomes),
-        publisher = publisher
+        publisher = publisher,
+        listener = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
     )
 
     // ---- helpers ----

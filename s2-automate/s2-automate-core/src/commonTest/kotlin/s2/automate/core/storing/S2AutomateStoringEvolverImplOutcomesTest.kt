@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.AutomatePersistFailure
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.appevent.publisher.AutomateEventPublisher
+import s2.dsl.automate.S2Automate
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
 import s2.automate.core.persist.PersistOutcome
@@ -152,7 +154,8 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     ) = S2AutomateStoringEvolverImpl(
         automateExecutor = LegacyStubEngine(),
         outcomeExecutor = IndexedOutcomeStubEngine(initPattern, transitionPattern),
-        publisher = publisher
+        publisher = publisher,
+        listener = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
     )
 
     // ---- tests: init overload ----
