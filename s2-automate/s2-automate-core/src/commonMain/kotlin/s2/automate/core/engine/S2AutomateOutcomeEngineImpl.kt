@@ -48,37 +48,9 @@ ENTITY : WithS2Id<ID> {
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
         return commands.chunk(automateContext.batch.size).map { chunk ->
-            // Per-command preparation within each chunk. Failures captured as pre-computed outcomes.
-            val successCtxs =
-                mutableListOf<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
-            val failures = mutableListOf<PersistOutcome<EVENT>>()
-
-            chunk.forEach { command ->
-                runCatching { prepareCreationContextForOutcomes(decide, command) }
-                    .fold(
-                        onSuccess = { ctx ->
-                            @Suppress("UNCHECKED_CAST")
-                            successCtxs.add(
-                                ctx as InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
-                            )
-                        },
-                        onFailure = { t ->
-                            @Suppress("UNCHECKED_CAST")
-                            failures.add(t.toPersistOutcome<EVENT>(command.id))
-                        }
-                    )
-            }
-
-            val persistedOutcomes: List<PersistOutcome<EVENT>> = if (successCtxs.isNotEmpty()) {
-                persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }
-            } else {
-                emptyList()
-            }
-
-            (failures + persistedOutcomes).map { outcome ->
-                @Suppress("UNCHECKED_CAST")
-                outcome as PersistOutcome<EVENT_OUT>
-            }.asFlow()
+            val (successCtxs, failures) = partitionCreations(chunk, decide)
+            val persisted = persistCreationsToList(successCtxs)
+            (failures + persisted).castedAsFlow<EVENT_OUT>()
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
     }
 
@@ -88,75 +60,102 @@ ENTITY : WithS2Id<ID> {
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
         return commands.chunk(automateContext.batch.size).map { chunk ->
-            // B.2: single batched load for the whole chunk
             val loaded = loadBatch(chunk)
+            val (successCtxs, failures) = partitionTransitions(loaded, exec)
+            val persisted = persistTransitionsAndEmitEnded(successCtxs)
+            (failures + persisted).castedAsFlow<EVENT_OUT>()
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
+    }
 
-            val successCtxs =
-                mutableListOf<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
-            val failures = mutableListOf<PersistOutcome<EVENT>>()
-
-            loaded.forEach { (commandEnvelope, entity) ->
-                runCatching {
-                    val e = entity
-                        ?: throw ERROR_ENTITY_NOT_FOUND(commandEnvelope.data.id.toString()).asException()
-                    val transitionContext = TransitionContext(
-                        automateContext = automateContext,
-                        from = e.s2State(),
-                        command = commandEnvelope,
-                        entity = e
-                    )
-                    publisher.automateTransitionStarted(
-                        AutomateTransitionStarted(
-                            from = e.s2State(),
-                            msg = commandEnvelope
-                        )
-                    )
-                    guardExecutor.evaluateTransition(transitionContext)
-                    val fromState = e.s2State()
-                    val (entityMutated, result) = exec(transitionContext.command, e)
-                    @Suppress("UNCHECKED_CAST")
-                    TransitionAppliedContext(
-                        automateContext = automateContext,
-                        msgId = transitionContext.command.id,
-                        from = fromState,
-                        msg = transitionContext.command.data,
-                        event = result.data,
-                        entity = entityMutated
-                    ) as TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
-                }.fold(
-                    onSuccess = { ctx -> successCtxs.add(ctx) },
-                    onFailure = { t ->
+    private suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> partitionCreations(
+        chunk: List<Envelope<COMMAND>>,
+        decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
+    ): Pair<List<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>, List<PersistOutcome<EVENT>>> {
+        val successCtxs = mutableListOf<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
+        val failures = mutableListOf<PersistOutcome<EVENT>>()
+        chunk.forEach { command ->
+            runCatching { prepareCreationContextForOutcomes(decide, command) }
+                .fold(
+                    onSuccess = { ctx ->
                         @Suppress("UNCHECKED_CAST")
-                        failures.add(t.toPersistOutcome<EVENT>(commandEnvelope.id))
-                    }
+                        successCtxs.add(
+                            ctx as InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
+                        )
+                    },
+                    onFailure = { t -> failures.add(t.toPersistOutcome(command.id)) }
                 )
-            }
+        }
+        return successCtxs to failures
+    }
 
-            // B.3: O(1) msgId-keyed correlation map
-            val persistedOutcomes: List<PersistOutcome<EVENT>> = if (successCtxs.isNotEmpty()) {
-                val ctxByMsgId = successCtxs.associateBy { it.msgId }
-                persistWithOutcomes(successCtxs.asFlow()).toList().also { outcomes ->
-                    outcomes.forEach { outcome ->
-                        if (outcome is PersistOutcome.Success) {
-                            // B.3: use msgId for O(N) lookup instead of event-equality O(N²)
-                            val ctx = ctxByMsgId[outcome.msgId]
-                            ctx?.let {
-                                sendEndDoTransitionEvent(
-                                    it.entity.s2State(), it.from, it.msg, it.entity
-                                )
-                            }
-                        }
+    private suspend fun persistCreationsToList(
+        successCtxs: List<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): List<PersistOutcome<EVENT>> {
+        if (successCtxs.isEmpty()) return emptyList()
+        return persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }
+    }
+
+    private suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> partitionTransitions(
+        loaded: List<Pair<Envelope<COMMAND>, ENTITY?>>,
+        exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
+    ): Pair<List<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>, List<PersistOutcome<EVENT>>> {
+        val successCtxs = mutableListOf<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
+        val failures = mutableListOf<PersistOutcome<EVENT>>()
+        loaded.forEach { (commandEnvelope, entity) ->
+            runCatching { buildAppliedContext(commandEnvelope, entity, exec) }
+                .fold(
+                    onSuccess = { ctx -> successCtxs.add(ctx) },
+                    onFailure = { t -> failures.add(t.toPersistOutcome(commandEnvelope.id)) }
+                )
+        }
+        return successCtxs to failures
+    }
+
+    private suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> buildAppliedContext(
+        commandEnvelope: Envelope<COMMAND>,
+        entity: ENTITY?,
+        exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
+    ): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate> {
+        val e = entity
+            ?: throw ERROR_ENTITY_NOT_FOUND(commandEnvelope.data.id.toString()).asException()
+        val transitionContext = TransitionContext(
+            automateContext = automateContext,
+            from = e.s2State(),
+            command = commandEnvelope,
+            entity = e
+        )
+        publisher.automateTransitionStarted(
+            AutomateTransitionStarted(from = e.s2State(), msg = commandEnvelope)
+        )
+        guardExecutor.evaluateTransition(transitionContext)
+        val fromState = e.s2State()
+        val (entityMutated, result) = exec(transitionContext.command, e)
+        @Suppress("UNCHECKED_CAST")
+        return TransitionAppliedContext(
+            automateContext = automateContext,
+            msgId = transitionContext.command.id,
+            from = fromState,
+            msg = transitionContext.command.data,
+            event = result.data,
+            entity = entityMutated
+        ) as TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
+    }
+
+    // B.3: msgId-keyed correlation — O(N) lookup instead of event-equality O(N²)
+    private suspend fun persistTransitionsAndEmitEnded(
+        successCtxs: List<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): List<PersistOutcome<EVENT>> {
+        if (successCtxs.isEmpty()) return emptyList()
+        val ctxByMsgId = successCtxs.associateBy { it.msgId }
+        return persistWithOutcomes(successCtxs.asFlow()).toList().also { outcomes ->
+            outcomes.forEach { outcome ->
+                if (outcome is PersistOutcome.Success) {
+                    ctxByMsgId[outcome.msgId]?.let { ctx ->
+                        sendEndDoTransitionEvent(ctx.entity.s2State(), ctx.from, ctx.msg, ctx.entity)
                     }
                 }
-            } else {
-                emptyList()
             }
-
-            (failures + persistedOutcomes).map { outcome ->
-                @Suppress("UNCHECKED_CAST")
-                outcome as PersistOutcome<EVENT_OUT>
-            }.asFlow()
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
+        }
     }
 
     private suspend fun persistInitWithOutcomes(
@@ -180,7 +179,7 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    private fun <EVENT_OUT> Throwable.toPersistOutcome(msgId: String): PersistOutcome<EVENT_OUT> =
+    private fun Throwable.toPersistOutcome(msgId: String): PersistOutcome<EVENT> =
         when (this) {
             is AutomateException -> PersistOutcome.Rejected(
                 msgId = msgId,
@@ -191,4 +190,8 @@ ENTITY : WithS2Id<ID> {
                 error = ERROR_PERSIST_LAMBDA_THROW(this),
             )
         }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <EVENT_OUT> List<PersistOutcome<EVENT>>.castedAsFlow(): Flow<PersistOutcome<EVENT_OUT>> =
+        (this as List<PersistOutcome<EVENT_OUT>>).asFlow()
 }
