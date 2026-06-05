@@ -37,7 +37,8 @@ sealed interface LoadedSlot<COMMAND, ENTITY> {
  *
  * Direct match on the sealed [LoadOutcome.Failure] subtypes so the compiler
  * enforces exhaustiveness — if a new failure variant is added to [LoadOutcome]
- * the mapping here must be updated.
+ * the mapping here must be updated. The four subtypes are shape-aligned 1:1
+ * with [PersistOutcome.Failure]'s four subtypes.
  *
  * The result is typed `PersistOutcome.Failure<Nothing>` so callers can up-cast
  * to any `PersistOutcome<EVENT>` (a Failure carries no event, so the EVENT type
@@ -45,6 +46,8 @@ sealed interface LoadedSlot<COMMAND, ENTITY> {
  */
 fun LoadOutcome.Failure<*, *>.toPersistFailure(msgId: String): PersistOutcome.Failure<Nothing> =
     when (this) {
-        is LoadOutcome.Rejected  -> PersistOutcome.Rejected(msgId, error)
-        is LoadOutcome.Transient -> PersistOutcome.Transient(msgId, error)
+        is LoadOutcome.Rejected      -> PersistOutcome.Rejected(msgId, error)
+        is LoadOutcome.Transient     -> PersistOutcome.Transient(msgId, error)
+        is LoadOutcome.Indeterminate -> PersistOutcome.Indeterminate(msgId, error)
+        is LoadOutcome.Conflict      -> PersistOutcome.Conflict(msgId, error)
     }
