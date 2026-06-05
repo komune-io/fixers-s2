@@ -3,6 +3,7 @@ package s2.automate.core.engine
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
@@ -32,6 +33,7 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -391,5 +393,70 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             "exec exploded" in outcome.error.description,
             "error.description must contain the exception message"
         )
+    }
+
+    @Test
+    fun `createWithOutcomes - CancellationException from decide lambda propagates instead of becoming Indeterminate`() = runTest {
+        // The runCatching in partitionCreations previously caught CancellationException
+        // and converted it to a per-id Indeterminate outcome — silently swallowing the
+        // cooperative cancellation signal so the parent scope never unwound.
+        //
+        // Post-fix the catch is explicit `try/catch (CancellationException) throw e`,
+        // so the cancellation propagates up the coroutine tree. We don't assert
+        // instance identity because Kotlin's structured-concurrency machinery
+        // (`flattenConcurrently`, `runTest`) may re-throw a fresh CancellationException
+        // carrying the same message as it unwinds — what matters is:
+        //   - the throw escapes (no PersistOutcome emitted)
+        //   - it's still a CancellationException (no wrapping into RuntimeException)
+        //   - the original message survives
+        val engine = makeEngine(
+            guard = PassthroughGuardVerifier(),
+            persister = PassthroughPersister(),
+        )
+
+        val commands: EnvelopedFlow<CreateCmd> = flowOf(
+            CreateCmd("id1").asEnvelopeWithType("Cmd", id = "id1")
+        )
+
+        val cancel = CancellationException("cooperative cancel inside decide")
+
+        val thrown = assertFailsWith<CancellationException> {
+            engine.createWithOutcomes(commands) { _ ->
+                throw cancel
+                @Suppress("UNREACHABLE_CODE")
+                TestEntity("x", TestState.Created) to
+                    CreatedEvt("x").asEnvelopeWithType("Evt")
+            }.toList()
+        }
+        assertEquals(cancel.message, thrown.message,
+            "original cancellation message must survive — confirms our cancel reached the unwind, not a different one")
+    }
+
+    @Test
+    fun `doTransitionWithOutcomes - CancellationException from exec lambda propagates instead of becoming Indeterminate`() = runTest {
+        // Same expectation for partitionTransitions: CancellationException thrown
+        // by the exec lambda (or by guardExecutor.evaluateTransition) must propagate
+        // up the coroutine tree rather than being mapped to Indeterminate.
+        val engine = makeEngine(
+            guard = PassthroughGuardVerifier(),
+            persister = PassthroughPersister(),
+        )
+
+        val commands: EnvelopedFlow<DoCmd> = flowOf(
+            DoCmd("cmd-1").asEnvelopeWithType("Cmd", id = "cmd-1")
+        )
+
+        val cancel = CancellationException("cooperative cancel inside exec")
+
+        val thrown = assertFailsWith<CancellationException> {
+            engine.doTransitionWithOutcomes(commands) { _, _ ->
+                throw cancel
+                @Suppress("UNREACHABLE_CODE")
+                TestEntity("cmd-1", TestState.Active) to
+                    DoneEvt("cmd-1").asEnvelopeWithType("Evt")
+            }.toList()
+        }
+        assertEquals(cancel.message, thrown.message,
+            "original cancellation message must survive — confirms our cancel reached the unwind, not a different one")
     }
 }

@@ -5,6 +5,7 @@ import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import f2.dsl.fnc.operators.chunk
 import f2.dsl.fnc.operators.flattenConcurrently
 import f2.dsl.fnc.operators.mapToEnvelope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
@@ -16,10 +17,8 @@ import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
-import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
 import s2.automate.core.error.ERROR_PERSIST_LAMBDA_THROW
 import s2.automate.core.error.ERROR_UNKNOWN
-import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.PersistOutcome
@@ -60,7 +59,10 @@ ENTITY : WithS2Id<ID> {
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
         return commands.chunk(automateContext.batch.size).map { chunk ->
-            val loaded = loadBatch(chunk)
+            // loadBatchWithOutcomes pre-classifies each (cmd → load failure) per item, so
+            // one bad session in the chunk no longer poisons the rest — sibling commands
+            // proceed through buildAppliedContext/persist independently.
+            val loaded = loadBatchWithOutcomes(chunk)
             val (successCtxs, failures) = partitionTransitions(loaded, exec)
             val persisted = persistTransitionsAndEmitEnded(successCtxs)
             (failures + persisted).castedAsFlow<EVENT_OUT>()
@@ -74,16 +76,19 @@ ENTITY : WithS2Id<ID> {
         val successCtxs = mutableListOf<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
         val failures = mutableListOf<PersistOutcome<EVENT>>()
         chunk.forEach { command ->
-            runCatching { prepareCreationContextForOutcomes(decide, command) }
-                .fold(
-                    onSuccess = { ctx ->
-                        @Suppress("UNCHECKED_CAST")
-                        successCtxs.add(
-                            ctx as InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
-                        )
-                    },
-                    onFailure = { t -> failures.add(t.toPersistOutcome(command.id)) }
+            try {
+                val ctx = prepareCreationContextForOutcomes(decide, command)
+                @Suppress("UNCHECKED_CAST")
+                successCtxs.add(
+                    ctx as InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>
                 )
+            } catch (e: CancellationException) {
+                // Cooperative cancellation must propagate up the coroutine tree —
+                // do NOT convert it into a per-id Indeterminate outcome.
+                throw e
+            } catch (t: Throwable) {
+                failures.add(t.toPersistOutcome(command.id))
+            }
         }
         return successCtxs to failures
     }
@@ -96,40 +101,50 @@ ENTITY : WithS2Id<ID> {
     }
 
     private suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> partitionTransitions(
-        loaded: List<Pair<Envelope<COMMAND>, ENTITY?>>,
+        loaded: List<LoadedSlot<COMMAND, ENTITY>>,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): Pair<List<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>, List<PersistOutcome<EVENT>>> {
         val successCtxs = mutableListOf<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
         val failures = mutableListOf<PersistOutcome<EVENT>>()
-        loaded.forEach { (commandEnvelope, entity) ->
-            runCatching { buildAppliedContext(commandEnvelope, entity, exec) }
-                .fold(
-                    onSuccess = { ctx -> successCtxs.add(ctx) },
-                    onFailure = { t -> failures.add(t.toPersistOutcome(commandEnvelope.id)) }
-                )
+        loaded.forEach { slot ->
+            when (slot) {
+                is LoadedSlot.Failed -> {
+                    @Suppress("UNCHECKED_CAST")
+                    failures.add(slot.failure as PersistOutcome<EVENT>)
+                }
+                is LoadedSlot.Ready -> {
+                    try {
+                        successCtxs.add(buildAppliedContext(slot.cmd, slot.entity, exec))
+                    } catch (e: CancellationException) {
+                        // Cooperative cancellation must propagate up the coroutine tree —
+                        // do NOT convert it into a per-id Indeterminate outcome.
+                        throw e
+                    } catch (t: Throwable) {
+                        failures.add(t.toPersistOutcome(slot.cmd.id))
+                    }
+                }
+            }
         }
         return successCtxs to failures
     }
 
     private suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> buildAppliedContext(
         commandEnvelope: Envelope<COMMAND>,
-        entity: ENTITY?,
+        entity: ENTITY,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate> {
-        val e = entity
-            ?: throw ERROR_ENTITY_NOT_FOUND(commandEnvelope.data.id.toString()).asException()
         val transitionContext = TransitionContext(
             automateContext = automateContext,
-            from = e.s2State(),
+            from = entity.s2State(),
             command = commandEnvelope,
-            entity = e
+            entity = entity
         )
         publisher.automateTransitionStarted(
-            AutomateTransitionStarted(from = e.s2State(), msg = commandEnvelope)
+            AutomateTransitionStarted(from = entity.s2State(), msg = commandEnvelope)
         )
         guardExecutor.evaluateTransition(transitionContext)
-        val fromState = e.s2State()
-        val (entityMutated, result) = exec(transitionContext.command, e)
+        val fromState = entity.s2State()
+        val (entityMutated, result) = exec(transitionContext.command, entity)
         @Suppress("UNCHECKED_CAST")
         return TransitionAppliedContext(
             automateContext = automateContext,
