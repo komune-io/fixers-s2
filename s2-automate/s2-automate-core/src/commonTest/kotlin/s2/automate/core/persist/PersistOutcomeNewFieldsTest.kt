@@ -1,5 +1,6 @@
 package s2.automate.core.persist
 
+import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals

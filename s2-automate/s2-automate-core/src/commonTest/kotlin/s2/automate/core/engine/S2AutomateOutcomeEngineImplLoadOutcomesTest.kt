@@ -18,10 +18,10 @@ import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
-import s2.automate.core.persist.ErrorCategory
 import s2.automate.core.persist.LoadOutcome
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Cmd
+import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2Role

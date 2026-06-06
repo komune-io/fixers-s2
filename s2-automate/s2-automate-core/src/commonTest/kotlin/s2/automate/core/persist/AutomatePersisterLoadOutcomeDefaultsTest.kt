@@ -11,6 +11,7 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.config.S2BatchProperties
+import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Role
 import s2.dsl.automate.S2State
