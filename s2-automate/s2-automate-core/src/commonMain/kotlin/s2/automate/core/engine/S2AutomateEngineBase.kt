@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.toList
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateExited
@@ -27,6 +28,7 @@ import s2.automate.core.error.ERROR_UNKNOWN
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
+import s2.automate.core.persist.LoadOutcome
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
@@ -126,7 +128,7 @@ ENTITY : WithS2Id<ID> {
         cmds: List<Envelope<COMMAND>>
     ): List<Pair<Envelope<COMMAND>, ENTITY?>> {
         val byIds = cmds.associateBy { it.data.id }
-        val ids = cmds.asFlow().mapNotNull { it.data.id }
+        val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val entities = mutableMapOf<Any, ENTITY?>()
         persister.load(automateContext, ids = ids).collect { entity ->
             val id = entity?.s2Id()
@@ -138,6 +140,40 @@ ENTITY : WithS2Id<ID> {
             val id = cmd.data.id
             val entity = if (id != null) entities[id] else null
             cmd to entity
+        }
+    }
+
+    /**
+     * Per-item-isolated variant of [loadBatch]. Calls [persister.loadWithOutcomes] —
+     * which can't throw mid-flow without classifying — and pairs each command
+     * envelope with either a [LoadedSlot.Ready] (entity loaded) or a
+     * [LoadedSlot.Failed] (load classified the id as a failure). The caller can
+     * surface `Failed` slots directly in the outcome stream without ever calling
+     * the decide lambda for them, preserving sibling commands in the same chunk.
+     *
+     * Commands whose id is not represented in the persister's emitted outcomes
+     * default to `Rejected:ERROR_ENTITY_NOT_FOUND` — matches the legacy
+     * loadBatch semantics for missing entities.
+     */
+    protected suspend fun <COMMAND : S2Command<ID>> loadBatchWithOutcomes(
+        cmds: List<Envelope<COMMAND>>
+    ): List<LoadedSlot<COMMAND, ENTITY>> {
+        val ids = cmds.mapNotNull { it.data.id }.asFlow()
+        val outcomes = persister.loadWithOutcomes(automateContext, ids).toList()
+        val byId = outcomes.associateBy { it.id }
+        return cmds.map { cmd ->
+            val cmdId = cmd.data.id
+            when (val outcome = byId[cmdId]) {
+                is LoadOutcome.Loaded -> LoadedSlot.Ready(cmd, outcome.entity)
+                is LoadOutcome.Failure -> LoadedSlot.Failed(cmd, outcome.toPersistFailure(cmd.id))
+                null -> LoadedSlot.Failed(
+                    cmd,
+                    PersistOutcome.Rejected<Nothing>(
+                        msgId = cmd.id,
+                        error = ERROR_ENTITY_NOT_FOUND(cmdId.toString()),
+                    ),
+                )
+            }
         }
     }
 

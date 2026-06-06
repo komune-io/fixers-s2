@@ -1,6 +1,7 @@
 package s2.automate.core.persist
 
 import s2.automate.core.appevent.AppEvent
+import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Error
 
 /**
