@@ -19,23 +19,27 @@ import s2.dsl.automate.S2Error
  * the Indeterminate and Conflict variants exist so a future overrider can
  * distinguish "the read might be stale" or "concurrent schema migration"
  * without breaking the API.
+ *
+ * `ID` and `ENTITY` are declared as `out` since they only appear in
+ * read-only positions — this lets callers safely upcast e.g. a
+ * `LoadOutcome<UserId, User>` to a `LoadOutcome<EntityId, Any>` without casts.
  */
-sealed interface LoadOutcome<ID, ENTITY> {
+sealed interface LoadOutcome<out ID, out ENTITY> {
     val id: ID
 
-    sealed interface Failure<ID, ENTITY> : LoadOutcome<ID, ENTITY> {
+    sealed interface Failure<out ID, out ENTITY> : LoadOutcome<ID, ENTITY> {
         val error: S2Error
         val category: ErrorCategory
     }
 
     /** Entity was found and successfully materialised. */
-    data class Loaded<ID, ENTITY>(
+    data class Loaded<out ID, out ENTITY>(
         override val id: ID,
         val entity: ENTITY,
     ) : LoadOutcome<ID, ENTITY>
 
     /** Permanent failure — no such entity, or the stored payload is unusable. */
-    data class Rejected<ID, ENTITY>(
+    data class Rejected<out ID, out ENTITY>(
         override val id: ID,
         override val error: S2Error,
     ) : Failure<ID, ENTITY> {
@@ -43,7 +47,7 @@ sealed interface LoadOutcome<ID, ENTITY> {
     }
 
     /** Transient failure — network / timeout / throttle. Consumer should retry. */
-    data class Transient<ID, ENTITY>(
+    data class Transient<out ID, out ENTITY>(
         override val id: ID,
         override val error: S2Error,
     ) : Failure<ID, ENTITY> {
@@ -54,7 +58,7 @@ sealed interface LoadOutcome<ID, ENTITY> {
      * Indeterminate failure — the read returned ambiguous state (partial
      * result, stale replica, etc.). Consumer should state-check and retry.
      */
-    data class Indeterminate<ID, ENTITY>(
+    data class Indeterminate<out ID, out ENTITY>(
         override val id: ID,
         override val error: S2Error,
     ) : Failure<ID, ENTITY> {
@@ -65,7 +69,7 @@ sealed interface LoadOutcome<ID, ENTITY> {
      * Conflict failure — a concurrent writer (schema migration, lock contention)
      * prevented a clean read. Consumer should refresh state and retry.
      */
-    data class Conflict<ID, ENTITY>(
+    data class Conflict<out ID, out ENTITY>(
         override val id: ID,
         override val error: S2Error,
     ) : Failure<ID, ENTITY> {

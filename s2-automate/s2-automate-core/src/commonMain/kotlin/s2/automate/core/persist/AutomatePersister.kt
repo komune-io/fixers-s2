@@ -54,6 +54,7 @@ ENTITY : WithS2Id<ID> {
 		ids: Flow<ID & Any>,
 	): Flow<LoadOutcome<ID & Any, ENTITY>> = flow {
 		val idList = ids.toList()
+		if (idList.isEmpty()) return@flow
 		val loaded = mutableMapOf<ID & Any, ENTITY>()
 		val failure: Throwable? = try {
 			load(automateContexts, idList.asFlow()).collect { entity ->

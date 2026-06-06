@@ -128,7 +128,7 @@ ENTITY : WithS2Id<ID> {
         cmds: List<Envelope<COMMAND>>
     ): List<Pair<Envelope<COMMAND>, ENTITY?>> {
         val byIds = cmds.associateBy { it.data.id }
-        val ids = cmds.asFlow().mapNotNull { it.data.id }
+        val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val entities = mutableMapOf<Any, ENTITY?>()
         persister.load(automateContext, ids = ids).collect { entity ->
             val id = entity?.s2Id()
@@ -158,7 +158,7 @@ ENTITY : WithS2Id<ID> {
     protected suspend fun <COMMAND : S2Command<ID>> loadBatchWithOutcomes(
         cmds: List<Envelope<COMMAND>>
     ): List<LoadedSlot<COMMAND, ENTITY>> {
-        val ids = cmds.asFlow().mapNotNull { it.data.id }
+        val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val outcomes = persister.loadWithOutcomes(automateContext, ids).toList()
         val byId = outcomes.associateBy { it.id }
         return cmds.map { cmd ->
