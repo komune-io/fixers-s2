@@ -109,8 +109,7 @@ ENTITY : WithS2Id<ID> {
         loaded.forEach { slot ->
             when (slot) {
                 is LoadedSlot.Failed -> {
-                    @Suppress("UNCHECKED_CAST")
-                    failures.add(slot.failure as PersistOutcome<EVENT>)
+                    failures.add(slot.failure)
                 }
                 is LoadedSlot.Ready -> {
                     try {
