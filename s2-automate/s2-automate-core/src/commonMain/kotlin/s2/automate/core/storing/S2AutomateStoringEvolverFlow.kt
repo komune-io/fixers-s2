@@ -45,11 +45,13 @@ interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State
 
 	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveWithOutcomes(
 		commands: Flow<COMMAND>,
+		idOf: (COMMAND) -> String,
 		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Flow<PersistOutcome<EVENT_OUT>>
 
 	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveWithOutcomes(
 		commands: Flow<COMMAND>,
+		idOf: (COMMAND) -> String,
 		exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Flow<PersistOutcome<EVENT_OUT>>
 

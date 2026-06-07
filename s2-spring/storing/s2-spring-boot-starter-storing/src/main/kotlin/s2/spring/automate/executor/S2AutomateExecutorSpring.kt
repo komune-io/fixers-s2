@@ -133,12 +133,14 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
 
     override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
+        idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
-    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, build)
+    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, idOf, build)
 
     override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
+        idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
-    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, exec)
+    ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, idOf, exec)
 
 }

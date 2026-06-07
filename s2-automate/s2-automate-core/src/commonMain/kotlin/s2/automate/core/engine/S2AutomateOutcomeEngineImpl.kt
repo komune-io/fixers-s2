@@ -4,7 +4,7 @@ import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import f2.dsl.fnc.operators.chunk
 import f2.dsl.fnc.operators.flattenConcurrently
-import f2.dsl.fnc.operators.mapToEnvelope
+import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
@@ -50,7 +50,7 @@ ENTITY : WithS2Id<ID> {
             val (successCtxs, failures) = partitionCreations(chunk, decide)
             val persisted = persistCreationsToList(successCtxs)
             (failures + persisted).castedAsFlow<EVENT_OUT>()
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "PersistOutcome")
     }
 
     // B.2: batched load per chunk; B.3: msgId-keyed correlation
@@ -66,7 +66,7 @@ ENTITY : WithS2Id<ID> {
             val (successCtxs, failures) = partitionTransitions(loaded, exec)
             val persisted = persistTransitionsAndEmitEnded(successCtxs)
             (failures + persisted).castedAsFlow<EVENT_OUT>()
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "PersistOutcome")
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "PersistOutcome")
     }
 
     private suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> partitionCreations(
@@ -109,8 +109,7 @@ ENTITY : WithS2Id<ID> {
         loaded.forEach { slot ->
             when (slot) {
                 is LoadedSlot.Failed -> {
-                    @Suppress("UNCHECKED_CAST")
-                    failures.add(slot.failure as PersistOutcome<EVENT>)
+                    failures.add(slot.failure)
                 }
                 is LoadedSlot.Ready -> {
                     try {
@@ -180,7 +179,7 @@ ENTITY : WithS2Id<ID> {
             guardExecutor.verifyInitTransition(it)
             it
         }.let {
-            persister.persistInitWithOutcomes(it).mapToEnvelope(type = "PersistOutcome")
+            persister.persistInitWithOutcomes(it).mapToEnvelopeWithRandomId(type = "PersistOutcome")
         }
     }
 

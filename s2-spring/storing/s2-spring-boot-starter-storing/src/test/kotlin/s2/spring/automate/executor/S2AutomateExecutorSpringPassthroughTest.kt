@@ -104,6 +104,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     ) {
         override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
+            idOf: (COMMAND) -> String,
             build: suspend (cmd: COMMAND) -> Pair<TestEntity, EVENT_OUT>
         ): Flow<PersistOutcome<EVENT_OUT>> {
             @Suppress("UNCHECKED_CAST")
@@ -112,6 +113,7 @@ class S2AutomateExecutorSpringPassthroughTest {
 
         override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
+            idOf: (COMMAND) -> String,
             exec: suspend (COMMAND, TestEntity) -> Pair<TestEntity, EVENT_OUT>
         ): Flow<PersistOutcome<EVENT_OUT>> {
             @Suppress("UNCHECKED_CAST")
@@ -140,6 +142,7 @@ class S2AutomateExecutorSpringPassthroughTest {
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(
             commands = flowOf(CreateCmd("id1")),
+            idOf = { it.id },
             build = { cmd: CreateCmd -> TestEntity(cmd.id) to TestEvt(cmd.id) }
         )
 
@@ -153,6 +156,7 @@ class S2AutomateExecutorSpringPassthroughTest {
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(
             commands = flowOf(DoCmd("id1")),
+            idOf = { it.id },
             exec = { cmd: DoCmd, _: TestEntity -> TestEntity(cmd.id) to TestEvt(cmd.id) }
         )
 

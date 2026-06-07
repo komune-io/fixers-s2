@@ -144,6 +144,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(CreateCmd("c1")),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -164,6 +165,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(CreateCmd("c1")),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -185,6 +187,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         evolver.evolveWithOutcomes(
             commands = (1..4).map { CreateCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -207,6 +210,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(DoCmd("c1")),
+            idOf = { it.id },
             exec = { cmd: DoCmd, entity: TestEntity ->
                 entity to DoneEvt(cmd.id)
             }
@@ -225,6 +229,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(DoCmd("c1")),
+            idOf = { it.id },
             exec = { cmd: DoCmd, entity: TestEntity ->
                 entity to DoneEvt(cmd.id)
             }
@@ -247,7 +252,8 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
             evolver.evolveWithOutcomes(
                 commands = (1..4).map { DoCmd("id$it") }.asFlow(),
-                exec = { cmd: DoCmd, entity: TestEntity ->
+                idOf = { it.id },
+            exec = { cmd: DoCmd, entity: TestEntity ->
                     entity to DoneEvt(cmd.id)
                 }
             ).toList()

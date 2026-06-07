@@ -4,6 +4,7 @@ import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import f2.dsl.fnc.operators.mapEnvelopeWithType
 import f2.dsl.fnc.operators.mapToEnvelope
+import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -76,7 +77,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutor.create(commands.mapToEnvelope(type = "Cmd"),
+        return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd"),
             { cmd ->
                 val (entity, event) = build(cmd.data)
                 entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
@@ -90,7 +91,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutor.doTransition(commands.mapToEnvelope(type = "Cmd"),
+        return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd"),
             { cmd, entity ->
                 val (entity, event) = exec(cmd.data, entity)
                 entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
@@ -146,9 +147,10 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
 
     override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
+        idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> {
-        return outcomeExecutor.createWithOutcomes(commands.mapToEnvelope(type = "Cmd"),
+        return outcomeExecutor.createWithOutcomes(commands.mapToEnvelope(type = "Cmd", id = idOf),
             { cmd ->
                 val (entity, event) = build(cmd.data)
                 entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
@@ -165,9 +167,10 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
 
     override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
+        idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> {
-        return outcomeExecutor.doTransitionWithOutcomes(commands.mapToEnvelope(type = "Cmd"),
+        return outcomeExecutor.doTransitionWithOutcomes(commands.mapToEnvelope(type = "Cmd", id = idOf),
             { cmd, entity ->
                 val (updatedEntity, event) = exec(cmd.data, entity)
                 updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")

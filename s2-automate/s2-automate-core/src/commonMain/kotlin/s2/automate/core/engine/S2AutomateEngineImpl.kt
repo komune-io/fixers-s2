@@ -4,7 +4,7 @@ import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.fnc.operators.chunk
 import f2.dsl.fnc.operators.flattenConcurrently
-import f2.dsl.fnc.operators.mapToEnvelope
+import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
@@ -71,7 +71,7 @@ ENTITY : WithS2Id<ID> {
                 sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
                 event as EVENT_OUT
             }
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelope(type = "Evt")
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "Evt")
     }
 
     private suspend fun persistInit(
@@ -81,7 +81,7 @@ ENTITY : WithS2Id<ID> {
             guardExecutor.verifyInitTransition(it)
             it
         }.let {
-            persister.persistInit(it).mapToEnvelope(type = "Evt")
+            persister.persistInit(it).mapToEnvelopeWithRandomId(type = "Evt")
         }
     }
 
