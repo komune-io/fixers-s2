@@ -43,14 +43,6 @@ interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State
 		fnc: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Decide<COMMAND, EVENT_OUT>
 
-	/**
-	 * @param idOf Extracts the envelope id from each command. The id is propagated
-	 *  through to `PersistOutcome.msgId`, so callers that rely on per-msgId failure
-	 *  routing (`cmdsByMsgId[outcome.msgId]`) must supply an extractor that returns
-	 *  the application-level correlation key. There is intentionally no default —
-	 *  the previous random-UUID default silently severed correlation, leading to
-	 *  blank identity fields on failure paths in production callers.
-	 */
 	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveWithOutcomes(
 		commands: Flow<COMMAND>,
 		idOf: (COMMAND) -> String,

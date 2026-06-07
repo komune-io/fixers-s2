@@ -22,18 +22,6 @@ import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * Pins the new `idOf` parameter on [S2AutomateStoringEvolverImpl.evolveWithOutcomes].
- *
- * Without the fix, the engine wrapped commands in `mapToEnvelope(type = "Cmd")` which
- * defaulted to a random UUID — so [PersistOutcome.msgId] returned to the caller had no
- * relationship to the input command's `msgId` field. Downstream callers (notably
- * `ssm-delivery`'s `DeliveryDeciderImpl`) then failed to look up the source command via
- * `cmdsByMsgId[outcome.msgId]`, producing blank identity on failure events.
- *
- * After the fix, callers supply an `idOf` extractor. These tests assert the extractor
- * is the value flowing through to `outcome.msgId`.
- */
 class S2AutomateStoringEvolverImplIdOfTest {
 
     enum class TestState(override var position: Int) : S2State {
@@ -46,18 +34,12 @@ class S2AutomateStoringEvolverImplIdOfTest {
         override fun s2State() = state
     }
 
-    /** Note: command's `id` (for S2Command) and application `msgId` are intentionally distinct. */
     data class CreateCmd(val id: String, val msgId: String) : S2InitCommand
     data class DoCmd(override val id: String, val msgId: String) : S2Command<String>
 
     data class CreatedEvt(val entityId: String) : Evt
     data class DoneEvt(val entityId: String) : Evt
 
-    /**
-     * Echoes the inbound envelope id back as the outcome's msgId. This is the contract the
-     * engine + persister stack actually satisfies in production — every code path uses
-     * `transitionContext.command.id` / `cmd.id` (the envelope id) as `PersistOutcome.msgId`.
-     */
     private class EnvelopeIdEchoOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
 
         override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
