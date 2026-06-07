@@ -171,6 +171,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         val results: List<PersistOutcome<CreatedEvt>> = evolver.evolveWithOutcomes(
             commands = (1..4).map { CreateCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -190,6 +191,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         val results: List<PersistOutcome<DoneEvt>> = evolver.evolveWithOutcomes(
             commands = (1..4).map { DoCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             exec = { cmd: DoCmd, _: TestEntity ->
                 TestEntity(cmd.id, TestState.Active) to DoneEvt(cmd.id)
             }
@@ -209,6 +211,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = (1..5).map { CreateCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -229,6 +232,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = (1..4).map { CreateCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -249,6 +253,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = (1..5).map { DoCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             exec = { cmd: DoCmd, _: TestEntity ->
                 TestEntity(cmd.id, TestState.Active) to DoneEvt(cmd.id)
             }
@@ -269,6 +274,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = (1..4).map { DoCmd("id$it") }.asFlow(),
+            idOf = { it.id },
             exec = { cmd: DoCmd, _: TestEntity ->
                 TestEntity(cmd.id, TestState.Active) to DoneEvt(cmd.id)
             }
@@ -289,6 +295,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(CreateCmd("id1")),
+            idOf = { it.id },
             build = { cmd: CreateCmd ->
                 TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
             }
@@ -320,6 +327,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         evolver.evolveWithOutcomes(
             commands = flowOf(DoCmd("id1")),
+            idOf = { it.id },
             exec = { cmd: DoCmd, _: TestEntity ->
                 TestEntity(cmd.id, TestState.Active) to DoneEvt(cmd.id)
             }

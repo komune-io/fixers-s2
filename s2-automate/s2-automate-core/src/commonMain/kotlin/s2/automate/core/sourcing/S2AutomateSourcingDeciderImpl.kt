@@ -2,7 +2,7 @@ package s2.automate.core.sourcing
 
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.fnc.operators.mapEnvelopeWithType
-import f2.dsl.fnc.operators.mapToEnvelope
+import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -48,7 +48,7 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.create(commands.mapToEnvelope(type = "Cmd")) { cmd ->
+		return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
 			val event = buildEvent(cmd.data)
 			val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
 			val entity = projectionLoader.evolve(flowOf(event))!!
@@ -71,7 +71,7 @@ ENTITY : WithS2State<STATE> {
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransition(commands.mapToEnvelope(type = "Cmd")) { command, entity ->
+		return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { command, entity ->
 			val event = exec(command.data, entity)
 			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
 			entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
