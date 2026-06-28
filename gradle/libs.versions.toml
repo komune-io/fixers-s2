@@ -3,7 +3,7 @@ fixers = "0.41.0-SNAPSHOT"
 testcontainers-redis = "2.2.4"
 postgresql = "42.7.11"
 r2dbc-postgresql = "1.1.1.RELEASE"
-lettuce = "7.3.0.RELEASE"
+lettuce = "7.6.0.RELEASE"
 commons-pool = "2.13.1"
 node-gradle = "7.1.0"
 
