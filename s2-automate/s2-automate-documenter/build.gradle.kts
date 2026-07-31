@@ -5,4 +5,6 @@ plugins {
 
 dependencies {
 	implementation(project(":s2-automate:s2-automate-dsl"))
+
+	testImplementation(libs.bundles.test.junit)
 }
