@@ -2,7 +2,6 @@ package s2.sample.orderbook.sourcing.app.mongodb
 
 import f2.dsl.fnc.invoke
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,7 +46,7 @@ internal class SubAutomateMongodbAppTest: SpringTestBase() {
 	lateinit var orderBookDeciderImpl: OrderBookDeciderImpl
 
 	@Test
-	fun `should create order book`(): Unit = runBlocking {
+	suspend fun `should create order book`() {
 		val event = orderBookDeciderImpl.orderBookCreateDecider().invoke(OrderBookCreateCommand("TheNewOrderBook"))
 		orderBookDeciderImpl.orderBookUpdateDecider().invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
@@ -57,7 +56,7 @@ internal class SubAutomateMongodbAppTest: SpringTestBase() {
 	}
 
 	@Test
-	fun `should replay event to build entity`(): Unit = runBlocking {
+	suspend fun `should replay event to build entity`() {
 		val event = create(OrderBookCreateCommand("TheNewOrderBook"))
 		update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		publish(OrderBookPublishCommand(id = event.id))
@@ -69,7 +68,7 @@ internal class SubAutomateMongodbAppTest: SpringTestBase() {
 	}
 
 	@Test
-	fun `should replay all events to rebuild entities`(): Unit = runBlocking {
+	suspend fun `should replay all events to rebuild entities`() {
 		val event = create(OrderBookCreateCommand("TheNewOrderBook"))
 		update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
 		publish(OrderBookPublishCommand(id = event.id))

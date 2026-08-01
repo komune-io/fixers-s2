@@ -1,7 +1,6 @@
 package s2.automate.core.snap
 
 import java.util.concurrent.atomic.AtomicInteger
-import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,7 +20,7 @@ class RetryTaskChannelTest {
     }
 
     @Test
-    fun `test add to persist queue`() = runTest {
+    suspend fun `test add to persist queue`() {
         val id = "testId"
         val event = "testEvent"
         val result: Pair<String, String> = retryTaskChannel.addToPersistQueue(id, event) { evt ->
@@ -32,7 +31,7 @@ class RetryTaskChannelTest {
     }
 
     @Test
-    fun `test retry on RetryException failure`() = runTest {
+    suspend fun `test retry on RetryException failure`() {
         val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)
@@ -50,7 +49,7 @@ class RetryTaskChannelTest {
     }
 
     @Test
-    fun `test max retry RetryException attempts`() = runTest {
+    suspend fun `test max retry RetryException attempts`() {
         val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)
@@ -67,7 +66,7 @@ class RetryTaskChannelTest {
     }
 
     @Test
-    fun `test no retry on non-RetryException failure`() = runTest {
+    suspend fun `test no retry on non-RetryException failure`() {
         val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)

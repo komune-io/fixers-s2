@@ -6,7 +6,6 @@ import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.protocol.ProtocolVersion
 import io.lettuce.core.support.ConnectionPoolSupport
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import org.apache.commons.pool2.impl.GenericObjectPool
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.junit.jupiter.api.AfterAll
@@ -77,7 +76,7 @@ class RedisSnapViewIntegrationTest {
 	inner class CrudOperations {
 		@Test
 		@Order(1)
-		fun `should save and get entity`() = runBlocking {
+		suspend fun `should save and get entity`() {
 			val entity = TestEntity(id = "1", name = "Test", status = "active")
 			val saved = redisSnapView.save<TestEntity>("1", entity)
 
@@ -92,14 +91,14 @@ class RedisSnapViewIntegrationTest {
 
 		@Test
 		@Order(2)
-		fun `should return null for non-existent entity`() = runBlocking {
+		suspend fun `should return null for non-existent entity`() {
 			val result = redisSnapView.get<TestEntity>("non-existent")
 			assertNull(result)
 		}
 
 		@Test
 		@Order(3)
-		fun `should update existing entity`() = runBlocking {
+		suspend fun `should update existing entity`() {
 			val entity = TestEntity(id = "2", name = "Original", status = "draft")
 			redisSnapView.save<TestEntity>("2", entity)
 
@@ -114,7 +113,7 @@ class RedisSnapViewIntegrationTest {
 
 		@Test
 		@Order(4)
-		fun `should delete entity`() = runBlocking {
+		suspend fun `should delete entity`() {
 			val entity = TestEntity(id = "to-delete", name = "Delete Me", status = "active")
 			redisSnapView.save<TestEntity>("to-delete", entity)
 
@@ -131,7 +130,7 @@ class RedisSnapViewIntegrationTest {
 	inner class IndexAndSearch {
 		@Test
 		@Order(1)
-		fun `should create index and search entities`() = runBlocking {
+		suspend fun `should create index and search entities`() {
 			redisSnapView.dropIndex<TestEntity>()
 			redisSnapView.createIndex<TestEntity>(
 				RedisIndexField("name", RedisFieldType.TEXT),
@@ -151,35 +150,35 @@ class RedisSnapViewIntegrationTest {
 
 		@Test
 		@Order(2)
-		fun `should search by tag`() = runBlocking {
+		suspend fun `should search by tag`() {
 			val result = redisSnapView.searchById<TestEntity>("status", "active")
 			assertTrue(result.total >= 2, "Expected at least 2 active results, got ${result.total}")
 		}
 
 		@Test
 		@Order(3)
-		fun `should count entities`() = runBlocking {
+		suspend fun `should count entities`() {
 			val count = redisSnapView.count<TestEntity>()
 			assertTrue(count >= 3, "Expected at least 3, got $count")
 		}
 
 		@Test
 		@Order(4)
-		fun `should get all entities`() = runBlocking {
+		suspend fun `should get all entities`() {
 			val all = redisSnapView.all<TestEntity>().toList()
 			assertTrue(all.size >= 3, "Expected at least 3, got ${all.size}")
 		}
 
 		@Test
 		@Order(5)
-		fun `should drop index without error`() = runBlocking {
+		suspend fun `should drop index without error`() {
 			redisSnapView.dropIndex<TestEntity>()
 			// Should not throw — verifies dropIndex works
 		}
 
 		@Test
 		@Order(6)
-		fun `should handle drop of non-existent index`() = runBlocking {
+		suspend fun `should handle drop of non-existent index`() {
 			// Drop again on already-dropped index — should handle gracefully
 			redisSnapView.dropIndex<TestEntity>()
 		}
