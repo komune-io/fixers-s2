@@ -5,7 +5,6 @@ import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.automate.core.appevent.listener.AutomateListenerAdapter
@@ -137,7 +136,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- tests ----
 
     @Test
-    fun `evolveWithOutcomes (init) delegates to engine evolveWithOutcomes (init)`() = runTest {
+    suspend fun `evolveWithOutcomes (init) delegates to engine evolveWithOutcomes (init)`() {
         val executor = makeExecutor()
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(
@@ -151,7 +150,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     }
 
     @Test
-    fun `evolveWithOutcomes (transition) delegates to engine evolveWithOutcomes (transition)`() = runTest {
+    suspend fun `evolveWithOutcomes (transition) delegates to engine evolveWithOutcomes (transition)`() {
         val executor = makeExecutor()
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(

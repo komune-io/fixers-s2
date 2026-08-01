@@ -3,7 +3,6 @@ package s2.spring.sourcing.data.r2dbc
 import java.util.UUID
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
@@ -38,7 +37,7 @@ class R2dbcEventRepositoryTest : SpringTestBase() {
     private val json = Json { ignoreUnknownKeys = true }
 
     @BeforeEach
-    fun setup() = runBlocking {
+    suspend fun setup() {
         eventRepository = R2dbcEventRepository(
             json = json,
             databaseClient = databaseClient,
@@ -51,7 +50,7 @@ class R2dbcEventRepositoryTest : SpringTestBase() {
     }
 
     @Test
-    fun `should load events in ascending order by created_date`(): Unit = runBlocking {
+    suspend fun `should load events in ascending order by created_date`() {
         // Given
         val objId = UUID.randomUUID().toString()
 
@@ -80,7 +79,7 @@ class R2dbcEventRepositoryTest : SpringTestBase() {
     }
 
     @Test
-    fun `should load all events in ascending order by created_date`(): Unit = runBlocking {
+    suspend fun `should load all events in ascending order by created_date`() {
         // Given
         val objId1 = UUID.randomUUID().toString()
         val objId2 = UUID.randomUUID().toString()

@@ -2,7 +2,6 @@ package s2.sourcing.dsl.view
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.dsl.automate.Evt
@@ -12,7 +11,7 @@ import s2.sourcing.dsl.event.EventRepository
 class ViewLoaderTest {
 
     @Test
-    fun testReloadHistoryWithComparableElement() = runTest {
+    suspend fun testReloadHistoryWithComparableElement() {
         // Given
         val eventRepository = TestEventRepository()
         val view = TestView()
@@ -28,7 +27,7 @@ class ViewLoaderTest {
     }
 
     @Test
-    fun testReloadHistoryWithNonComparableElement() = runTest {
+    suspend fun testReloadHistoryWithNonComparableElement() {
         // Given
         val eventRepository = TestEventNonComparableRepository()
         val view = TestNonComparableView()
