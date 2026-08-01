@@ -13,7 +13,20 @@ data class AuthedUser(
     override val id: UserId,
     override val memberOf: OrganizationId?,
     override val roles: Array<String>
-): AuthedUserDTO
+): AuthedUserDTO {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AuthedUser) return false
+        return id == other.id && memberOf == other.memberOf && roles.contentEquals(other.roles)
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + (memberOf?.hashCode() ?: 0)
+        result = 31 * result + roles.contentHashCode()
+        return result
+    }
+}
 
 fun AuthedUserDTO.hasRole(role: String) = role in roles
 fun AuthedUserDTO.hasRole(role: Role) = role.value in roles

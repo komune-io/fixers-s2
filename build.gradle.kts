@@ -39,6 +39,12 @@ fixers {
 	sonar {
 		organization = "komune-io"
 		projectKey = "komune-io_fixers-s2"
+		properties {
+			// Samples are standalone demo applications, not library code:
+			// exclude them from coverage and duplication analysis.
+			property("sonar.coverage.exclusions", "**/sample/**")
+			property("sonar.cpd.exclusions", "**/sample/**")
+		}
 	}
 	repositories {
 		sonatypeSnapshots = true

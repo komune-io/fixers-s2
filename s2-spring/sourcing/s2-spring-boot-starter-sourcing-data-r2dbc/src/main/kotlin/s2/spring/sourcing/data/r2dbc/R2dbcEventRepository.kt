@@ -36,12 +36,12 @@ EVENT: WithS2Id<ID>
 		Sort.Order.asc("created_date")
 	)
 
-	fun delete(id: Long?): Mono<Void> {
+	fun delete(id: Long?): Mono<Unit> {
 		return r2dbcEntityTemplate.delete(EventSourcing::class.java)
 			.from(tableName)
 			.matching(Query.query(Criteria.where("id").`is`(id!!)))
 			.all()
-			.then()
+			.then(Mono.just(Unit))
 	}
 
 	override suspend fun load(id: ID): Flow<EVENT> {

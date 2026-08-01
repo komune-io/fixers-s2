@@ -24,5 +24,7 @@ open class TestContext {
         authedUser = null
     }
 
-    open fun resetEnv() {}
+    open fun resetEnv() {
+        // No environment state to reset by default, subclasses may override
+    }
 }
