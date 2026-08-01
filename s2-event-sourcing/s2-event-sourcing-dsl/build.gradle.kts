@@ -6,4 +6,6 @@ plugins {
 dependencies {
 	commonMainApi(project(":s2-automate:s2-automate-dsl"))
 	commonMainApi(libs.f2.dsl.function)
+
+	"jvmTestImplementation"(libs.bundles.test.junit)
 }

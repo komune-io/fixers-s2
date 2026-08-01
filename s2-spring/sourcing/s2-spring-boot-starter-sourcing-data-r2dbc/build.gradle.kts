@@ -8,6 +8,8 @@ dependencies {
 	api(project(":s2-spring:sourcing:s2-spring-boot-starter-sourcing-data"))
 	api(libs.spring.boot.starter.data.r2dbc)
 	implementation(libs.kotlinx.serialization.json)
+	implementation(libs.kotlinx.coroutines.reactive)
+	implementation(libs.kotlinx.coroutines.reactor)
 
 	// Test dependencies
 	testImplementation(libs.bundles.testcontainers)
