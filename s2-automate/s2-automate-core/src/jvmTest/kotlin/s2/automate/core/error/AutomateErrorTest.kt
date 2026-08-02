@@ -11,17 +11,17 @@ import s2.dsl.automate.s2error
 class AutomateErrorTest {
 
     @Test
-    fun `ERROR_UNKNOWN wraps the cause`() {
+    fun `unknownError wraps the cause`() {
         val cause = IllegalStateException("boom")
-        val error = ERROR_UNKNOWN(cause)
+        val error = unknownError(cause)
         assertEquals("ERROR_UNKNOWN", error.type)
         assertEquals("An unknown error has occurred.", error.description)
         assertSame(cause, error.cause)
     }
 
     @Test
-    fun `ERROR_INVALID_TRANSITION carries state and command in payload`() {
-        val error = ERROR_INVALID_TRANSITION("Created", "DoCmd")
+    fun `invalidTransitionError carries state and command in payload`() {
+        val error = invalidTransitionError("Created", "DoCmd")
         assertEquals("ERROR_INVALID_TRANSITION", error.type)
         assertEquals("Created", error.payload["from"])
         assertEquals("DoCmd", error.payload["command"])
@@ -29,31 +29,44 @@ class AutomateErrorTest {
     }
 
     @Test
-    fun `ERROR_ENTITY_NOT_FOUND carries the id in payload`() {
-        val error = ERROR_ENTITY_NOT_FOUND("42")
+    fun `entityNotFoundError carries the id in payload`() {
+        val error = entityNotFoundError("42")
         assertEquals("ERROR_ENTITY_NOT_FOUND", error.type)
         assertEquals("42", error.payload["id"])
         assertTrue(error.description.contains("42"))
     }
 
     @Test
-    fun `ERROR_PERSIST_LAMBDA_THROW uses the cause message`() {
-        val error = ERROR_PERSIST_LAMBDA_THROW(IllegalStateException("boom"))
+    fun `persistLambdaThrowError uses the cause message`() {
+        val error = persistLambdaThrowError(IllegalStateException("boom"))
         assertEquals("ERROR_PERSIST_LAMBDA_THROW", error.type)
         assertEquals("boom", error.description)
     }
 
     @Test
-    fun `ERROR_PERSIST_LAMBDA_THROW falls back to the cause class name`() {
-        val error = ERROR_PERSIST_LAMBDA_THROW(IllegalStateException())
+    fun `persistLambdaThrowError falls back to the cause class name`() {
+        val error = persistLambdaThrowError(IllegalStateException())
         assertEquals("IllegalStateException", error.description)
     }
 
     @Test
-    fun `ERROR_PERSIST_LAMBDA_THROW falls back to unknown for anonymous causes`() {
+    fun `persistLambdaThrowError falls back to unknown for anonymous causes`() {
         val anonymous = object : Exception() {}
-        val error = ERROR_PERSIST_LAMBDA_THROW(anonymous)
+        val error = persistLambdaThrowError(anonymous)
         assertEquals("unknown", error.description)
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun `deprecated ERROR_ shims delegate to the renamed functions`() {
+        val cause = IllegalStateException("boom")
+        assertEquals(unknownError(cause).type, ERROR_UNKNOWN(cause).type)
+        assertEquals(
+            invalidTransitionError("Created", "DoCmd").payload,
+            ERROR_INVALID_TRANSITION("Created", "DoCmd").payload
+        )
+        assertEquals(entityNotFoundError("42").payload, ERROR_ENTITY_NOT_FOUND("42").payload)
+        assertEquals(persistLambdaThrowError(cause).description, ERROR_PERSIST_LAMBDA_THROW(cause).description)
     }
 
     @Test

@@ -1,7 +1,7 @@
 package s2.automate.core.storing.snap
 
 import kotlinx.coroutines.flow.flowOf
-import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
+import s2.automate.core.error.entityNotFoundError
 import s2.automate.core.error.asException
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2State
@@ -29,7 +29,7 @@ EVENT : WithS2Id<ID> {
     private suspend fun persistSnap(event: EVENT): Pair<ENTITY, EVENT> {
         val id = event.s2Id()
         val entityMutated = projectionLoader.loadAndEvolve(id, flowOf(event))
-            ?: throw ERROR_ENTITY_NOT_FOUND(event.s2Id().toString()).asException()
+            ?: throw entityNotFoundError(event.s2Id().toString()).asException()
         val entity = snapRepository?.save(entityMutated) ?: entityMutated
         return entity to event
     }

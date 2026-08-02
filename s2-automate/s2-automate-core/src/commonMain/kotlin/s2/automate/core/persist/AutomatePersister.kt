@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.toList
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
-import s2.automate.core.error.ERROR_PERSIST_LAMBDA_THROW
+import s2.automate.core.error.entityNotFoundError
+import s2.automate.core.error.persistLambdaThrowError
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
@@ -71,7 +71,7 @@ ENTITY : WithS2Id<ID> {
 		}
 		if (failure != null) {
 			idList.forEach { id ->
-				emit(LoadOutcome.Transient<ID & Any, ENTITY>(id, ERROR_PERSIST_LAMBDA_THROW(failure)))
+				emit(LoadOutcome.Transient<ID & Any, ENTITY>(id, persistLambdaThrowError(failure)))
 			}
 			return@flow
 		}
@@ -80,7 +80,7 @@ ENTITY : WithS2Id<ID> {
 			if (entity != null) {
 				emit(LoadOutcome.Loaded(id, entity))
 			} else {
-				emit(LoadOutcome.Rejected(id, ERROR_ENTITY_NOT_FOUND(id.toString())))
+				emit(LoadOutcome.Rejected(id, entityNotFoundError(id.toString())))
 			}
 		}
 	}
