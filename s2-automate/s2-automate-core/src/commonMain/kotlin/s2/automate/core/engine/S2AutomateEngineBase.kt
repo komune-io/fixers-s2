@@ -23,8 +23,8 @@ import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
-import s2.automate.core.error.ERROR_ENTITY_NOT_FOUND
-import s2.automate.core.error.ERROR_UNKNOWN
+import s2.automate.core.error.entityNotFoundError
+import s2.automate.core.error.unknownError
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
@@ -99,9 +99,9 @@ ENTITY : WithS2Id<ID> {
             commandsChunk.asFlow().mapNotNull { it.data.id }.let { ids ->
                 persister.load(automateContext, ids = ids)
             }.map { entity ->
-                entity ?: throw ERROR_ENTITY_NOT_FOUND(entity?.s2Id().toString()).asException()
+                entity ?: throw entityNotFoundError(entity?.s2Id().toString()).asException()
                 val command: Envelope<COMMAND> = byIds[entity.s2Id()]
-                    ?: throw ERROR_ENTITY_NOT_FOUND(entity.s2Id().toString()).asException()
+                    ?: throw entityNotFoundError(entity.s2Id().toString()).asException()
                 val transitionContext = TransitionContext(
                     automateContext = automateContext,
                     from = entity.s2State(),
@@ -127,7 +127,6 @@ ENTITY : WithS2Id<ID> {
     protected suspend fun <COMMAND : S2Command<ID>> loadBatch(
         cmds: List<Envelope<COMMAND>>
     ): List<Pair<Envelope<COMMAND>, ENTITY?>> {
-        val byIds = cmds.associateBy { it.data.id }
         val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val entities = mutableMapOf<Any, ENTITY?>()
         persister.load(automateContext, ids = ids).collect { entity ->
@@ -170,7 +169,7 @@ ENTITY : WithS2Id<ID> {
                     cmd,
                     PersistOutcome.Rejected<Nothing>(
                         msgId = cmd.id,
-                        error = ERROR_ENTITY_NOT_FOUND(cmdId.toString()),
+                        error = entityNotFoundError(cmdId.toString()),
                     ),
                 )
             }
@@ -215,7 +214,7 @@ ENTITY : WithS2Id<ID> {
         if (e is AutomateException) {
             throw e
         } else {
-            throw ERROR_UNKNOWN(e).asException()
+            throw unknownError(e).asException()
         }
     }
 

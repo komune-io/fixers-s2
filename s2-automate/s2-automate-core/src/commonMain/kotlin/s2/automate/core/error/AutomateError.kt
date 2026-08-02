@@ -3,30 +3,42 @@ package s2.automate.core.error
 import s2.dsl.automate.S2Error
 import s2.dsl.automate.s2error
 
-@Suppress("FunctionNaming")
-fun ERROR_UNKNOWN(e: Exception) =
+fun unknownError(e: Exception) =
 	s2error("ERROR_UNKNOWN",
 		"An unknown error has occurred.",
 			cause = e
 		)
 
-@Suppress("FunctionNaming")
-fun ERROR_INVALID_TRANSITION(state: String, command: String) =
+fun invalidTransitionError(state: String, command: String) =
 	s2error("ERROR_INVALID_TRANSITION",
 		"Not available transition from $state with command $command",
 		mapOf("from" to state, "command" to command))
 
-@Suppress("FunctionNaming")
-fun ERROR_ENTITY_NOT_FOUND(id: String) =
+fun entityNotFoundError(id: String) =
 	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 
-@Suppress("FunctionNaming")
-fun ERROR_PERSIST_LAMBDA_THROW(cause: Throwable) =
+fun persistLambdaThrowError(cause: Throwable) =
     s2error(
         code = "ERROR_PERSIST_LAMBDA_THROW",
         description = cause.message ?: cause::class.simpleName ?: "unknown",
         cause = cause,
     )
+
+@Deprecated("Use unknownError", ReplaceWith("unknownError(e)"))
+@Suppress("FunctionNaming", "kotlin:S100")
+fun ERROR_UNKNOWN(e: Exception) = unknownError(e)
+
+@Deprecated("Use invalidTransitionError", ReplaceWith("invalidTransitionError(state, command)"))
+@Suppress("FunctionNaming", "kotlin:S100")
+fun ERROR_INVALID_TRANSITION(state: String, command: String) = invalidTransitionError(state, command)
+
+@Deprecated("Use entityNotFoundError", ReplaceWith("entityNotFoundError(id)"))
+@Suppress("FunctionNaming", "kotlin:S100")
+fun ERROR_ENTITY_NOT_FOUND(id: String) = entityNotFoundError(id)
+
+@Deprecated("Use persistLambdaThrowError", ReplaceWith("persistLambdaThrowError(cause)"))
+@Suppress("FunctionNaming", "kotlin:S100")
+fun ERROR_PERSIST_LAMBDA_THROW(cause: Throwable) = persistLambdaThrowError(cause)
 
 fun S2Error.asException() = AutomateException(listOf(this), this.cause)
 

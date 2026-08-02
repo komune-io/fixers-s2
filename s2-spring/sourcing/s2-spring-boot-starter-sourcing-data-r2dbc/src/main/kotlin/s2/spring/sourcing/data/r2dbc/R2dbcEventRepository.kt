@@ -21,6 +21,8 @@ import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
 import s2.spring.sourcing.data.event.EventSourcing
 
+// S6309: the suspend modifier is mandated by the EventRepository contract (published API).
+@Suppress("kotlin:S6309")
 class R2dbcEventRepository<EVENT, ID>(
 	private val json: Json,
 	private val databaseClient: DatabaseClient,

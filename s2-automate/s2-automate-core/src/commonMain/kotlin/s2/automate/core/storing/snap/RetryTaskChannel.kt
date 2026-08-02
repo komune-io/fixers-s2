@@ -2,6 +2,7 @@ package s2.automate.core.storing.snap
 
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +28,7 @@ class RetryTaskChannel(
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Default + supervisorJob
 
-    private val persistChannel = Channel<RetryTask<Any, Any, Any>>()
+    private val persistChannel = Channel<suspend () -> Unit>()
 
     init {
         launchPersistWorker()
@@ -35,10 +36,14 @@ class RetryTaskChannel(
 
     private fun CoroutineScope.launchPersistWorker() = launch {
         for (task in persistChannel) {
-            val result = retry {
-                task.persist(task.event)
+            try {
+                task()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+                // a failing task must not kill the single worker, or every
+                // subsequent addToPersistQueue send would suspend forever
             }
-            task.result.complete(result)
         }
     }
 
@@ -48,8 +53,10 @@ class RetryTaskChannel(
         persist: suspend (EVENT) -> Pair<ENTITY, EVENT>
     ): Pair<ENTITY, EVENT> {
         val resultDeferred = CompletableDeferred<Pair<Pair<ENTITY, EVENT>?, Throwable?>>()
-        val task = RetryTask(id, event, resultDeferred, persist) as RetryTask<Any, Any, Any>
-        persistChannel.send(task)
+        val task = RetryTask(id, event, resultDeferred, persist)
+        persistChannel.send {
+            task.result.complete(retry { task.persist(task.event) })
+        }
         val (entity, exception) = resultDeferred.await()
         if(exception != null) throw exception
         return entity!!

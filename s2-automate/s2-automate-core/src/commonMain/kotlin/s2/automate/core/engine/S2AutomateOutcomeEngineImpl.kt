@@ -17,8 +17,8 @@ import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
-import s2.automate.core.error.ERROR_PERSIST_LAMBDA_THROW
-import s2.automate.core.error.ERROR_UNKNOWN
+import s2.automate.core.error.persistLambdaThrowError
+import s2.automate.core.error.unknownError
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.PersistOutcome
@@ -197,11 +197,11 @@ ENTITY : WithS2Id<ID> {
         when (this) {
             is AutomateException -> PersistOutcome.Rejected(
                 msgId = msgId,
-                error = errors.firstOrNull() ?: ERROR_UNKNOWN(this),
+                error = errors.firstOrNull() ?: unknownError(this),
             )
             else -> PersistOutcome.Indeterminate(
                 msgId = msgId,
-                error = ERROR_PERSIST_LAMBDA_THROW(this),
+                error = persistLambdaThrowError(this),
             )
         }
 

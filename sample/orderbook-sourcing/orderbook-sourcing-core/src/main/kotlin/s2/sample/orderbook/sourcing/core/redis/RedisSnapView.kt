@@ -168,6 +168,8 @@ class RedisSnapView(
 			conn.reactive().ftSearch(MODEL::class.simpleName!!, "*").map { it.count }.awaitSingle()
 		}
 
+	// S6309: the whole search must run inside withConnection, the flow is materialized before returning.
+	@Suppress("kotlin:S6309")
 	suspend inline fun <reified MODEL> all(): Flow<MODEL> =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()

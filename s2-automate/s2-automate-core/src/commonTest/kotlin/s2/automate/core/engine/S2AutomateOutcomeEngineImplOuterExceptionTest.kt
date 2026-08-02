@@ -18,7 +18,7 @@ import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
-import s2.automate.core.error.ERROR_INVALID_TRANSITION
+import s2.automate.core.error.invalidTransitionError
 import s2.automate.core.error.asException
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
@@ -96,13 +96,13 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         GuardVerifier<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) {
-            throw ERROR_INVALID_TRANSITION("any", "guard-reject").asException()
+            throw invalidTransitionError("any", "guard-reject").asException()
         }
 
         override suspend fun <COMMAND : Cmd> evaluateTransition(
             context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
         ) {
-            throw ERROR_INVALID_TRANSITION("any", "guard-reject").asException()
+            throw invalidTransitionError("any", "guard-reject").asException()
         }
 
         override suspend fun verifyInitTransition(

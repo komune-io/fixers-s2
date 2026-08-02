@@ -1,7 +1,7 @@
 package s2.automate.core.guard
 
 import s2.automate.core.context.TransitionContext
-import s2.automate.core.error.ERROR_INVALID_TRANSITION
+import s2.automate.core.error.invalidTransitionError
 import s2.dsl.automate.Automate
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2State
@@ -25,7 +25,7 @@ AUTOMATE : Automate {
 			GuardResult.valid()
 		} else {
 			GuardResult.error(
-				ERROR_INVALID_TRANSITION(state.toString(), "$cmd")
+				invalidTransitionError(state.toString(), "$cmd")
 			)
 		}
 	}
