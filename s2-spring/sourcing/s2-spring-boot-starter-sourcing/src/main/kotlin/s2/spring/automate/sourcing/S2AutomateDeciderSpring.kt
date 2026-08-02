@@ -14,6 +14,9 @@ import s2.sourcing.dsl.Decide
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
+// S6309: the suspend modifier is mandated by the S2AutomateSourcingDecider contract (published API).
+// S6514: interface delegation with "by" is impossible, the engine is injected after construction.
+@Suppress("kotlin:S6309", "kotlin:S6514")
 open class S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> : S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 EVENT : Evt,

@@ -10,12 +10,12 @@ dependencies {
 	implementation(libs.kotlinx.serialization.json)
 	implementation(libs.kotlinx.coroutines.reactive)
 	implementation(libs.kotlinx.coroutines.reactor)
+	runtimeOnly(libs.postgresql)
+	runtimeOnly(libs.r2dbc.postgresql)
 
 	// Test dependencies
 	testImplementation(libs.bundles.testcontainers)
 	testImplementation(libs.bundles.testcontainers.postgres)
-	runtimeOnly(libs.postgresql)
-	runtimeOnly(libs.r2dbc.postgresql)
 	testImplementation(libs.spring.boot.starter.test)
 	testImplementation(libs.bundles.test.junit)
 }

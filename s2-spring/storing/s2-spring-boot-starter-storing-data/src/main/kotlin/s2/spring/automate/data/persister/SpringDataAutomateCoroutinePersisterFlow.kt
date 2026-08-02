@@ -2,6 +2,7 @@ package s2.spring.automate.data.persister
 
 import f2.dsl.fnc.operators.batch
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -17,6 +18,8 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
+// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
+@Suppress("kotlin:S6309")
 class SpringDataAutomateCoroutinePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
 	private val repository: CoroutineCrudRepository<ENTITY, ID>,
 	private val batchParams: S2BatchProperties,
@@ -41,7 +44,7 @@ ENTITY : WithS2Id<ID> {
 		return transitionContexts.batch(batchParams.asBatch()) { context ->
 			val entities = context.map { it.entity }
 			val events = context.map { it.event }
-			repository.saveAll(entities)
+			repository.saveAll(entities).collect()
 			events
 		}
 	}
@@ -57,7 +60,7 @@ ENTITY : WithS2Id<ID> {
 			events.add(context.event)
 		}
 
-		repository.saveAll(entities)
+		repository.saveAll(entities).collect()
 
 		events.forEach { event ->
 			emit(event)

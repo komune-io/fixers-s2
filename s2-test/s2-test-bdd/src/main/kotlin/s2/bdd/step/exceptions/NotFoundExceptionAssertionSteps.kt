@@ -13,8 +13,9 @@ class NotFoundExceptionAssertionSteps: En, S2CucumberStepsDefinition() {
         DataTableType(::notFoundParams)
 
         Then("The {string} should not be found") { objectName: String ->
-            val lastUsedKey = context.entityLists[objectName]!!.lastUsedKey
-            assert(lastUsedKey.toString())
+            val entityList = context.entityLists[objectName]
+                ?: error("No entity list registered for \"$objectName\"")
+            assert(entityList.lastUsedKey.toString())
         }
 
     }

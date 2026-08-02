@@ -4,8 +4,6 @@ import jakarta.persistence.Entity
 import jakarta.persistence.EntityListeners
 import jakarta.persistence.Id
 import jakarta.persistence.MappedSuperclass
-import jakarta.persistence.Temporal
-import jakarta.persistence.TemporalType
 import java.time.LocalDateTime
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
@@ -24,12 +22,10 @@ class EventSourcing<ID>(
 	@CreatedBy
 	var createdBy: String? = null,
 	@CreatedDate
-	@Temporal(TemporalType.TIMESTAMP)
 	var createdDate: LocalDateTime? = null,
 	@LastModifiedBy
 	var lastModifiedBy: String? = null,
 	@LastModifiedDate
-	@Temporal(TemporalType.TIMESTAMP)
 	var lastModifiedDate: LocalDateTime? = null,
 	@Version
 	var version: Int? = null,

@@ -19,6 +19,9 @@ class MongoEventRepositoryFactory(
     ): EventRepository<EVENT, ID> where EVENT : Evt, EVENT : WithS2Id<ID> {
         val repositoryFactorySupport = ReactiveMongoRepositoryFactory(mongoOperations)
         val repository = repositoryFactorySupport.getRepository(SpringDataEventRepository::class.java)
+        // The Spring repository factory API is not generic-aware: the cast is required and safe
+        // because SpringDataEventRepository is only ever parameterized with the requested types.
+        @Suppress("UNCHECKED_CAST", "kotlin:S6530")
         return MongoEventRepository(json, repository as SpringDataEventRepository<EVENT, ID>, eventType)
     }
 }
