@@ -8,4 +8,6 @@ dependencies {
 	api(project(":s2-spring:s2-spring-core"))
 	implementation(libs.spring.boot.autoconfigure)
 	kapt(libs.spring.boot.configuration.processor)
+
+	testImplementation(libs.bundles.test.junit)
 }

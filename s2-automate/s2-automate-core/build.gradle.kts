@@ -8,6 +8,8 @@ dependencies {
 	commonMainApi(project(":s2-event-sourcing:s2-event-sourcing-dsl"))
 
 	commonTestImplementation(kotlin("test"))
+	commonTestImplementation(libs.kotlinx.coroutines.test)
 	"jvmTestImplementation"(kotlin("test-junit5"))
+	"jvmTestImplementation"(libs.bundles.test.junit)
 	"jsTestImplementation"(kotlin("test-js"))
 }
