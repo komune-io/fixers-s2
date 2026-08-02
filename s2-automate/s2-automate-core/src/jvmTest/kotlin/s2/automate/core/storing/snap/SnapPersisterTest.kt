@@ -83,7 +83,8 @@ class SnapPersisterTest {
 
     @Test
     suspend fun `persist routes through the retry task channel when configured`() {
-        val channel = RetryTaskChannel(maxAttempts = 2, delayMillis = 1, retryOn = IllegalStateException::class)
+        // Default maxAttempts/delayMillis on purpose: exercises the default-argument path.
+        val channel = RetryTaskChannel(retryOn = IllegalStateException::class)
         val persister = SnapPersister<TestState, String, TestEntity, TestEvent>(
             projectionLoader = StubLoader(),
             snapRepository = null,

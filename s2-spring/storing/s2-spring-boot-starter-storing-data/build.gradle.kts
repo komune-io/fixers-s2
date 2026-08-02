@@ -11,4 +11,6 @@ dependencies {
 	implementation(libs.bundles.spring.data.commons)
 	implementation(libs.kotlinx.coroutines.reactive)
 	implementation(libs.kotlinx.coroutines.reactor)
+
+	testImplementation(libs.bundles.test.junit)
 }
