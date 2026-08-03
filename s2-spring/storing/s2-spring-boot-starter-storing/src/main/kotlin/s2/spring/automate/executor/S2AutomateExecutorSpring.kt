@@ -28,9 +28,8 @@ import s2.sourcing.dsl.Decide
  * @param ID The identifier type of the entity.
  * @param ENTITY The entity type.
  */
-// S6309: the suspend modifier is mandated by the S2AutomateStoringEvolver contracts (published API).
 // S6514: interface delegation with "by" is impossible, the engine is injected after construction.
-@Suppress("kotlin:S6309", "kotlin:S6514")
+@Suppress("kotlin:S6514")
 open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
@@ -99,7 +98,7 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param build The function to build the entity and event.
      * @return The flow of created events.
      */
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> = engine.evolve(commands, build)
@@ -111,7 +110,7 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
      * @param exec The function to execute the transitions.
      * @return The flow of resulting events.
      */
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> = engine.evolve(commands, exec)
@@ -124,23 +123,23 @@ open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Decide<COMMAND, EVENT_OUT> = engine.evolve(build)
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, build)
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, exec)
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, idOf, build)
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>

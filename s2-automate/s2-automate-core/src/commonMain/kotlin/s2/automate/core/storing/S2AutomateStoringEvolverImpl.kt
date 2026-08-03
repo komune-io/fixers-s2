@@ -73,7 +73,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         return event.data
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
@@ -87,7 +87,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }.map { it.data }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
@@ -117,7 +117,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> {
@@ -131,7 +131,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> {
@@ -145,7 +145,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
@@ -165,7 +165,7 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }.map { it.data }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>

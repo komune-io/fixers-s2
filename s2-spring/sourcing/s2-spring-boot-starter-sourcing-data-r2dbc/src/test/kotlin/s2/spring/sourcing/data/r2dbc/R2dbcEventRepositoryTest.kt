@@ -2,6 +2,7 @@ package s2.spring.sourcing.data.r2dbc
 
 import java.util.UUID
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -108,5 +109,24 @@ class R2dbcEventRepositoryTest : SpringTestBase() {
         assertThat(loadedEvents[0].name).isEqualTo("Event 1")
         assertThat(loadedEvents[1].name).isEqualTo("Event 3")
         assertThat(loadedEvents[2].name).isEqualTo("Event 2")
+    }
+
+    @Test
+    suspend fun `should persist a cold flow of events and load them back`() {
+        // Given
+        val objId = UUID.randomUUID().toString()
+        val event1 = TestEvent(id = objId, name = "Flow 1", timestamp = 100)
+        val event2 = TestEvent(id = objId, name = "Flow 2", timestamp = 200)
+
+        // When - persist via the Flow overload (the de-suspended cold-flow branch)
+        val returned = eventRepository.persist(flowOf(event1, event2)).toList()
+
+        // Then - the flow echoes the decoded events
+        assertThat(returned).containsExactlyInAnyOrder(event1, event2)
+
+        // And they are retrievable
+        val loadedEvents = eventRepository.load(objId).toList()
+        assertThat(loadedEvents).hasSize(2)
+        assertThat(loadedEvents.map { it.name }).containsExactlyInAnyOrder("Flow 1", "Flow 2")
     }
 }

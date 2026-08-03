@@ -56,12 +56,12 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- no-op legacy engine (never called in this test) ----
 
     private object NoOpLegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("should not be called")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("should not be called")
@@ -70,12 +70,12 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- no-op outcome engine (never called in this test) ----
 
     private object NoOpOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("should not be called")
 
-        override suspend fun <
+        override fun <
             COMMAND : S2Command<String>,
             ENTITY_OUT : TestEntity,
             EVENT_OUT : Evt,
@@ -101,7 +101,7 @@ class S2AutomateExecutorSpringPassthroughTest {
         publisher = NoOpPublisher,
         listener = AutomateListenerAdapter<TestState, String, TestEntity, S2Automate>(),
     ) {
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             build: suspend (cmd: COMMAND) -> Pair<TestEntity, EVENT_OUT>
@@ -110,7 +110,7 @@ class S2AutomateExecutorSpringPassthroughTest {
             return sentinelInitFlow as Flow<PersistOutcome<EVENT_OUT>>
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             exec: suspend (COMMAND, TestEntity) -> Pair<TestEntity, EVENT_OUT>

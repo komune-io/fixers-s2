@@ -44,7 +44,7 @@ ENTITY : WithS2State<STATE> {
 			}
 		}
 
-	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> decide(
+	override fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> decide(
 		commands: Flow<COMMAND>,
 		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
 	): Flow<EVENT_OUT> {
@@ -64,10 +64,10 @@ ENTITY : WithS2State<STATE> {
 		}
 	}
 
-	suspend fun loadAll() = eventStore.loadAll()
-	suspend fun load(id: ID) = eventStore.load(id)
+	fun loadAll() = eventStore.loadAll()
+	fun load(id: ID) = eventStore.load(id)
 
-	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> decide(
+	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> decide(
 		commands: Flow<COMMAND>,
 		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
 	): Flow<EVENT_OUT> {

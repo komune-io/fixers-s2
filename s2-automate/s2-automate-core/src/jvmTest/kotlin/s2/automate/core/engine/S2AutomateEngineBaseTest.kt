@@ -94,16 +94,16 @@ class S2AutomateEngineBaseTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { entities[it] }
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, DoneEvt, S2Automate>>
         ): Flow<DoneEvt> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, DoneEvt, S2Automate>>
         ): Flow<DoneEvt> = transitionContexts.map { it.event }
     }
@@ -222,7 +222,7 @@ class S2AutomateEngineBaseTest {
     @Test
     suspend fun `loadBatchWithOutcomes defaults absent outcomes to Rejected entity not found`() {
         val silentPersister = object : StubPersister(emptyMap()) {
-            override suspend fun loadWithOutcomes(
+            override fun loadWithOutcomes(
                 automateContexts: AutomateContext<S2Automate>,
                 ids: Flow<String>,
             ): Flow<LoadOutcome<String, TestEntity>> = emptyFlow()
@@ -261,7 +261,7 @@ class S2AutomateEngineBaseTest {
     suspend fun `loadTransitionContext fails when a loaded entity matches no command`() {
         // Persister answering with an entity whose id belongs to no command in the chunk.
         val misMatchedPersister = object : StubPersister(emptyMap()) {
-            override suspend fun load(
+            override fun load(
                 automateContexts: AutomateContext<S2Automate>,
                 ids: Flow<String>,
             ): Flow<TestEntity?> = ids.map { TestEntity("other", TestState.Created) }

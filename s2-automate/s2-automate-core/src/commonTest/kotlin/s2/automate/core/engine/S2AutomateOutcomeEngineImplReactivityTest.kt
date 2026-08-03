@@ -104,17 +104,17 @@ class S2AutomateOutcomeEngineImplReactivityTest {
 
         var loadCallCount = 0
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<Any> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<Any> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> {
@@ -127,14 +127,14 @@ class S2AutomateOutcomeEngineImplReactivityTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
         }
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->

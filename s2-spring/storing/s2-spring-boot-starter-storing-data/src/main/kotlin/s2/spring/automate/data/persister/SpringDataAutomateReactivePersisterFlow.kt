@@ -20,8 +20,6 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
-@Suppress("kotlin:S6309")
 class SpringDataAutomateReactivePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
 	private val repository: ReactiveCrudRepository<ENTITY, ID>,
 	private val batchParams: S2BatchProperties,
@@ -36,11 +34,11 @@ ENTITY : WithS2Id<ID> {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
+	override fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
 		return repository.findAllById(ids.asFlux()).asFlow()
 	}
 
-	override suspend fun persistInit(
+	override fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return transitionContexts.batch(batchParams.asBatch()) { contexts ->
@@ -50,7 +48,7 @@ ENTITY : WithS2Id<ID> {
 			events
 		}
 	}
-	override suspend fun persist(
+	override fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return transitionContexts.batch(batchParams.asBatch()) { contexts ->

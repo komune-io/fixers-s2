@@ -47,12 +47,12 @@ class S2AutomateSourcingDeciderImplTest {
     data class DoCmd(override val id: String) : S2Command<String>
 
     private class StubEngine : S2AutomateEngine<TestState, TestEntity, String, TestEvent> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { command -> decide(command).second }
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent>
         doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -86,12 +86,12 @@ class S2AutomateSourcingDeciderImplTest {
 
     private class StubEventRepository : EventRepository<TestEvent, String> {
         val stored = mutableListOf<TestEvent>(CreatedEvt("stored"))
-        override suspend fun load(id: String): Flow<TestEvent> =
+        override fun load(id: String): Flow<TestEvent> =
             flowOf(*stored.filter { it.s2Id() == id }.toTypedArray())
 
-        override suspend fun loadAll(): Flow<TestEvent> = flowOf(*stored.toTypedArray())
+        override fun loadAll(): Flow<TestEvent> = flowOf(*stored.toTypedArray())
         override suspend fun persist(event: TestEvent): TestEvent = event.also(stored::add)
-        override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
+        override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
         override suspend fun createTable() { /* no-op for the stub */ }
     }
 

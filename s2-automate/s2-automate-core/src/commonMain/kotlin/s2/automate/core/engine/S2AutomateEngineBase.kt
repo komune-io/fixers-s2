@@ -91,7 +91,7 @@ ENTITY : WithS2Id<ID> {
         )
     }
 
-    protected suspend fun <COMMAND : S2Command<ID>> loadTransitionContext(
+    protected fun <COMMAND : S2Command<ID>> loadTransitionContext(
         commands: EnvelopedFlow<COMMAND>
     ): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
         return commands.chunk(automateContext.batch.size).map { commandsChunk ->

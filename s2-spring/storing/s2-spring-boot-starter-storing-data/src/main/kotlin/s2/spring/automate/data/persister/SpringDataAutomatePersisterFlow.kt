@@ -2,7 +2,9 @@ package s2.spring.automate.data.persister
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -16,8 +18,6 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
-@Suppress("kotlin:S6309")
 class SpringDataAutomatePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
 	private val repository: CrudRepository<ENTITY, ID>,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
@@ -30,11 +30,11 @@ ENTITY : WithS2Id<ID> {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
-		return repository.findAllById(ids.toList()).asFlow()
+	override fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> = flow {
+		emitAll(repository.findAllById(ids.toList()).asFlow())
 	}
 
-	override suspend fun persistInit(
+	override fun persistInit(
 		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
 		return transitionContext.map {
@@ -43,15 +43,12 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	override suspend fun persist(
+	override fun persist(
 		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		val eventsFlow: Flow<EVENT> = transitionContext.map { it.event }
-
-		val entitiesFlow: Flow<ENTITY> = transitionContext.map { it.entity }
-		repository.saveAll(entitiesFlow.toList())
-
-		return eventsFlow
+	): Flow<EVENT> = flow {
+		val contexts = transitionContext.toList()
+		repository.saveAll(contexts.map { it.entity })
+		contexts.forEach { emit(it.event) }
 	}
 
 }

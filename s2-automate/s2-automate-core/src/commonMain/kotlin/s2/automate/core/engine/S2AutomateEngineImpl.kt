@@ -33,7 +33,7 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-    override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> create(
+    override fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> create(
         commands: EnvelopedFlow<COMMAND>,
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<EVENT_OUT> {
@@ -47,7 +47,7 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
+    override fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransition(
         commands: EnvelopedFlow<COMMAND>,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<EVENT_OUT> {
@@ -74,7 +74,7 @@ ENTITY : WithS2Id<ID> {
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "Evt")
     }
 
-    private suspend fun persistInit(
+    private fun persistInit(
         contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): EnvelopedFlow<EVENT> {
         return contexts.map {
@@ -85,7 +85,7 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    private suspend fun persist(
+    private fun persist(
         contexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
         return contexts.map {
