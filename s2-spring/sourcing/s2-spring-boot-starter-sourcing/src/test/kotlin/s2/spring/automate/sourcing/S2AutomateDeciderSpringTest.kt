@@ -4,6 +4,7 @@ import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.automate.core.appevent.publisher.AppEventPublisher
@@ -139,5 +140,42 @@ class S2AutomateDeciderSpringTest {
         val result = decider.transition(DoCmd("id1")) { TestEvent("ignored") }
 
         assertThat(result).isSameAs(sentinel)
+    }
+
+    /** Decider backed by a real (no-op-fed) sourcing engine, to exercise the delegating builders. */
+    private fun deciderWithRealEngine(): S2AutomateDeciderSpring<TestEntity, TestState, TestEvent, String> {
+        val decider = object : S2AutomateDeciderSpring<TestEntity, TestState, TestEvent, String>() {}
+        injectEngine(decider, S2AutomateSourcingDeciderImpl(NoOpEngine, NoOpPublisher, NoOpLoader, NoOpEventStore))
+        return decider
+    }
+
+    @Test
+    suspend fun `init builder returns a Decide delegating to the engine`() {
+        val decide = deciderWithRealEngine().init<TestEvent, CreateCmd> { TestEvent("e") }
+        assertThat(decide).isNotNull
+    }
+
+    @Test
+    suspend fun `decide from init command returns a Decide delegating to the engine`() {
+        val decide = deciderWithRealEngine().decide<TestEvent, CreateCmd> { TestEvent("e") }
+        assertThat(decide).isNotNull
+    }
+
+    @Test
+    suspend fun `decide from transition command returns a Decide delegating to the engine`() {
+        val decide = deciderWithRealEngine().decide<TestEvent, DoCmd> { _, _ -> TestEvent("e") }
+        assertThat(decide).isNotNull
+    }
+
+    @Test
+    suspend fun `loadAll and load delegate to the event store`() {
+        val decider = deciderWithRealEngine()
+        assertThat(decider.loadAll().toList()).isEmpty()
+        assertThat(decider.load("id1").toList()).isEmpty()
+    }
+
+    @Test
+    suspend fun `replayHistory delegates to the engine`() {
+        deciderWithRealEngine().replayHistory()
     }
 }
