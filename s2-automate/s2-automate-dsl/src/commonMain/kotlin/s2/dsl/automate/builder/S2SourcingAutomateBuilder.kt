@@ -2,6 +2,7 @@ package s2.dsl.automate.builder
 
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import kotlin.reflect.KClass
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -14,19 +15,31 @@ class S2SourcingAutomateBuilder {
 	val version: String? = null
 	val transactions = mutableListOf<S2Transition>()
 
-	inline fun <reified CMD: S2InitCommand, reified EVT: Evt> init(exec: S2InitTransitionBuilder.() -> Unit) {
+	inline fun <reified CMD: S2InitCommand, reified EVT: Evt> init(noinline exec: S2InitTransitionBuilder.() -> Unit) {
+		init(CMD::class, EVT::class, exec)
+	}
+
+	fun init(
+		command: KClass<out S2InitCommand>,
+		event: KClass<out Evt>,
+		exec: S2InitTransitionBuilder.() -> Unit,
+	) {
 		val builder = S2InitTransitionBuilder()
 		builder.exec()
 		S2Transition(
 			to = builder.to.toValue(),
 			role = builder.role.toValue(),
-			action = CMD::class.toValue(),
+			action = command.toValue(),
 			from = null,
-			result = (builder.evt ?: EVT::class).toValue()
+			result = (builder.evt ?: event).toValue()
 		).let(transactions::add)
 	}
 
-	inline fun <reified CMD: Cmd, reified EVT: Evt> transaction(exec: S2TransitionBuilder.() -> Unit) {
+	inline fun <reified CMD: Cmd, reified EVT: Evt> transaction(noinline exec: S2TransitionBuilder.() -> Unit) {
+		transaction(CMD::class, exec)
+	}
+
+	fun transaction(command: KClass<out Cmd>, exec: S2TransitionBuilder.() -> Unit) {
 		val builder = S2TransitionBuilder()
 		builder.exec()
 		builder.from?.let(builder.froms::add)
@@ -35,13 +48,21 @@ class S2SourcingAutomateBuilder {
 				from = from.toValue(),
 				to = builder.to.toValue(),
 				role = builder.role.toValue(),
-				action = CMD::class.toValue(),
+				action = command.toValue(),
 				result = builder.evt?.toValue(),
 			).let(transactions::add)
 		}
 	}
 
-	inline fun <reified CMD: Cmd, reified EVT: Evt> selfTransaction(exec: S2SelfTransitionBuilder.() -> Unit) {
+	inline fun <reified CMD: Cmd, reified EVT: Evt> selfTransaction(noinline exec: S2SelfTransitionBuilder.() -> Unit) {
+		selfTransaction(CMD::class, EVT::class, exec)
+	}
+
+	fun selfTransaction(
+		command: KClass<out Cmd>,
+		event: KClass<out Evt>,
+		exec: S2SelfTransitionBuilder.() -> Unit,
+	) {
 		val builder = S2SelfTransitionBuilder()
 		builder.exec()
 		builder.states.map { state ->
@@ -49,8 +70,8 @@ class S2SourcingAutomateBuilder {
 				from = state.toValue(),
 				to = state.toValue(),
 				role = builder.role.toValue(),
-				action = CMD::class.toValue(),
-				result = (builder.evt ?: EVT::class).toValue()
+				action = command.toValue(),
+				result = (builder.evt ?: event).toValue()
 			)
 		}.forEach(transactions::add)
 	}
