@@ -12,8 +12,6 @@ import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
 import s2.spring.sourcing.data.event.EventSourcing
 
-// S6309: the suspend modifier is mandated by the EventRepository contract (published API).
-@Suppress("kotlin:S6309")
 class MongoEventRepository<EVENT, ID>(
 	private val json: Json,
 	private val eventRepository: SpringDataEventRepository<EVENT, ID>,
@@ -23,16 +21,16 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
 
-	override suspend fun load(id: ID): Flow<EVENT> {
+	override fun load(id: ID): Flow<EVENT> {
 		return eventRepository.findAllByObjId(id).toEvents()
 	}
 
-	override suspend fun loadAll(): Flow<EVENT> {
+	override fun loadAll(): Flow<EVENT> {
 		return eventRepository.findAll().toEvents()
 	}
 
 	@OptIn(InternalSerializationApi::class)
-	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
+	override fun persist(events: Flow<EVENT>): Flow<EVENT> {
 		val toSave: Flow<EventSourcing<ID>>  = events.map { event ->
 			val encoded: String=  json.encodeToString(eventType.serializer(), event)
 			EventSourcing(

@@ -17,8 +17,6 @@ import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
-// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
-@Suppress("kotlin:S6309")
 class S2AutomateSourcingPersister<STATE, ID, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
     private val eventStore: EventRepository<EVENT, ID>,
@@ -34,13 +32,13 @@ EVENT: WithS2Id<ID> {
         return load(automateContexts, flowOf(id)).firstOrNull()
     }
 
-    override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
+    override fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
         return ids.map { id ->
             projectionLoader.load(id)
         }
     }
 
-    override suspend fun persistInit(
+    override fun persistInit(
         transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
         return transitionContexts.map {
@@ -50,7 +48,7 @@ EVENT: WithS2Id<ID> {
         }
     }
 
-    override suspend fun persist(
+    override fun persist(
         transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
         return transitionContexts.map {
@@ -59,7 +57,7 @@ EVENT: WithS2Id<ID> {
             .map { it.second }
     }
 
-    private suspend fun Flow<EVENT>.persistEvent(): Flow<Pair<ENTITY, EVENT>> {
+    private fun Flow<EVENT>.persistEvent(): Flow<Pair<ENTITY, EVENT>> {
         return eventStore
             .persist(this)
             .map { event ->

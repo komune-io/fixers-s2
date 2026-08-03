@@ -105,15 +105,15 @@ class AutomatePersisterDefaultsTest {
 		private val eventsToEmit: List<String>,
 	) : AutomatePersister<TestState, String, TestEntity, String, S2Automate> {
 
-		override suspend fun persistInit(
+		override fun persistInit(
 			transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>>
 		): Flow<String> = flowOf(*eventsToEmit.toTypedArray())
 
-		override suspend fun persist(
+		override fun persist(
 			transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>>
 		): Flow<String> = flowOf(*eventsToEmit.toTypedArray())
 
-		override suspend fun load(
+		override fun load(
 			automateContexts: AutomateContext<S2Automate>,
 			ids: Flow<String>,
 		): Flow<TestEntity?> = flowOf()

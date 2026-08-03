@@ -42,7 +42,7 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
     // B.1: chunk-based streaming instead of unbounded toList
-    override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createWithOutcomes(
+    override fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createWithOutcomes(
         commands: EnvelopedFlow<COMMAND>,
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
@@ -54,7 +54,7 @@ ENTITY : WithS2Id<ID> {
     }
 
     // B.2: batched load per chunk; B.3: msgId-keyed correlation
-    override suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
+    override fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
         commands: EnvelopedFlow<COMMAND>,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> {
@@ -172,7 +172,7 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    private suspend fun persistInitWithOutcomes(
+    private fun persistInitWithOutcomes(
         contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): EnvelopedFlow<PersistOutcome<EVENT>> {
         return contexts.map {
@@ -183,7 +183,7 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
-    private suspend fun persistWithOutcomes(
+    private fun persistWithOutcomes(
         contexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<PersistOutcome<EVENT>> {
         return contexts.map {

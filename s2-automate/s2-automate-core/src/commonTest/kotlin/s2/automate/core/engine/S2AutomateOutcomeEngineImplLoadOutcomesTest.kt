@@ -109,15 +109,15 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
         private val script: Map<String, LoadOutcome<String, TestEntity>>,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = error("legacy load should not be called when loadWithOutcomes is overridden")
@@ -127,14 +127,14 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
             id: String,
         ): TestEntity? = error("legacy load should not be called")
 
-        override suspend fun loadWithOutcomes(
+        override fun loadWithOutcomes(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<LoadOutcome<String, TestEntity>> = ids.map { id ->
             script[id] ?: error("no script entry for id=$id")
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
@@ -149,15 +149,15 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
     private class LegacyThrowingPersister(private val cause: Throwable) :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = flow { throw cause }

@@ -137,17 +137,17 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     private class EmptyPersister :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { null }
@@ -162,17 +162,17 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     private class PassthroughPersister :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { id -> TestEntity(id, TestState.Created) }
@@ -182,7 +182,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
@@ -192,7 +192,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             )
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->

@@ -12,12 +12,12 @@ interface S2AutomateOutcomeEngine<STATE, ENTITY, ID, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
 
-    suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createWithOutcomes(
+    fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> createWithOutcomes(
         commands: EnvelopedFlow<COMMAND>,
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>>
 
-    suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
+    fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> doTransitionWithOutcomes(
         commands: EnvelopedFlow<COMMAND>,
         exec: suspend (Envelope<out COMMAND>, ENTITY) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
     ): EnvelopedFlow<PersistOutcome<EVENT_OUT>>

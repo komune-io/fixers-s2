@@ -15,12 +15,12 @@ typealias S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT> = suspend (COMMAND, ENTITY) ->
 
 interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
-	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolve(
+	fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolve(
 		commands: Flow<COMMAND>,
 		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT>
 
-	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveEnvelope(
+	fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveEnvelope(
 		commands: EnvelopedFlow<COMMAND>,
 		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
 	): EnvelopedFlow<EVENT_OUT>
@@ -29,12 +29,12 @@ interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State
 		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Decide<COMMAND, EVENT_OUT>
 
-	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolve(
+	fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolve(
 		commands: Flow<COMMAND>,
 		exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Flow<EVENT_OUT>
 
-	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveEnvelope(
+	fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveEnvelope(
 		commands: EnvelopedFlow<COMMAND>,
 		exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): EnvelopedFlow<EVENT_OUT>
@@ -43,13 +43,13 @@ interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State
 		fnc: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Decide<COMMAND, EVENT_OUT>
 
-	suspend fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveWithOutcomes(
+	fun <COMMAND: S2InitCommand, EVENT_OUT: EVENT> evolveWithOutcomes(
 		commands: Flow<COMMAND>,
 		idOf: (COMMAND) -> String,
 		build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
 	): Flow<PersistOutcome<EVENT_OUT>>
 
-	suspend fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveWithOutcomes(
+	fun <COMMAND: S2Command<ID>, EVENT_OUT: EVENT> evolveWithOutcomes(
 		commands: Flow<COMMAND>,
 		idOf: (COMMAND) -> String,
 		exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>

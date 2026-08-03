@@ -6,9 +6,9 @@ import s2.dsl.automate.model.WithS2Id
 
 interface EventRepository<EVENT, ID>
 		where EVENT : Evt, EVENT : WithS2Id<ID> {
-	suspend fun load(id: ID): Flow<EVENT>
-	suspend fun loadAll(): Flow<EVENT>
+	fun load(id: ID): Flow<EVENT>
+	fun loadAll(): Flow<EVENT>
 	suspend fun persist(event: EVENT): EVENT
-	suspend fun persist(events: Flow<EVENT>): Flow<EVENT>
+	fun persist(events: Flow<EVENT>): Flow<EVENT>
 	suspend fun createTable()
 }

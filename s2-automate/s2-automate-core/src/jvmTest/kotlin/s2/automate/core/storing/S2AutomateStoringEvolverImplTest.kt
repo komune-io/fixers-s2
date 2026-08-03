@@ -54,12 +54,12 @@ class S2AutomateStoringEvolverImplTest {
     /** Passthrough engine: applies decide/exec and forwards the produced event envelope. */
     private inner class StubEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd -> decide(cmd).second }
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd ->
@@ -71,12 +71,12 @@ class S2AutomateStoringEvolverImplTest {
     /** The outcome engine must not be reached by the non-outcome paths under test. */
     private inner class UnreachableOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
 
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("outcome engine must not be used")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransitionWithOutcomes(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("outcome engine must not be used")

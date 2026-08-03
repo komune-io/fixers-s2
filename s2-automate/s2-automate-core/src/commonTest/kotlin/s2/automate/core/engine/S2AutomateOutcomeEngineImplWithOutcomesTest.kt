@@ -5,6 +5,7 @@ import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -97,15 +98,15 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         private val transitionPattern: List<OutcomeKind>,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("persistInit must NOT be called on the WithOutcomes path")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("persist must NOT be called on the WithOutcomes path")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { id -> TestEntity(id, TestState.Created) }
@@ -115,23 +116,23 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<PersistOutcome<TestEvent>> {
+        ): Flow<PersistOutcome<TestEvent>> = flow {
             val ctxs = transitionContexts.toList()
-            return ctxs.mapIndexed { i, ctx ->
-                toOutcome(initPattern[i % initPattern.size], ctx.event)
-            }.asFlow()
+            ctxs.forEachIndexed { i, ctx ->
+                emit(toOutcome(initPattern[i % initPattern.size], ctx.event))
+            }
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<PersistOutcome<TestEvent>> {
+        ): Flow<PersistOutcome<TestEvent>> = flow {
             val ctxs = transitionContexts.toList()
-            return ctxs.mapIndexed { i, ctx ->
+            ctxs.forEachIndexed { i, ctx ->
                 // Use the actual msgId from the context so B.3 correlation works correctly.
-                toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msgId)
-            }.asFlow()
+                emit(toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msgId))
+            }
         }
 
         private fun toOutcome(
