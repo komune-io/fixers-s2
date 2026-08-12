@@ -11,6 +11,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.newCoroutineContext
 import kotlinx.coroutines.reactor.ReactorContext
 import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextImpl
@@ -22,6 +23,8 @@ import s2.automate.core.error.AutomateException
 import s2.bdd.data.TestContext
 
 abstract class CucumberStepsDefinition {
+    private val logger = LoggerFactory.getLogger(CucumberStepsDefinition::class.java)!!
+
     protected abstract val context: TestContext
 
     protected fun String?.orRandom() = this ?: UUID.randomUUID().toString()
@@ -62,7 +65,7 @@ abstract class CucumberStepsDefinition {
                 actualException.printStackTrace()
                 throw actualException
             } catch (e: Exception) {
-                e.printStackTrace()
+                logger.error("Step execution failed", e)
                 if (e.cause is F2Exception) {
                     context.errors.add(e.cause as F2Exception)
                 } else {
@@ -79,13 +82,11 @@ abstract class CucumberStepsDefinition {
         val authedUser = context.authedUser
             ?: return ReactorContext(Context.of(SecurityContext::class.java, Mono.empty<SecurityContext>()))
 
-        val securityContext = mapOf(
-            "realm_access" to mapOf(
-                "roles" to authedUser.roles
-            ),
-            "memberOf" to authedUser.memberOf,
-            "sub" to authedUser.id
-        ).let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
+        val securityContext = buildMap<String, Any> {
+            put("realm_access", mapOf("roles" to authedUser.roles))
+            authedUser.memberOf?.let { put("memberOf", it) }
+            put("sub", authedUser.id)
+        }.let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
             .let { jwt ->
                 JwtAuthenticationToken(jwt, authedUser.roles.map {
                     SimpleGrantedAuthority("${ROLE_PREFIX}$it")
