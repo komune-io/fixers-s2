@@ -58,11 +58,11 @@ abstract class CucumberStepsDefinition {
                 val actualException = (e.cause as? CucumberInvocationTargetException)
                     ?.cause
                     ?: e
-                actualException.printStackTrace()
+                logger.error("Step execution failed", actualException)
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
                 val actualException = e.cause ?: e
-                actualException.printStackTrace()
+                logger.error("Step execution failed", actualException)
                 throw actualException
             } catch (e: Exception) {
                 logger.error("Step execution failed", e)
