@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
 	commonMainApi(libs.f2.dsl.cqrs)
+	commonMainApi(libs.kotlinx.serialization.core)
 
 	"jvmTestImplementation"(libs.bundles.test.junit)
 }
