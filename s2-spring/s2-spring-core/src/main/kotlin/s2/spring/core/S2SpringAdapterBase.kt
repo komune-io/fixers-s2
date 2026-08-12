@@ -7,6 +7,7 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.guard.GuardVerifierImpl
+import s2.automate.core.guard.InitTransitionStateGuard
 import s2.automate.core.guard.TransitionStateGuard
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
@@ -37,8 +38,23 @@ EVENT: Evt{
 		return AutomateEventPublisher(eventPublisher)
 	}
 
-	protected open fun guards(): List<Guard<STATE, ID, ENTITY, EVENT, S2Automate>> = listOf(
-		TransitionStateGuard()
+	/**
+	 * Whether init commands are checked against the init transitions declared by the automate.
+	 *
+	 * Disabled by default: until now init transitions were never validated, and an automate
+	 * may declare its creation transition in a way that exposes no init transition at all
+	 * (`transaction<CreateCmd> { to = ... }` without `from`). Enabling the check on such an
+	 * automate rejects every creation, so it is opt-in.
+	 *
+	 * Override and return `true` to have [InitTransitionStateGuard] reject any init command
+	 * that is not declared with `init<...>` in the automate.
+	 */
+	protected open fun validateInitTransitions(): Boolean = false
+
+	protected open fun guards(): List<Guard<STATE, ID, ENTITY, EVENT, S2Automate>> = listOfNotNull(
+		TransitionStateGuard(),
+		InitTransitionStateGuard<STATE, ID, ENTITY, EVENT, S2Automate>()
+			.takeIf { validateInitTransitions() }
 	)
 
 	@Autowired
