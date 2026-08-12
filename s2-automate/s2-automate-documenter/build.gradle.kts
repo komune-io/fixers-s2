@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
 	implementation(project(":s2-automate:s2-automate-dsl"))
+	api(libs.kotlinx.serialization.json)
 
 	testImplementation(libs.bundles.test.junit)
 }
