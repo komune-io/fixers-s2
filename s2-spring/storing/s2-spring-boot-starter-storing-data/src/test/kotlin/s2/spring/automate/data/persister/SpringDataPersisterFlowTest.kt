@@ -164,6 +164,17 @@ class SpringDataPersisterFlowTest {
         assertThat(persister.load(automateContext, flowOf("1")).toList()).containsExactly(TestEntity("1"))
     }
 
+    @Test
+    suspend fun `coroutine persister emits null for the ids it cannot find`() {
+        val repository = InMemoryCoroutineRepository(mapOf("1" to TestEntity("1")))
+        val persister = SpringDataAutomateCoroutinePersisterFlow<TestState, String, TestEntity, TestEvent>(
+            repository, S2BatchProperties(),
+        )
+        val loaded = persister.load(automateContext, flowOf("1", "missing", "1")).toList()
+        assertThat(loaded).containsExactly(TestEntity("1"), null, TestEntity("1"))
+        assertThat(persister.load(automateContext, "missing")).isNull()
+    }
+
     // ---- blocking repository ----
 
     private class InMemoryBlockingRepository(
@@ -209,6 +220,15 @@ class SpringDataPersisterFlowTest {
         val persister = SpringDataAutomatePersisterFlow<TestState, String, TestEntity, TestEvent>(repository)
         assertThat(persister.load(automateContext, "1")).isEqualTo(TestEntity("1"))
         assertThat(persister.load(automateContext, flowOf("1")).toList()).containsExactly(TestEntity("1"))
+    }
+
+    @Test
+    suspend fun `blocking persister emits null for the ids it cannot find`() {
+        val repository = InMemoryBlockingRepository(mapOf("1" to TestEntity("1")))
+        val persister = SpringDataAutomatePersisterFlow<TestState, String, TestEntity, TestEvent>(repository)
+        val loaded = persister.load(automateContext, flowOf("1", "missing")).toList()
+        assertThat(loaded).containsExactly(TestEntity("1"), null)
+        assertThat(persister.load(automateContext, "missing")).isNull()
     }
 
     // ---- reactive repository ----
@@ -279,5 +299,16 @@ class SpringDataPersisterFlowTest {
         )
         assertThat(persister.load(automateContext, "1")).isEqualTo(TestEntity("1"))
         assertThat(persister.load(automateContext, flowOf("1")).toList()).containsExactly(TestEntity("1"))
+    }
+
+    @Test
+    suspend fun `reactive persister emits null for the ids it cannot find`() {
+        val repository = InMemoryReactiveRepository(mapOf("1" to TestEntity("1")))
+        val persister = SpringDataAutomateReactivePersisterFlow<TestState, String, TestEntity, TestEvent>(
+            repository, S2BatchProperties(),
+        )
+        val loaded = persister.load(automateContext, flowOf("1", "missing")).toList()
+        assertThat(loaded).containsExactly(TestEntity("1"), null)
+        assertThat(persister.load(automateContext, "missing")).isNull()
     }
 }

@@ -30,8 +30,15 @@ ENTITY : WithS2Id<ID> {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
-		return repository.findAllById(ids.toList()).asFlow()
+	/**
+	 * Emits one element per requested id, in the requested order, and `null` when the
+	 * repository has no entity for that id: `findAllById` on its own drops the ids it cannot
+	 * find, making the corresponding commands vanish without event and without error.
+	 */
+	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> {
+		val requestedIds = ids.toList()
+		val loaded = repository.findAllById(requestedIds).associateBy { it.s2Id() }
+		return requestedIds.map { id -> loaded[id] }.asFlow()
 	}
 
 	override suspend fun persistInit(

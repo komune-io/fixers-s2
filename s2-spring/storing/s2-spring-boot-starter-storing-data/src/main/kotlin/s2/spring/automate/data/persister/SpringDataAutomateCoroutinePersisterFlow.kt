@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
@@ -32,8 +33,16 @@ ENTITY : WithS2Id<ID> {
 		return load(automateContexts, flowOf(id)).firstOrNull()
 	}
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
-		return repository.findAllById(ids)
+	/**
+	 * Emits one element per requested id, in the requested order, and `null` when the
+	 * repository has no entity for that id: `findAllById` on its own drops the ids it cannot
+	 * find, making the corresponding commands vanish without event and without error.
+	 */
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> = flow {
+		val requestedIds = ids.toList()
+		if (requestedIds.isEmpty()) return@flow
+		val loaded = repository.findAllById(requestedIds).toList().associateBy { it.s2Id() }
+		requestedIds.forEach { id -> emit(loaded[id]) }
 	}
 
 

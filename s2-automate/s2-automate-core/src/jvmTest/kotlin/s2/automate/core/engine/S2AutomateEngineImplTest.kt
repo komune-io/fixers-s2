@@ -6,6 +6,7 @@ import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transform
@@ -79,6 +80,8 @@ class S2AutomateEngineImplTest {
         private val entities: Map<String, TestEntity>,
         private val eventMapper: (TestEvent) -> TestEvent = { it },
         private val persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
+        /** Mimics a `findAllById`-style persister: ids without entity are simply not emitted. */
+        private val omitMissingIds: Boolean = false,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun load(
@@ -89,7 +92,11 @@ class S2AutomateEngineImplTest {
         override suspend fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
-        ): Flow<TestEntity?> = ids.map { entities[it] }
+        ): Flow<TestEntity?> = if (omitMissingIds) {
+            ids.mapNotNull { entities[it] }
+        } else {
+            ids.map { entities[it] }
+        }
 
         override suspend fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
@@ -144,11 +151,20 @@ class S2AutomateEngineImplTest {
         entities: Map<String, TestEntity> = mapOf("1" to TestEntity("1", TestState.Created)),
         eventMapper: (TestEvent) -> TestEvent = { it },
         persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
+        omitMissingIds: Boolean = false,
     ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> {
         val automateContext = AutomateContext(automate, S2BatchProperties(size = 10))
         val automatePublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
         return S2AutomateEngineImpl(
-            automateContext, guard, StubPersister(entities, eventMapper, persistDecorator), automatePublisher
+            automateContext,
+            guard,
+            StubPersister(
+                entities,
+                eventMapper = eventMapper,
+                persistDecorator = persistDecorator,
+                omitMissingIds = omitMissingIds,
+            ),
+            automatePublisher,
         )
     }
 
@@ -213,7 +229,38 @@ class S2AutomateEngineImplTest {
                 TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
             }.toList()
         }
-        assertTrue(exception.errors.single().type == "ERROR_ENTITY_NOT_FOUND")
+        val error = exception.errors.single()
+        assertTrue(error.type == "ERROR_ENTITY_NOT_FOUND")
+        // The error must name the id of the command, not "null".
+        assertEquals("missing", error.payload["id"])
+        assertTrue(error.description.contains("missing"))
+    }
+
+    @Test
+    suspend fun `doTransition fails with ERROR_ENTITY_NOT_FOUND when the persister omits the missing id`() {
+        val engine = engine(entities = emptyMap(), omitMissingIds = true)
+        val commands = flowOf(DoCmd("missing")).mapToEnvelopeWithRandomId(type = "Cmd")
+        val exception = assertThrows<AutomateException> {
+            engine.doTransition(commands) { cmd, entity ->
+                TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
+            }.toList()
+        }
+        assertEquals("missing", exception.errors.single().payload["id"])
+    }
+
+    @Test
+    suspend fun `doTransition does not silently drop a command whose entity is missing`() {
+        val engine = engine(
+            entities = mapOf("1" to TestEntity("1", TestState.Created)),
+            omitMissingIds = true,
+        )
+        val commands = flowOf(DoCmd("1"), DoCmd("missing")).mapToEnvelopeWithRandomId(type = "Cmd")
+        val exception = assertThrows<AutomateException> {
+            engine.doTransition(commands) { cmd, entity ->
+                TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
+            }.toList()
+        }
+        assertEquals("missing", exception.errors.single().payload["id"])
     }
 
     @Test
