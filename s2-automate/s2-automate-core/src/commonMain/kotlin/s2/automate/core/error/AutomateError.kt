@@ -46,6 +46,22 @@ fun persisterEventCountError(expected: Int, actual: Int) =
 		payload = mapOf("expected" to expected.toString(), "actual" to actual.toString()),
 	)
 
+/**
+ * The caller holds none of the roles the automate declares for the attempted transition.
+ * Only ever raised when role validation is explicitly enabled — see
+ * [s2.automate.core.guard.RoleGuard].
+ */
+fun missingRoleError(required: Collection<String>, actual: Collection<String>) =
+    s2error(
+        code = "ERROR_MISSING_ROLE",
+        description = "Transition requires one of the roles [${required.joinToString()}], " +
+            "caller holds [${actual.joinToString()}]",
+        payload = mapOf(
+            "requiredRoles" to required.joinToString(),
+            "actualRoles" to actual.joinToString(),
+        ),
+    )
+
 fun persistLambdaThrowError(cause: Throwable) =
     s2error(
         code = "ERROR_PERSIST_LAMBDA_THROW",
