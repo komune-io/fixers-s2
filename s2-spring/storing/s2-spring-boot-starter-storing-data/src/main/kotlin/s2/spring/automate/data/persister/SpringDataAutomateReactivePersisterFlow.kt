@@ -3,9 +3,6 @@ package s2.spring.automate.data.persister
 import f2.dsl.fnc.operators.batch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
@@ -33,21 +30,12 @@ ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? {
-		return load(automateContexts, flowOf(id)).firstOrNull()
-	}
+	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> repository.findAllById(ids).asFlow().toList() }
 
-	/**
-	 * Emits one element per requested id, in the requested order, and `null` when the
-	 * repository has no entity for that id: `findAllById` on its own drops the ids it cannot
-	 * find, making the corresponding commands vanish without event and without error.
-	 */
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> = flow {
-		val requestedIds = ids.toList()
-		if (requestedIds.isEmpty()) return@flow
-		val loaded = repository.findAllById(requestedIds).asFlow().toList().associateBy { it.s2Id() }
-		requestedIds.forEach { id -> emit(loaded[id]) }
-	}
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? = loader.load(id)
+
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
+		loader.load(ids)
 
 	override suspend fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
