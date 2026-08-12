@@ -1,7 +1,6 @@
 package s2.spring.core
 
 import kotlinx.coroutines.reactor.ReactorContext
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -92,19 +91,19 @@ class S2SpringAdapterBaseRoleGuardTest {
 	}
 
 	@Test
-	fun `default roles provider reads the reactive security context and strips the ROLE prefix`() = runTest {
+	suspend fun `default roles provider reads the reactive security context and strips the ROLE prefix`() {
 		val roles = withRoles("Admin", "Owner") { springSecurityRoles() }
 		// S2RoleValue has no structural equality, compare by name
 		assertThat(roles.map { it.name }).containsExactlyInAnyOrder("Admin", "Owner")
 	}
 
 	@Test
-	fun `default roles provider returns nothing when no security context is present`() = runTest {
+	suspend fun `default roles provider returns nothing when no security context is present`() {
 		assertThat(springSecurityRoles()).isEmpty()
 	}
 
 	@Test
-	fun `the registered guard accepts a caller holding the declared role`() = runTest {
+	suspend fun `the registered guard accepts a caller holding the declared role`() {
 		val guard = TestAdapter(validate = true).exposedGuards()[1]
 		val context = s2.automate.core.context.InitTransitionContext(
 			s2.automate.core.context.AutomateContext(
