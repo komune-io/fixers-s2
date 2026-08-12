@@ -12,7 +12,7 @@ The S2 term — borrowed from French — for a **finite state machine definition
 
 An Automate is a *definition*, not an instance. An instance of an entity following an Automate is just called the **aggregate** (using DDD vocabulary); aggregates expose their identity and current state through the `WithS2Id<ID>` / `WithS2State<STATE>` markers.
 
-_Avoid_: "state machine" / "FSM" as the term of art (fine as an explanation, as in the README, but the types and artifacts say Automate); "automata".
+*Avoid*: "state machine" / "FSM" as the term of art (fine as an explanation, as in the README, but the types and artifacts say Automate); "automata".
 
 ### S2State
 
