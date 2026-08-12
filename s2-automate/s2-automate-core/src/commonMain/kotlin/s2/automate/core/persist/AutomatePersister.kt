@@ -24,6 +24,13 @@ ENTITY : WithS2Id<ID> {
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
+	/**
+	 * Persists every received context and emits the resulting events.
+	 *
+	 * Implementations MUST emit exactly one event per received context, in the same
+	 * order: the engine correlates each emitted event back to its context positionally
+	 * in order to publish the end-of-transition application events.
+	 */
 	suspend fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>

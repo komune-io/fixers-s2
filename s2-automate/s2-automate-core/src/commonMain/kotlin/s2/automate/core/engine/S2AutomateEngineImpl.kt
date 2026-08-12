@@ -8,6 +8,7 @@ import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.withIndex
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -66,9 +67,14 @@ ENTITY : WithS2Id<ID> {
         }.chunk(automateContext.batch.size).map { transitionContexts ->
             val transitionContextsFlow = transitionContexts.asFlow()
                 as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-            persist(transitionContextsFlow).map { event ->
-                val context = transitionContexts.find { it.event == event }!!
-                sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+            // Events are correlated to their context positionally: [AutomatePersister.persist]
+            // emits one event per received context, in the same order. Correlating by event
+            // equality would misroute two equal events of the same chunk to the same context
+            // (and NPE when a persister maps or replaces the events it emits).
+            persist(transitionContextsFlow).withIndex().map { (index, event) ->
+                transitionContexts.getOrNull(index)?.let { context ->
+                    sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+                }
                 event as EVENT_OUT
             }
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "Evt")

@@ -75,6 +75,7 @@ class S2AutomateEngineImplTest {
 
     private class StubPersister(
         private val entities: Map<String, TestEntity>,
+        private val eventMapper: (TestEvent) -> TestEvent = { it },
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun load(
@@ -93,7 +94,7 @@ class S2AutomateEngineImplTest {
 
         override suspend fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<TestEvent> = transitionContexts.map { it.event }
+        ): Flow<TestEvent> = transitionContexts.map { eventMapper(it.event) }
     }
 
     private class RecordingPublisher : AppEventPublisher {
@@ -138,10 +139,11 @@ class S2AutomateEngineImplTest {
         guard: PassthroughGuardVerifier = PassthroughGuardVerifier(),
         publisher: RecordingPublisher = RecordingPublisher(),
         entities: Map<String, TestEntity> = mapOf("1" to TestEntity("1", TestState.Created)),
+        eventMapper: (TestEvent) -> TestEvent = { it },
     ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> {
         val automateContext = AutomateContext(automate, S2BatchProperties(size = 10))
         val automatePublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
-        return S2AutomateEngineImpl(automateContext, guard, StubPersister(entities), automatePublisher)
+        return S2AutomateEngineImpl(automateContext, guard, StubPersister(entities, eventMapper), automatePublisher)
     }
 
     @Test
@@ -206,5 +208,48 @@ class S2AutomateEngineImplTest {
             }.toList()
         }
         assertTrue(exception.errors.single().type == "ERROR_ENTITY_NOT_FOUND")
+    }
+
+    @Test
+    suspend fun `doTransition correlates equal events to their own context`() {
+        val publisher = RecordingPublisher()
+        val engine = engine(
+            publisher = publisher,
+            entities = mapOf(
+                "1" to TestEntity("1", TestState.Created),
+                "2" to TestEntity("2", TestState.Created),
+            ),
+        )
+
+        val commands = flowOf(DoCmd("1"), DoCmd("2")).mapToEnvelopeWithRandomId(type = "Cmd")
+        // Both transitions produce the very same event value: correlating by event equality
+        // would route both of them to the context of command "1".
+        val events = engine.doTransition(commands) { _, entity ->
+            TestEntity(entity.id, TestState.Active) to DoneEvt("shared").asEnvelopeWithType("Evt")
+        }.toList()
+
+        assertEquals(listOf("shared", "shared"), events.map { it.data.entityId })
+        val ended = publisher.published.filterIsInstance<AutomateTransitionEnded<*, *>>()
+        assertEquals(listOf("1", "2"), ended.map { (it.entity as TestEntity).id })
+        assertEquals(listOf("1", "2"), ended.map { (it.msg as DoCmd).id })
+    }
+
+    @Test
+    suspend fun `doTransition still publishes lifecycle events when the persister replaces the events`() {
+        val publisher = RecordingPublisher()
+        val engine = engine(
+            publisher = publisher,
+            entities = mapOf("1" to TestEntity("1", TestState.Created)),
+            eventMapper = { DoneEvt("persisted") },
+        )
+
+        val commands = flowOf(DoCmd("1")).mapToEnvelopeWithRandomId(type = "Cmd")
+        val events = engine.doTransition(commands) { cmd, entity ->
+            TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
+        }.toList()
+
+        assertEquals(listOf("persisted"), events.map { it.data.entityId })
+        val ended = publisher.published.filterIsInstance<AutomateTransitionEnded<*, *>>().single()
+        assertEquals("1", (ended.entity as TestEntity).id)
     }
 }
