@@ -82,13 +82,11 @@ abstract class CucumberStepsDefinition {
         val authedUser = context.authedUser
             ?: return ReactorContext(Context.of(SecurityContext::class.java, Mono.empty<SecurityContext>()))
 
-        val securityContext = mapOf(
-            "realm_access" to mapOf(
-                "roles" to authedUser.roles
-            ),
-            "memberOf" to authedUser.memberOf,
-            "sub" to authedUser.id
-        ).let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
+        val securityContext = buildMap<String, Any> {
+            put("realm_access", mapOf("roles" to authedUser.roles))
+            authedUser.memberOf?.let { put("memberOf", it) }
+            put("sub", authedUser.id)
+        }.let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
             .let { jwt ->
                 JwtAuthenticationToken(jwt, authedUser.roles.map {
                     SimpleGrantedAuthority("${ROLE_PREFIX}$it")
