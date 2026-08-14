@@ -7,6 +7,7 @@ import f2.dsl.fnc.operators.mapToEnvelope
 import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -14,6 +15,8 @@ import s2.automate.core.appevent.listener.AutomateListener
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
+import s2.automate.core.error.asException
+import s2.automate.core.error.entityNotFoundError
 import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Evt
@@ -66,10 +69,12 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         command: S2Command<ID>,
         exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>,
     ): EVENT_OUT {
+        // firstOrNull, not first: an engine or a persister emitting no event for the command
+        // must surface as an S2 error, not as a raw NoSuchElementException.
         val event = automateExecutor.doTransition(flowOf(command.asEnvelopeWithType(type = "Cmd"))) { cmd, entity ->
             val (entityUpdated, event) = entity.exec()
             entityUpdated to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-        }.first()
+        }.firstOrNull() ?: throw entityNotFoundError(command.id.toString()).asException()
         publisher.publish(event)
         return event.data
     }

@@ -3,8 +3,7 @@ package s2.spring.automate.data.persister
 import f2.dsl.fnc.operators.batch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
@@ -28,13 +27,12 @@ ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? {
-		return load(automateContexts, flowOf(id)).firstOrNull()
-	}
+	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> repository.findAllById(ids).toList() }
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY> {
-		return repository.findAllById(ids)
-	}
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? = loader.load(id)
+
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
+		loader.load(ids)
 
 
 	override suspend fun persistInit(

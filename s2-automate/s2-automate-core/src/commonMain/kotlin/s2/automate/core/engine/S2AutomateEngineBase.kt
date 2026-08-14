@@ -8,7 +8,6 @@ import f2.dsl.fnc.operators.flattenConcurrently
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
@@ -95,13 +94,12 @@ ENTITY : WithS2Id<ID> {
         commands: EnvelopedFlow<COMMAND>
     ): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
         return commands.chunk(automateContext.batch.size).map { commandsChunk ->
-            val byIds = commandsChunk.associateBy { it.data.id }
-            commandsChunk.asFlow().mapNotNull { it.data.id }.let { ids ->
-                persister.load(automateContext, ids = ids)
-            }.map { entity ->
-                entity ?: throw entityNotFoundError(entity?.s2Id().toString()).asException()
-                val command: Envelope<COMMAND> = byIds[entity.s2Id()]
-                    ?: throw entityNotFoundError(entity.s2Id().toString()).asException()
+            // Drive the iteration from the commands, not from the loaded entities: a persister
+            // that omits the ids it could not find would otherwise make the corresponding
+            // commands vanish silently, without event and without error.
+            loadBatch(commandsChunk).asFlow().map { (command, loadedEntity) ->
+                val entity = loadedEntity
+                    ?: throw entityNotFoundError(command.data.id.toString()).asException()
                 val transitionContext = TransitionContext(
                     automateContext = automateContext,
                     from = entity.s2State(),
