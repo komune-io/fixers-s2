@@ -70,12 +70,17 @@ class SpringDataPersisterFlowTest {
         initial: Map<String, TestEntity> = emptyMap(),
     ) : CoroutineCrudRepository<TestEntity, String> {
         val store = initial.toMutableMap()
+
+        /** One entry per `saveAll(Iterable)` call, holding the ids saved by that call. */
+        val saveAllBatches = mutableListOf<List<String>>()
+
         override suspend fun <S : TestEntity> save(entity: S): TestEntity {
             store[entity.s2Id()] = entity
             return entity
         }
 
         override fun <S : TestEntity> saveAll(entities: Iterable<S>): Flow<S> {
+            saveAllBatches.add(entities.map { it.s2Id() })
             entities.forEach { store[it.s2Id()] = it }
             return entities.toList().asFlow()
         }
@@ -119,6 +124,34 @@ class SpringDataPersisterFlowTest {
         val events = persister.persist(flowOf(transitionContext("1"), transitionContext("2"))).toList()
         assertThat(events.map { it.id }).containsExactly("1", "2")
         assertThat(repository.store.keys).containsExactlyInAnyOrder("1", "2")
+    }
+
+    @Test
+    suspend fun `coroutine persister persists in chunks instead of buffering the whole flow`() {
+        val repository = InMemoryCoroutineRepository()
+        val persister = SpringDataAutomateCoroutinePersisterFlow<TestState, String, TestEntity, TestEvent>(
+            repository, S2BatchProperties(size = 2, concurrency = 1),
+        )
+        val contexts = (1..5).map { transitionContext("$it") }
+        val events = persister.persist(contexts.asFlow()).toList()
+
+        // one saveAll per chunk of `size`, not a single saveAll holding the whole flow
+        assertThat(repository.saveAllBatches)
+            .containsExactly(listOf("1", "2"), listOf("3", "4"), listOf("5"))
+        assertThat(events.map { it.id }).containsExactly("1", "2", "3", "4", "5")
+    }
+
+    @Test
+    suspend fun `coroutine persister persistInit persists in chunks`() {
+        val repository = InMemoryCoroutineRepository()
+        val persister = SpringDataAutomateCoroutinePersisterFlow<TestState, String, TestEntity, TestEvent>(
+            repository, S2BatchProperties(size = 2, concurrency = 1),
+        )
+        val events = persister.persistInit((1..5).map { initContext("$it") }.asFlow()).toList()
+
+        assertThat(repository.saveAllBatches)
+            .containsExactly(listOf("1", "2"), listOf("3", "4"), listOf("5"))
+        assertThat(events.map { it.id }).containsExactly("1", "2", "3", "4", "5")
     }
 
     @Test

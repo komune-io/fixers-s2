@@ -4,7 +4,6 @@ import f2.dsl.fnc.operators.batch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.springframework.data.repository.kotlin.CoroutineCrudRepository
 import s2.automate.core.config.S2BatchProperties
@@ -51,19 +50,12 @@ ENTITY : WithS2Id<ID> {
 
 	override suspend fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = flow {
-		val entities = mutableListOf<ENTITY>()
-		val events = mutableListOf<EVENT>()
-
-		transitionContexts.collect { context ->
-			entities.add(context.entity)
-			events.add(context.event)
-		}
-
-		repository.saveAll(entities).collect()
-
-		events.forEach { event ->
-			emit(event)
+	): Flow<EVENT> {
+		return transitionContexts.batch(batchParams.asBatch()) { context ->
+			val entities = context.map { it.entity }
+			val events = context.map { it.event }
+			repository.saveAll(entities).collect()
+			events
 		}
 	}
 
