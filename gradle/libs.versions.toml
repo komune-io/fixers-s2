@@ -21,6 +21,9 @@ spring-boot-starter-data-mongodb-reactive = { group = "org.springframework.boot"
 spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc" }
 spring-boot-testcontainers = { group = "org.springframework.boot", name = "spring-boot-testcontainers" }
 
+# Spring Security (versions from BOM)
+spring-security-core = { group = "org.springframework.security", name = "spring-security-core" }
+
 # Spring Framework (versions from BOM)
 spring-context = { group = "org.springframework", name = "spring-context" }
 spring-tx = { group = "org.springframework", name = "spring-tx" }

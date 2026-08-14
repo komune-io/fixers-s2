@@ -101,6 +101,29 @@ val didS2 = s2 {
 }
 ```
 
+> **Roles are not enforced unless you opt in.** The `role` declared on a transition documents
+> and serializes who is expected to run it, but no guard checks it by default: any caller
+> reaching the command can execute any transition. Access control has to come from your own
+> layer (F2 function security, Spring Security, gateway) unless you enable the built-in check.
+>
+> To have S2 enforce it, override `validateRoles()` on your `S2SpringAdapterBase`:
+>
+> ```kotlin
+> class DidS2Configurer : S2SpringDataConfigurerAdapter<...>() {
+>     override fun validateRoles() = true
+> }
+> ```
+>
+> `RoleGuard` is then registered and rejects any command whose transition declares roles the
+> caller does not hold, with `ERROR_MISSING_ROLE`. Roles come from the current Spring Security
+> context (reactive first, then thread-bound), with the `ROLE_` authority prefix stripped, and
+> are matched case-insensitively against your `S2Role` class simple names — `Admin` above is
+> satisfied by an `admin` or `ROLE_admin` authority. If your identity provider issues names
+> that don't line up, override `currentRoles()` to map them.
+>
+> Check `currentRoles()` against real tokens before switching this on: with no matching roles
+> the guard rejects everything.
+
 * Define transactions :
 ```kotlin
 typealias DidCreateCommandFunction = F2Function<DidCreateCommand, DidCreatedEvent>
