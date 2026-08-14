@@ -22,6 +22,7 @@ import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
+import s2.automate.core.error.duplicateCommandIdsError
 import s2.automate.core.error.entityNotFoundError
 import s2.automate.core.error.unknownError
 import s2.automate.core.error.asException
@@ -97,6 +98,7 @@ ENTITY : WithS2Id<ID> {
             // Drive the iteration from the commands, not from the loaded entities: a persister
             // that omits the ids it could not find would otherwise make the corresponding
             // commands vanish silently, without event and without error.
+            // Duplicate-id rejection happens inside loadBatch.
             loadBatch(commandsChunk).asFlow().map { (command, loadedEntity) ->
                 val entity = loadedEntity
                     ?: throw entityNotFoundError(command.data.id.toString()).asException()
@@ -118,13 +120,46 @@ ENTITY : WithS2Id<ID> {
     }
 
     /**
+     * Throws if several commands in the same batch target the same entity id.
+     *
+     * A batch loads each entity exactly once, so same-id commands would all decide from the
+     * same pre-batch state; only one of them could ever be persisted. Rather than let the
+     * losers vanish without event and without error, the whole batch is rejected with
+     * [duplicateCommandIdsError] so the caller can resubmit them in separate batches.
+     *
+     * Commands sharing an id across *different* batches are unaffected: each batch reloads.
+     */
+    protected fun <COMMAND : S2Command<ID>> rejectDuplicateIds(cmds: List<Envelope<COMMAND>>) {
+        val duplicates = duplicateIdsOf(cmds)
+        if (duplicates.isNotEmpty()) {
+            throw duplicateCommandIdsError(duplicates).asException()
+        }
+    }
+
+    /** Ids appearing more than once in [cmds], in first-seen order. */
+    private fun <COMMAND : S2Command<ID>> duplicateIdsOf(cmds: List<Envelope<COMMAND>>): List<String> {
+        val seen = mutableSetOf<ID>()
+        val duplicates = mutableListOf<String>()
+        cmds.forEach { cmd ->
+            val id = cmd.data.id ?: return@forEach
+            if (!seen.add(id) && duplicates.none { it == id.toString() }) {
+                duplicates.add(id.toString())
+            }
+        }
+        return duplicates
+    }
+
+    /**
      * Loads entities for a chunk of commands in a single batched [persister.load] call.
      * Returns a list of (commandEnvelope, entity) pairs. Commands whose entity is not found
      * are represented as null entity and the caller is responsible for error handling.
+     *
+     * Rejects the whole batch via [rejectDuplicateIds] when two commands target the same id.
      */
     protected suspend fun <COMMAND : S2Command<ID>> loadBatch(
         cmds: List<Envelope<COMMAND>>
     ): List<Pair<Envelope<COMMAND>, ENTITY?>> {
+        rejectDuplicateIds(cmds)
         val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val entities = mutableMapOf<Any, ENTITY?>()
         persister.load(automateContext, ids = ids).collect { entity ->
@@ -151,6 +186,12 @@ ENTITY : WithS2Id<ID> {
      * Commands whose id is not represented in the persister's emitted outcomes
      * default to `Rejected:ERROR_ENTITY_NOT_FOUND` — matches the legacy
      * loadBatch semantics for missing entities.
+     *
+     * When several commands in the batch target the same id, only the first one is
+     * processed; the later ones are `Rejected:ERROR_DUPLICATE_COMMAND_IDS` instead of
+     * silently deciding from the same pre-batch state as the first. Unlike [loadBatch],
+     * this path has a per-command error channel, so it rejects only the losers rather than
+     * failing the whole batch.
      */
     protected suspend fun <COMMAND : S2Command<ID>> loadBatchWithOutcomes(
         cmds: List<Envelope<COMMAND>>
@@ -158,8 +199,18 @@ ENTITY : WithS2Id<ID> {
         val ids = cmds.mapNotNull { it.data.id }.asFlow()
         val outcomes = persister.loadWithOutcomes(automateContext, ids).toList()
         val byId = outcomes.associateBy { it.id }
+        val seenIds = mutableSetOf<ID>()
         return cmds.map { cmd ->
             val cmdId = cmd.data.id
+            if (cmdId != null && !seenIds.add(cmdId)) {
+                return@map LoadedSlot.Failed(
+                    cmd,
+                    PersistOutcome.Rejected<Nothing>(
+                        msgId = cmd.id,
+                        error = duplicateCommandIdsError(listOf(cmdId.toString())),
+                    ),
+                )
+            }
             when (val outcome = byId[cmdId]) {
                 is LoadOutcome.Loaded -> LoadedSlot.Ready(cmd, outcome.entity)
                 is LoadOutcome.Failure -> LoadedSlot.Failed(cmd, outcome.toPersistFailure(cmd.id))

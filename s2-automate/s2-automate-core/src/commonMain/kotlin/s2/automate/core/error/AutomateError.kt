@@ -22,6 +22,21 @@ fun invalidInitTransitionError(command: String) =
 fun entityNotFoundError(id: String) =
 	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 
+/**
+ * Several commands within the same batch target the same entity id. The engine loads each
+ * entity once per batch, so those commands would all decide from the same pre-batch state:
+ * they cannot be ordered against each other and are rejected instead of being silently
+ * collapsed into one.
+ */
+fun duplicateCommandIdsError(ids: Collection<String>) =
+    s2error(
+        code = "ERROR_DUPLICATE_COMMAND_IDS",
+        description = "Several commands in the same batch target the entity id(s) " +
+            "[${ids.joinToString()}]. The batch loads each entity once, so those commands " +
+            "cannot be ordered against each other. Submit them in separate batches.",
+        payload = mapOf("ids" to ids.joinToString()),
+    )
+
 fun persisterEventCountError(expected: Int, actual: Int) =
 	s2error(
 		code = "ERROR_PERSISTER_EVENT_COUNT",
