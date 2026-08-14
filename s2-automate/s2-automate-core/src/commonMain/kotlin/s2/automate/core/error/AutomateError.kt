@@ -14,6 +14,11 @@ fun invalidTransitionError(state: String, command: String) =
 		"Not available transition from $state with command $command",
 		mapOf("from" to state, "command" to command))
 
+fun invalidInitTransitionError(command: String) =
+	s2error("ERROR_INVALID_INIT_TRANSITION",
+		"Not available init transition with command $command",
+		mapOf("command" to command))
+
 fun entityNotFoundError(id: String) =
 	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 

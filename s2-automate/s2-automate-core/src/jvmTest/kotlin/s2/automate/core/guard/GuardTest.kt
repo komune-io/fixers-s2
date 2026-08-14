@@ -41,6 +41,7 @@ class GuardTest {
     }
 
     data class CreateCmd(val id: String) : S2InitCommand
+    data class UndeclaredCreateCmd(val id: String) : S2InitCommand
     data class DoCmd(override val id: String) : S2Command<String>
     data class OtherCmd(override val id: String) : S2Command<String>
 
@@ -134,6 +135,50 @@ class GuardTest {
         assertEquals("ERROR_INVALID_TRANSITION", result.errors.single().type)
     }
 
+    // ---- InitTransitionStateGuard ----
+
+    @Test
+    suspend fun `InitTransitionStateGuard accepts a declared init command`() {
+        val guard = InitTransitionStateGuard<TestState, String, TestEntity, String, S2Automate>()
+        val result = guard.evaluateInit(InitTransitionContext(automateContext, CreateCmd("1")))
+        assertTrue(result.isValid())
+    }
+
+    @Test
+    suspend fun `InitTransitionStateGuard rejects an init command not declared by the automate`() {
+        val guard = InitTransitionStateGuard<TestState, String, TestEntity, String, S2Automate>()
+        val result = guard.evaluateInit(InitTransitionContext(automateContext, UndeclaredCreateCmd("1")))
+        assertFalse(result.isValid())
+        assertEquals("ERROR_INVALID_INIT_TRANSITION", result.errors.single().type)
+    }
+
+    @Test
+    suspend fun `InitTransitionStateGuard rejects a transition command used as an init command`() {
+        val guard = InitTransitionStateGuard<TestState, String, TestEntity, String, S2Automate>()
+        val result = guard.evaluateInit(InitTransitionContext(automateContext, DoCmd("1")))
+        assertFalse(result.isValid())
+    }
+
+    @Test
+    suspend fun `InitTransitionStateGuard rejects a creation declared without an init transition`() {
+        // Automates declaring their creation with `transaction<CMD> { to = ... }` and no `from`
+        // register no transition at all, hence expose no init transition: enabling the guard on
+        // such an automate rejects every creation. This is why the guard is opt-in.
+        val looseAutomate = s2 {
+            name = "GuardTestLoose"
+            transaction<CreateCmd> {
+                to = TestState.Created
+                role = TestRole
+            }
+        }
+        val guard = InitTransitionStateGuard<TestState, String, TestEntity, String, S2Automate>()
+        val context = InitTransitionContext(
+            AutomateContext(looseAutomate, S2BatchProperties()),
+            CreateCmd("1"),
+        )
+        assertFalse(guard.evaluateInit(context).isValid())
+    }
+
     // ---- GuardVerifierImpl ----
 
     private fun verifier(
@@ -148,6 +193,17 @@ class GuardTest {
         val publisher = RecordingPublisher()
         verifier(publisher).evaluateInit(InitTransitionContext(automateContext, CreateCmd("1")))
         assertTrue(publisher.published.isEmpty())
+    }
+
+    @Test
+    suspend fun `evaluateInit publishes not-accepted and throws for an undeclared init command`() {
+        val publisher = RecordingPublisher()
+        val exception = assertThrows<AutomateException> {
+            verifier(publisher, listOf(InitTransitionStateGuard()))
+                .evaluateInit(InitTransitionContext(automateContext, UndeclaredCreateCmd("1")))
+        }
+        assertEquals("ERROR_INVALID_INIT_TRANSITION", exception.errors.single().type)
+        assertEquals(1, publisher.published.filterIsInstance<AutomateTransitionNotAccepted>().size)
     }
 
     @Test
