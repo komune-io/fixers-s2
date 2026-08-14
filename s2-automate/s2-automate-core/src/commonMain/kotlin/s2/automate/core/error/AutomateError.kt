@@ -17,6 +17,15 @@ fun invalidTransitionError(state: String, command: String) =
 fun entityNotFoundError(id: String) =
 	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 
+fun persisterEventCountError(expected: Int, actual: Int) =
+	s2error(
+		code = "ERROR_PERSISTER_EVENT_COUNT",
+		description = "Persister contract violation: expected $expected persisted event(s) " +
+			"for the chunk but received $actual. AutomatePersister.persist must emit exactly " +
+			"one event per received context, in the same order.",
+		payload = mapOf("expected" to expected.toString(), "actual" to actual.toString()),
+	)
+
 fun persistLambdaThrowError(cause: Throwable) =
     s2error(
         code = "ERROR_PERSIST_LAMBDA_THROW",

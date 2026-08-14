@@ -8,10 +8,14 @@ import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.withIndex
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
+import s2.automate.core.error.asException
+import s2.automate.core.error.persisterEventCountError
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.S2Automate
@@ -66,10 +70,21 @@ ENTITY : WithS2Id<ID> {
         }.chunk(automateContext.batch.size).map { transitionContexts ->
             val transitionContextsFlow = transitionContexts.asFlow()
                 as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-            persist(transitionContextsFlow).map { event ->
-                val context = transitionContexts.find { it.event == event }!!
+            // Events are correlated to their context positionally: [AutomatePersister.persist]
+            // emits one event per received context, in the same order. Correlating by event
+            // equality would misroute two equal events of the same chunk to the same context
+            // (and NPE when a persister maps or replaces the events it emits).
+            var persistedCount = 0
+            persist(transitionContextsFlow).withIndex().map { (index, event) ->
+                val context = transitionContexts.getOrNull(index)
+                    ?: throw persisterEventCountError(transitionContexts.size, index + 1).asException()
                 sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+                persistedCount = index + 1
                 event as EVENT_OUT
+            }.onCompletion { cause ->
+                if (cause == null && persistedCount < transitionContexts.size) {
+                    throw persisterEventCountError(transitionContexts.size, persistedCount).asException()
+                }
             }
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "Evt")
     }
