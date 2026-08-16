@@ -42,33 +42,18 @@ EVENT: WithS2Id<ID>
 		val query = Query
 			.query(Criteria.where("obj_id").`is`(id!!))
 			.sort(sortByCreatedDate)
-		return r2dbcEntityTemplate.select(EventSourcing::class.java)
-			.from(tableName)
-			.matching(query)
-			.flow().toEvents()
+		return selectEvents(query)
 	}
 
 	override suspend fun loadAll(): Flow<EVENT> {
 		val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
-		return r2dbcEntityTemplate.select(EventSourcing::class.java)
-			.from(tableName)
-			.matching(query)
-			.flow().toEvents()
+		return selectEvents(query)
 	}
 
-	@OptIn(InternalSerializationApi::class)
 	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
 		return events.map { event ->
-			val encoded =  json.encodeToString(eventType.serializer(), event)
-			r2dbcEntityTemplate.insert(EventSourcing::class.java)
-				.into(tableName)
-				.using(EventSourcing(
-					id = UUID.randomUUID().toString(),
-					objId = event.s2Id(),
-					event = encoded
-				)).toEvent().awaitSingle()
+			insert(event)
 		}
-
 	}
 
 	override suspend fun createTable() {
@@ -90,9 +75,18 @@ EVENT: WithS2Id<ID>
 			.then().awaitFirstOrNull()
 	}
 
+	override suspend fun persist(event: EVENT): EVENT = insert(event)
+
+	private fun selectEvents(query: Query): Flow<EVENT> {
+		return r2dbcEntityTemplate.select(EventSourcing::class.java)
+			.from(tableName)
+			.matching(query)
+			.flow().toEvents()
+	}
+
 	@OptIn(InternalSerializationApi::class)
-	override suspend fun persist(event: EVENT): EVENT {
-		val encoded =  json.encodeToString(eventType.serializer(), event)
+	private suspend fun insert(event: EVENT): EVENT {
+		val encoded = json.encodeToString(eventType.serializer(), event)
 		return r2dbcEntityTemplate.insert(EventSourcing::class.java)
 			.into(tableName)
 			.using(EventSourcing(

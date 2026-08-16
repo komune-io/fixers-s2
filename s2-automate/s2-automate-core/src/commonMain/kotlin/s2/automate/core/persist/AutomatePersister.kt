@@ -3,6 +3,7 @@ package s2.automate.core.persist
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -37,7 +38,8 @@ ENTITY : WithS2Id<ID> {
 
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
 
-	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY?
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY? =
+		load(automateContexts, flowOf(id)).firstOrNull()
 
 	/**
 	 * Per-id load with classified failures. The default implementation is built

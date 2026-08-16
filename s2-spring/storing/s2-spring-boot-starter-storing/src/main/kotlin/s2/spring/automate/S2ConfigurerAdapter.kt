@@ -2,7 +2,10 @@ package s2.spring.automate
 
 import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Autowired
+import s2.automate.core.appevent.publisher.AutomateEventPublisher
+import s2.automate.core.context.AutomateContext
 import s2.automate.core.engine.S2AutomateEngineImpl
+import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.engine.S2AutomateOutcomeEngineImpl
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Evt
@@ -24,20 +27,26 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 	@Autowired
 	private lateinit var eventPublisher: SpringEventPublisher
 
-	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> {
-		val automateContext = automateContext()
-		val publisher = automateAppEventPublisher(eventPublisher)
-		val guardExecutor = guardExecutor(publisher)
-		val persister = aggregateRepository()
-		return S2AutomateEngineImpl(automateContext, guardExecutor, persister, publisher)
-	}
+	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> =
+		buildEngine(::S2AutomateEngineImpl)
 
-	open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> {
+	open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> =
+		buildEngine(::S2AutomateOutcomeEngineImpl)
+
+	/** Assembles the engine parts (context, guards, persister, publisher) and hands them to [createEngine]. */
+	private fun <ENGINE> buildEngine(
+		createEngine: (
+			AutomateContext<S2Automate>,
+			GuardVerifier<STATE, ID, ENTITY, Evt, S2Automate>,
+			AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>,
+			AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
+		) -> ENGINE
+	): ENGINE {
 		val automateContext = automateContext()
 		val publisher = automateAppEventPublisher(eventPublisher)
 		val guardExecutor = guardExecutor(publisher)
 		val persister = aggregateRepository()
-		return S2AutomateOutcomeEngineImpl(automateContext, guardExecutor, persister, publisher)
+		return createEngine(automateContext, guardExecutor, persister, publisher)
 	}
 
 	override fun afterPropertiesSet() {

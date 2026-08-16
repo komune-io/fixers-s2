@@ -29,32 +29,26 @@ ENTITY : WithS2Id<ID> {
 
 	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> repository.findAllById(ids).toList() }
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? = loader.load(id)
-
 	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
 		loader.load(ids)
 
-
 	override suspend fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		return transitionContexts.batch(batchParams.asBatch()) { context ->
-			val entities = context.map { it.entity }
-			val events = context.map { it.event }
-			repository.saveAll(entities).collect()
-			events
-		}
-	}
+	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
 
 	override suspend fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> {
-		return transitionContexts.batch(batchParams.asBatch()) { context ->
-			val entities = context.map { it.entity }
-			val events = context.map { it.event }
-			repository.saveAll(entities).collect()
-			events
-		}
+	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
+
+	/** Saves each batch of entities in a single [repository]`.saveAll`, then emits the matching events in order. */
+	private fun <CONTEXT> Flow<CONTEXT>.saveAllBatched(
+		entityOf: (CONTEXT) -> ENTITY,
+		eventOf: (CONTEXT) -> EVENT,
+	): Flow<EVENT> = batch(batchParams.asBatch()) { contexts ->
+		val entities = contexts.map(entityOf)
+		val events = contexts.map(eventOf)
+		repository.saveAll(entities).collect()
+		events
 	}
 
 }

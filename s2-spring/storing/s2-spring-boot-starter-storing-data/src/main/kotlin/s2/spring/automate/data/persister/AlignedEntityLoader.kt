@@ -1,9 +1,7 @@
 package s2.spring.automate.data.persister
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import s2.dsl.automate.model.WithS2Id
 
@@ -23,8 +21,6 @@ import s2.dsl.automate.model.WithS2Id
 internal class AlignedEntityLoader<ID : Any, ENTITY : WithS2Id<ID>>(
 	private val findAllById: suspend (List<ID>) -> List<ENTITY>,
 ) {
-
-	suspend fun load(id: ID): ENTITY? = load(flowOf(id)).firstOrNull()
 
 	fun load(ids: Flow<ID>): Flow<ENTITY?> = flow {
 		val requestedIds = ids.toList()

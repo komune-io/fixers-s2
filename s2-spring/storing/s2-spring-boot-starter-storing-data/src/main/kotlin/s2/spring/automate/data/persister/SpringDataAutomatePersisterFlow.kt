@@ -25,8 +25,6 @@ ENTITY : WithS2Id<ID> {
 
 	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> repository.findAllById(ids).toList() }
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID): ENTITY? = loader.load(id)
-
 	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
 		loader.load(ids)
 

@@ -11,10 +11,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-data class RetryTask<ID, ENTITY, EVENT>(
-    val id: ID,
+data class RetryTask<ENTITY, EVENT>(
     val event: EVENT,
-    val result: CompletableDeferred<Pair<Pair<ENTITY, EVENT>?, Throwable?>>,
+    val result: CompletableDeferred<Result<Pair<ENTITY, EVENT>>>,
     val persist: suspend (EVENT) -> Pair<ENTITY, EVENT>,
 )
 
@@ -47,41 +46,29 @@ class RetryTaskChannel(
         }
     }
 
-    suspend fun <ID, ENTITY, EVENT> addToPersistQueue(
-        id: ID,
+    suspend fun <ENTITY, EVENT> addToPersistQueue(
         event: EVENT,
         persist: suspend (EVENT) -> Pair<ENTITY, EVENT>
     ): Pair<ENTITY, EVENT> {
-        val resultDeferred = CompletableDeferred<Pair<Pair<ENTITY, EVENT>?, Throwable?>>()
-        val task = RetryTask(id, event, resultDeferred, persist)
+        val resultDeferred = CompletableDeferred<Result<Pair<ENTITY, EVENT>>>()
+        val task = RetryTask(event, resultDeferred, persist)
         persistChannel.send {
             task.result.complete(retry { task.persist(task.event) })
         }
-        val (entity, exception) = resultDeferred.await()
-        if(exception != null) throw exception
-        return entity!!
+        return resultDeferred.await().getOrThrow()
     }
 
-
-    @Suppress("NestedBlockDepth", "ReturnCount")
     private suspend fun <T> retry(
         block: suspend () -> T
-    ): Pair<T?, Throwable?> {
+    ): Result<T> {
         var attempts = 0
         while (true) {
-            try {
-                return block() to null
-            } catch (e: Throwable) {
-                if(retryOn.isInstance(e)) {
-                    attempts++
-                    if (attempts >= maxAttempts) {
-                        return (null to e)
-                    }
-                    delay(delayMillis)
-                } else {
-                    return (null to e)
-                }
-            }
+            val result = runCatching { block() }
+            val failure = result.exceptionOrNull() ?: return result
+            if (!retryOn.isInstance(failure)) return result
+            attempts++
+            if (attempts >= maxAttempts) return result
+            delay(delayMillis)
         }
     }
 

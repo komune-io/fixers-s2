@@ -1,8 +1,6 @@
 package s2.spring.automate.sourcing.persist
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
@@ -30,10 +28,6 @@ ENTITY : WithS2Id<ID>,
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
-    override suspend fun load(automateContexts: AutomateContext<S2Automate>, id: ID & Any): ENTITY? {
-        return load(automateContexts, flowOf(id)).firstOrNull()
-    }
-
     override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
         return ids.map { id ->
             projectionLoader.load(id)
@@ -42,28 +36,18 @@ EVENT: WithS2Id<ID> {
 
     override suspend fun persistInit(
         transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-    ): Flow<EVENT> {
-        return transitionContexts.map {
-            it.event
-        }.persistEvent().map {
-            it.second
-        }
-    }
+    ): Flow<EVENT> = transitionContexts.map { it.event }.persistAndSnap()
 
     override suspend fun persist(
         transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-    ): Flow<EVENT> {
-        return transitionContexts.map {
-            it.event
-        }.persistEvent()
-            .map { it.second }
-    }
+    ): Flow<EVENT> = transitionContexts.map { it.event }.persistAndSnap()
 
-    private suspend fun Flow<EVENT>.persistEvent(): Flow<Pair<ENTITY, EVENT>> {
+    /** Appends the events to the event store, then refreshes the snapshot of each touched entity. */
+    private suspend fun Flow<EVENT>.persistAndSnap(): Flow<EVENT> {
         return eventStore
             .persist(this)
             .map { event ->
-                snapPersister.persist(event)
+                snapPersister.persist(event).second
             }
     }
 

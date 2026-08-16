@@ -21,9 +21,8 @@ class RetryTaskChannelTest {
 
     @Test
     suspend fun `test add to persist queue`() {
-        val id = "testId"
         val event = "testEvent"
-        val result: Pair<String, String> = retryTaskChannel.addToPersistQueue(id, event) { evt ->
+        val result: Pair<String, String> = retryTaskChannel.addToPersistQueue(event) { evt ->
             "entity" to evt
         }
         assertEquals("entity", result.first)
@@ -32,11 +31,10 @@ class RetryTaskChannelTest {
 
     @Test
     suspend fun `test retry on RetryException failure`() {
-        val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)
 
-        val result = retryTaskChannel.addToPersistQueue(id, event) { evt ->
+        val result = retryTaskChannel.addToPersistQueue(event) { evt ->
             if (attempts.incrementAndGet() < 3) {
                 throw RetryException("Retry")
             }
@@ -50,12 +48,11 @@ class RetryTaskChannelTest {
 
     @Test
     suspend fun `test max retry RetryException attempts`() {
-        val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)
 
         val exception = assertThrows<Exception> {
-            retryTaskChannel.addToPersistQueue<String, String, String>(id, event) { evt ->
+            retryTaskChannel.addToPersistQueue<String, String>(event) { evt ->
                 attempts.incrementAndGet()
                 throw RetryException("Retry $evt")
             }
@@ -67,12 +64,11 @@ class RetryTaskChannelTest {
 
     @Test
     suspend fun `test no retry on non-RetryException failure`() {
-        val id = "testId"
         val event = "testEvent"
         val attempts = AtomicInteger(0)
 
         val exception = assertThrows<Exception> {
-            retryTaskChannel.addToPersistQueue<String, String, String>(id, event) { _ ->
+            retryTaskChannel.addToPersistQueue<String, String>(event) { _ ->
                 attempts.incrementAndGet()
                 throw IllegalStateException("Non-retryable exception")
             }

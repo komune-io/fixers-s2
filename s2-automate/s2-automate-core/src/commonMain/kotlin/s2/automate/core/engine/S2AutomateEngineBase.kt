@@ -47,25 +47,19 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
+    /**
+     * [prepareCreationContextForOutcomes] with legacy exception handling: any failure is
+     * routed through [handleException], which publishes the transition error and re-wraps
+     * non-[AutomateException] throws.
+     */
     protected suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT>
     prepareCreationContext(
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>,
         command: Envelope<COMMAND>
-    ): InitTransitionAppliedContext<STATE, ID, ENTITY_OUT, EVENT_OUT, S2Automate> {
-        return try {
-            val (entity, event) = decide(command)
-            val initTransitionContext = initTransitionContext(command.data)
-            guardExecutor.evaluateInit(initTransitionContext)
-            InitTransitionAppliedContext(
-                automateContext = automateContext,
-                msgId = command.id,
-                msg = command.data,
-                event = event.data,
-                entity = entity
-            )
-        } catch (e: Exception) {
-            handleException(command, e)
-        }
+    ): InitTransitionAppliedContext<STATE, ID, ENTITY_OUT, EVENT_OUT, S2Automate> = try {
+        prepareCreationContextForOutcomes(decide, command)
+    } catch (e: Exception) {
+        handleException(command, e)
     }
 
     /**
