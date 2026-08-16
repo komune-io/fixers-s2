@@ -13,7 +13,7 @@ class S2Documenter(
     val json: Json = Json { prettyPrint = true },
 ) {
 
-    fun recreateFile(name: String, outputFolder: String): Path {
+    fun recreateFile(name: String): Path {
         Files.createDirectories(Paths.get(outputFolder))
         val filePath = Paths.get(outputFolder, name)
         Files.deleteIfExists(filePath)
@@ -28,7 +28,7 @@ fun getDefaultOutputDirectory(): String {
 
 fun S2Documenter.writeS2Automate(s2: S2Automate): S2Documenter {
     val json = json.encodeToString(s2)
-    val file: Path = recreateFile("${s2.name}.json", outputFolder )
+    val file: Path = recreateFile("${s2.name}.json")
     FileWriter(file.toFile()).use { writer -> writer.write(json) }
     return this
 }

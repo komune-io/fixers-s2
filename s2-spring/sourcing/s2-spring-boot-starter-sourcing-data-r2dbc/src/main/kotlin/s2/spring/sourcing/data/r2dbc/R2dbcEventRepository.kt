@@ -38,14 +38,6 @@ EVENT: WithS2Id<ID>
 		Sort.Order.asc("created_date")
 	)
 
-	fun delete(id: Long?): Mono<Unit> {
-		return r2dbcEntityTemplate.delete(EventSourcing::class.java)
-			.from(tableName)
-			.matching(Query.query(Criteria.where("id").`is`(id!!)))
-			.all()
-			.then(Mono.just(Unit))
-	}
-
 	override suspend fun load(id: ID): Flow<EVENT> {
 		val query = Query
 			.query(Criteria.where("obj_id").`is`(id!!))
@@ -58,7 +50,6 @@ EVENT: WithS2Id<ID>
 
 	override suspend fun loadAll(): Flow<EVENT> {
 		val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
-			.sort(sortByCreatedDate)
 		return r2dbcEntityTemplate.select(EventSourcing::class.java)
 			.from(tableName)
 			.matching(query)

@@ -9,5 +9,3 @@ class AutomateException(
 	errors.toString(),
     cause
 )
-
-fun List<S2Error>.toString() = map { it.description }.reduce { desc1, desc2 -> "$desc1, $desc2" }

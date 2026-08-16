@@ -33,5 +33,3 @@ class OrderBookSnapView(
         return redisSnapView.delete<OrderBook>(id)
     }
 }
-
-fun String?.default(default: String) = this ?: default

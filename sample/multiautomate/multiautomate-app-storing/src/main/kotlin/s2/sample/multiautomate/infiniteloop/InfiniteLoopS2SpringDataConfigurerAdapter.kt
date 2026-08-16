@@ -9,7 +9,7 @@ import s2.spring.automate.data.S2SpringDataReactiveConfigurerAdapter
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 @Configuration
-class ApplicationS2SpringDataConfigurerAdapter(
+class InfiniteLoopS2SpringDataConfigurerAdapter(
 	repository: InfiniteLoopRepository,
 ) : S2SpringDataReactiveConfigurerAdapter<
 		InfiniteLoopState,
