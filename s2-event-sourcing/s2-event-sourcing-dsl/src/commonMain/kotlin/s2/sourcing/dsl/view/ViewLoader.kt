@@ -3,7 +3,6 @@ package s2.sourcing.dsl.view
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.fold
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import s2.dsl.automate.Evt
@@ -56,39 +55,24 @@ EVENT: WithS2Id<ID> {
 					}
 				}
 			)
-			.reducePerKeyOrdered(::load)
-			.mapNotNull { it }
+			.values.asFlow()
+			.mapNotNull { events -> load(events.asFlow()) }
 			.toList()
 	}
 
+	/**
+	 * Groups the flow's elements by key, keys in first-seen order, each group sorted with
+	 * [comparator] (a stable sort: elements the comparator ties keep their emission order).
+	 */
 	private suspend fun <T, K> Flow<T>.groupByOrdered(
 		keySelector: suspend (T) -> K,
 		comparator: Comparator<T>,
-	): LinkedHashMap<K, Flow<T>> {
-		val resultMap = linkedMapOf<K, MutableList<T>>()
-
-		// Collect all elements while preserving key insertion order
+	): Map<K, List<T>> {
+		val groups = linkedMapOf<K, MutableList<T>>()
 		collect { value ->
-			val key = keySelector(value)
-			val list = resultMap.getOrPut(key) { mutableListOf() }
-			list.add(value)
+			groups.getOrPut(keySelector(value)) { mutableListOf() }.add(value)
 		}
-
-		// Convert to LinkedHashMap with sorted values per group
-		return LinkedHashMap<K, Flow<T>>().apply {
-			resultMap.forEach { (key, values) ->
-				put(key, values.sortedWith(comparator).asFlow())
-			}
-		}
-	}
-
-	private fun <T, K, R> LinkedHashMap<K, Flow<T>>.reducePerKeyOrdered(
-		reduce: suspend (Flow<T>) -> R
-	): Flow<R> {
-		// LinkedHashMap.values preserves insertion order, no need to convert to list first
-		return this.values.asFlow().map { flow ->
-			reduce(flow)
-		}
+		return groups.mapValues { (_, values) -> values.sortedWith(comparator) }
 	}
 
 }

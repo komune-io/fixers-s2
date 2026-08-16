@@ -22,7 +22,7 @@ EVENT : Evt,
 EVENT : WithS2Id<ID> {
 
     suspend fun persist(event: EVENT): Pair<ENTITY, EVENT> {
-        return retryTaskChannel?.addToPersistQueue(event.s2Id(), event, ::persistSnap)
+        return retryTaskChannel?.addToPersistQueue(event, ::persistSnap)
             ?: persistSnap(event)
     }
 

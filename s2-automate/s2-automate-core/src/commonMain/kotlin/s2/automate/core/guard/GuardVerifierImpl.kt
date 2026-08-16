@@ -22,36 +22,42 @@ class GuardVerifierImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
 	ENTITY : WithS2Id<ID> {
 
 	override suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>) {
-		val result = guards.map { it.evaluateInit(context) }.flatten()
-		handleResult(result, context.msg)
+		runGuards(context.msg) { it.evaluateInit(context) }
 	}
 
 	override suspend fun <COMMAND: Cmd> evaluateTransition(
 		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
 	) {
-		val result = guards.map { it.evaluateTransition(context) }.flatten()
-		handleResult(result, context.command.data, context.from)
-	}
-
-	private fun List<GuardResult>.flatten(): GuardResult {
-		val errors = flatMap(GuardResult::errors)
-		return GuardResult.error(errors)
+		runGuards(context.command.data, context.from) { it.evaluateTransition(context) }
 	}
 
 	override suspend fun verifyInitTransition(
 		context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
 	): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
-		val result = guards.map { it.verifyInitTransition(context) }.flatten()
-		handleResult(result, context.msg)
+		runGuards(context.msg) { it.verifyInitTransition(context) }
 		return context
 	}
 
 	override suspend fun verifyTransition(
 		context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
 	): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
-		val result = guards.map { it.verifyTransition(context) }.flatten()
-		handleResult(result, context.msg, context.from)
+		runGuards(context.msg, context.from) { it.verifyTransition(context) }
 		return context
+	}
+
+	/** Runs [check] against every guard, merges the results and rejects the transition on any error. */
+	private suspend fun runGuards(
+		msg: Msg,
+		from: S2State? = null,
+		check: suspend (Guard<STATE, ID, ENTITY, EVENT, AUTOMATE>) -> GuardResult,
+	) {
+		val result = guards.map { check(it) }.flatten()
+		handleResult(result, msg, from)
+	}
+
+	private fun List<GuardResult>.flatten(): GuardResult {
+		val errors = flatMap(GuardResult::errors)
+		return GuardResult.error(errors)
 	}
 
 	private fun handleResult(
