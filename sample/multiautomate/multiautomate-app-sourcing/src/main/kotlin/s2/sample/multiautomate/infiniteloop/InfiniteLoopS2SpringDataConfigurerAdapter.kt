@@ -8,7 +8,7 @@ import s2.spring.automate.sourcing.S2AutomateDeciderSpring
 import s2.spring.sourcing.data.S2SourcingSpringDataAdapter
 
 @Configuration
-class ApplicationS2SpringDataConfigurerAdapter(
+class InfiniteLoopS2SpringDataConfigurerAdapter(
 	infiniteLoopS2Aggregate: InfiniteLoopS2Aggregate,
 	infiniteLoopS2View: InfiniteLoopS2View
 ) : S2SourcingSpringDataAdapter<

@@ -36,7 +36,7 @@ class S2DocumenterTest {
     fun `recreateFile should create parent directories and an empty file`(@TempDir tempDir: Path) {
         val outputFolder = tempDir.resolve("nested/output").toString()
 
-        val file = S2Documenter(outputFolder).recreateFile("automate.json", outputFolder)
+        val file = S2Documenter(outputFolder).recreateFile("automate.json")
 
         assertThat(file).exists()
         assertThat(Files.readAllBytes(file)).isEmpty()
@@ -49,7 +49,7 @@ class S2DocumenterTest {
         val existing = tempDir.resolve("automate.json")
         Files.writeString(existing, "old content")
 
-        val file = documenter.recreateFile("automate.json", outputFolder)
+        val file = documenter.recreateFile("automate.json")
 
         assertThat(file).exists()
         assertThat(Files.readString(file)).isEmpty()

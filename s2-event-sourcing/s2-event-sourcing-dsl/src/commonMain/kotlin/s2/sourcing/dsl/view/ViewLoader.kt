@@ -41,7 +41,6 @@ EVENT: WithS2Id<ID> {
 		}
 	}
 
-	// Solution 2: Using LinkedHashMap to preserve insertion order
 	override suspend fun reloadHistory(): List<ENTITY> {
 		return eventRepository.loadAll()
 			.groupByOrdered(
