@@ -1,6 +1,5 @@
 package s2.spring.automate.data.persister
 
-import f2.dsl.fnc.operators.batch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.toList
@@ -47,11 +46,8 @@ ENTITY : WithS2Id<ID> {
 	private fun <CONTEXT> Flow<CONTEXT>.saveAllBatched(
 		entityOf: (CONTEXT) -> ENTITY,
 		eventOf: (CONTEXT) -> EVENT,
-	): Flow<EVENT> = batch(batchParams.asBatch()) { contexts ->
-		val entities = contexts.map(entityOf)
-		val events = contexts.map(eventOf)
+	): Flow<EVENT> = saveAllBatched(batchParams.asBatch(), entityOf, eventOf) { entities ->
 		repository.saveAll(entities).asFlow().collect()
-		events
 	}
 
 }
