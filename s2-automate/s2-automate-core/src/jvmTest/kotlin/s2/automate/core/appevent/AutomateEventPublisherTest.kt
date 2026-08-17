@@ -41,17 +41,13 @@ class AutomateEventPublisherTest {
     private val cmd = CreateCmd("1")
 
     private fun allEvents(): List<AppEvent> = listOf(
-        AutomateStateEntered(TestState.Created),
         AutomateStateExited(TestState.Created),
         AutomateTransitionNotAccepted(TestState.Created, cmd),
         AutomateInitTransitionStarted(cmd),
-        AutomateInitTransitionEnded(TestState.Created, cmd, entity),
         AutomateTransitionStarted(TestState.Created, cmd),
         AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity),
         AutomateTransitionError(cmd, IllegalStateException("boom")),
-        AutomateSessionStarted(automate),
         AutomateSessionStopped(automate),
-        AutomateSessionError(automate, IllegalStateException("boom")),
         AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error("ERR", "desc")),
     )
 
@@ -62,21 +58,15 @@ class AutomateEventPublisherTest {
         events.forEach { event ->
             @Suppress("UNCHECKED_CAST")
             when (event) {
-                is AutomateStateEntered -> listener.automateStateEntered(event)
                 is AutomateStateExited -> listener.automateStateExited(event)
                 is AutomateTransitionNotAccepted -> listener.automateTransitionNotAccepted(event)
                 is AutomateInitTransitionStarted -> listener.automateInitTransitionStarted(event)
-                is AutomateInitTransitionEnded<*, *> ->
-                    listener.automateInitTransitionEnded(event as AutomateInitTransitionEnded<TestState, TestEntity>)
                 is AutomateTransitionStarted -> listener.automateTransitionStarted(event)
                 is AutomateTransitionEnded<*, *> ->
                     listener.automateTransitionEnded(event as AutomateTransitionEnded<TestState, TestEntity>)
                 is AutomateTransitionError -> listener.automateTransitionError(event)
-                is AutomateSessionStarted<*> ->
-                    listener.automateSessionStarted(event as AutomateSessionStarted<S2Automate>)
                 is AutomateSessionStopped<*> ->
                     listener.automateSessionStopped(event as AutomateSessionStopped<S2Automate>)
-                is AutomateSessionError -> listener.automateSessionError(event)
                 is AutomatePersistFailure -> listener.automatePersistFailure(event)
                 else -> error("Unhandled event $event")
             }
@@ -109,16 +99,8 @@ class AutomateEventPublisherTest {
         assertEquals(TestState.Created, notAccepted.from)
         assertEquals(cmd, notAccepted.msg)
 
-        val initEnded = AutomateInitTransitionEnded(TestState.Created, cmd, entity)
-        assertEquals(TestState.Created, initEnded.to)
-        assertEquals(entity, initEnded.entity)
-
         val ended = AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity)
         assertEquals(TestState.Created, ended.from)
         assertEquals(TestState.Active, ended.to)
-
-        val sessionError = AutomateSessionError(automate, null)
-        assertEquals(automate, sessionError.automate)
-        assertEquals(null, sessionError.exception)
     }
 }

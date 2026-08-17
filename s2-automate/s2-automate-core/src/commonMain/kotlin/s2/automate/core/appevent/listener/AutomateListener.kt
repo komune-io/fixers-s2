@@ -1,12 +1,8 @@
 package s2.automate.core.appevent.listener
 
-import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
-import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.persist.AutomatePersistFailure
-import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
-import s2.automate.core.appevent.AutomateStateEntered
 import s2.automate.core.appevent.AutomateStateExited
 import s2.automate.core.appevent.AutomateTransitionEnded
 import s2.automate.core.appevent.AutomateTransitionError
@@ -18,13 +14,6 @@ import s2.dsl.automate.model.WithS2State
 
 interface AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 		where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
-
-	/**
-	 * Notified when state is entered.
-	 *
-	 * @param state the state
-	 */
-	fun automateStateEntered(event: AutomateStateEntered)
 
 	/**
 	 * Notified when state is exited.
@@ -48,13 +37,6 @@ interface AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 	fun automateInitTransitionStarted(event: AutomateInitTransitionStarted)
 
 	/**
-	 * Notified when transition ended.
-	 *
-	 * @param transition the transition
-	 */
-	fun automateInitTransitionEnded(event: AutomateInitTransitionEnded<STATE, ENTITY>)
-
-	/**
 	 * Notified when transition started.
 	 *
 	 * @param transition the transition
@@ -76,26 +58,11 @@ interface AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 	fun automateTransitionError(event: AutomateTransitionError)
 
 	/**
-	 * Notified when statemachine starts
-	 *
-	 * @param stateMachine the statemachine
-	 */
-	fun automateSessionStarted(event: AutomateSessionStarted<AUTOMATE>)
-
-	/**
 	 * Notified when statemachine stops
 	 *
 	 * @param stateMachine the statemachine
 	 */
 	fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>)
-
-	/**
-	 * Notified when statemachine enters error it can't recover from.
-	 *
-	 * @param stateMachine the state machine
-	 * @param exception the exception
-	 */
-	fun automateSessionError(event: AutomateSessionError)
 
 	/**
 	 * Notified when a persist operation fails.

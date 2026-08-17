@@ -11,10 +11,9 @@ import s2.spring.automate.S2ConfigurerAdapter
 import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
-abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID: Any, ENTITY, EVENT, AGGREGATE>(
+abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID: Any, ENTITY, AGGREGATE>(
 	private val aggregateRepository: CoroutineCrudRepository<ENTITY, ID>,
 ) : S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where
-EVENT : Evt,
 STATE : S2State,
 ENTITY : Any,
 ENTITY : WithS2State<STATE>,
