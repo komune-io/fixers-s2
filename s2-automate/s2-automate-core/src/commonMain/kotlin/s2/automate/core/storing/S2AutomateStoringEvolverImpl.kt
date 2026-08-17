@@ -151,6 +151,15 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }
     }
 
+    /**
+     * Publishes the **raw domain event** for every [PersistOutcome.Success] and an
+     * [AutomatePersistFailure] for every [PersistOutcome.Failure].
+     *
+     * The raw event (not its [f2.dsl.cqrs.envelope.Envelope]) is the published payload on
+     * both the init and the transition path: application listeners subscribe to their domain
+     * event types (a Spring `@EventListener` on the domain event would never match an
+     * envelope payload), and the sourcing decider publishes raw events the same way.
+     */
     override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
@@ -162,15 +171,15 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
                 entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
             }
         ).onEach { envelopedOutcome ->
-            val outcome = envelopedOutcome.data
-            if (outcome is PersistOutcome.Success) {
-                publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
-            } else if (outcome is PersistOutcome.Failure) {
-                listener.automatePersistFailure(outcome.toAutomatePersistFailure())
-            }
+            publishOutcome(envelopedOutcome.data)
         }.map { it.data }
     }
 
+    /**
+     * Publishes the **raw domain event** for every [PersistOutcome.Success] and an
+     * [AutomatePersistFailure] for every [PersistOutcome.Failure] — same payload contract
+     * as the init-path overload, see its KDoc for the rationale.
+     */
     override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
@@ -182,13 +191,15 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
                 updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
             }
         ).onEach { envelopedOutcome ->
-            val outcome = envelopedOutcome.data
-            if (outcome is PersistOutcome.Success) {
-                publisher.publish(outcome.event as Any)
-            } else if (outcome is PersistOutcome.Failure) {
-                listener.automatePersistFailure(outcome.toAutomatePersistFailure())
-            }
+            publishOutcome(envelopedOutcome.data)
         }.map { it.data }
+    }
+
+    private fun publishOutcome(outcome: PersistOutcome<Evt>) {
+        when (outcome) {
+            is PersistOutcome.Success -> publisher.publish(outcome.event)
+            is PersistOutcome.Failure -> listener.automatePersistFailure(outcome.toAutomatePersistFailure())
+        }
     }
 
 }

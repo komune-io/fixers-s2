@@ -269,7 +269,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
     }
 
     @Test
-    fun `init path publishes mapped envelope (type=Evt)`() = runTest {
+    fun `init path publishes outcome event directly (not wrapped in envelope)`() = runTest {
         val pub = RecordingPublisher()
         val evolver = makeEvolver(
             initPattern = listOf(OutcomeKind.COMMITTED),
@@ -287,16 +287,15 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         assertEquals(1, pub.published.size, "exactly one publish for one Committed")
         val published = pub.published.first()
-        // init path: publisher.publish(envelopedOutcome.mapEnvelopeWithType({ outcome.event }, type = "Evt"))
-        assertTrue(
+        // init path aligned with the transition path: publish the raw domain event so that
+        // application listeners subscribed to their domain event types receive it.
+        assertFalse(
             published is Envelope<*>,
-            "init path must publish an Envelope, got: ${published::class.simpleName}"
+            "init path must publish the bare event (not an Envelope); got: ${published::class.simpleName}"
         )
-        val envelope = published as Envelope<*>
-        assertEquals("Evt", envelope.type, "envelope type must be 'Evt'")
         assertTrue(
-            envelope.data is Evt,
-            "envelope data must be the event, got: ${envelope.data}"
+            published is Evt,
+            "init path must publish the event directly; got: ${published::class.simpleName}"
         )
     }
 

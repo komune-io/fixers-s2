@@ -33,7 +33,9 @@ import kotlin.test.assertEquals
 /**
  * Verifies that [S2AutomateStoringEvolverImpl.evolveWithOutcomes] publishes
  * [AutomatePersistFailure] for every [PersistOutcome.Failure] produced by
- * the persister (symmetric to the Success-path publish).
+ * the persister (symmetric to the Success-path publish), and that Success
+ * outcomes publish the **raw domain event** — not its envelope — on both
+ * the init and the transition path.
  */
 class S2AutomateStoringEvolverImplFailurePublishTest {
 
@@ -157,6 +159,46 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         ).toList()
 
         assertEquals(0, pub.errorEvents.size, "success must not produce AutomatePersistFailure")
+    }
+
+    @Test
+    fun `Success outcomes publish the raw domain event on init path`() = runTest {
+        val pub = RecordingPublisher()
+        val evolver = makeEvolver(listOf(success()), pub)
+
+        evolver.evolveWithOutcomes(
+            commands = flowOf(CreateCmd("c1")),
+            idOf = { it.id },
+            build = { cmd: CreateCmd ->
+                TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
+            }
+        ).toList()
+
+        assertEquals(
+            listOf<Any>(CreatedEvt("e1")),
+            pub.successEvents,
+            "init path must publish the raw domain event, not its envelope",
+        )
+    }
+
+    @Test
+    fun `Success outcomes publish the raw domain event on transition path`() = runTest {
+        val pub = RecordingPublisher()
+        val evolver = makeEvolver(listOf(success()), pub)
+
+        evolver.evolveWithOutcomes(
+            commands = flowOf(DoCmd("c1")),
+            idOf = { it.id },
+            exec = { cmd: DoCmd, entity: TestEntity ->
+                entity to DoneEvt(cmd.id)
+            }
+        ).toList()
+
+        assertEquals(
+            listOf<Any>(CreatedEvt("e1")),
+            pub.successEvents,
+            "transition path must publish the raw domain event, not its envelope",
+        )
     }
 
     @Test
