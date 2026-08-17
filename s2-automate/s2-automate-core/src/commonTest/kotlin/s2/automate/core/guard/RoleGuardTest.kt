@@ -6,15 +6,16 @@ import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionContext
+import s2.automate.core.fixtures.CreateCmd
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestState
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2Role
 import s2.dsl.automate.S2RoleValue
-import s2.dsl.automate.S2State
 import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -22,20 +23,9 @@ import kotlin.test.assertTrue
 
 class RoleGuardTest {
 
-    enum class TestState(override val position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
     object Admin : S2Role
     object Owner : S2Role
 
-    data class TestEntity(val id: String, val state: TestState) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
     data class UndeclaredCmd(override val id: String) : S2Command<String>
 
     private val automate: S2Automate = s2 {

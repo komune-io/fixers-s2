@@ -14,15 +14,18 @@ import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.dsl.automate.S2Automate
 import s2.automate.core.engine.S2AutomateEngine
 import s2.automate.core.engine.S2AutomateOutcomeEngine
+import s2.automate.core.fixtures.CreateCmd
+import s2.automate.core.fixtures.CreatedEvt
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestState
 import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
-import s2.dsl.automate.S2State
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,24 +36,6 @@ import kotlin.test.assertEquals
  * the persister (symmetric to the Success-path publish).
  */
 class S2AutomateStoringEvolverImplFailurePublishTest {
-
-    // ---- domain fixtures ----
-
-    enum class TestState(override var position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    data class TestEntity(val id: String, val state: TestState) :
-        WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id() = id
-        override fun s2State() = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    data class CreatedEvt(val entityId: String) : Evt
-    data class DoneEvt(val entityId: String) : Evt
 
     // ---- stubs ----
 

@@ -1,4 +1,4 @@
-package s2.sample.orderbook.sourcing.app.mongodb
+package s2.sample.orderbook.sourcing.core
 
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.model.OrderBook

@@ -1,4 +1,4 @@
-package s2.sample.orderbook.sourcing.app.r2dbc.config
+package s2.sample.orderbook.sourcing.core.test
 
 import org.springframework.boot.test.util.TestPropertyValues
 import org.springframework.context.ApplicationContextInitializer

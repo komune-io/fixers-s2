@@ -9,6 +9,7 @@ import io.lettuce.core.json.JsonPath
 import io.lettuce.core.output.StatusOutput
 import io.lettuce.core.protocol.CommandArgs
 import io.lettuce.core.protocol.ProtocolKeyword
+import io.lettuce.core.search.SearchReply
 import io.lettuce.core.search.arguments.SearchArgs
 import io.lettuce.core.search.arguments.SortByArgs
 import kotlinx.coroutines.flow.Flow
@@ -121,9 +122,7 @@ class RedisSnapView(
 			val queryByTag = id(field, id)
 
 			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, queryByTag).awaitSingle()
-			val results = searchResult.results.mapNotNull { result ->
-				result.fields["$"]?.let { objectMapper.readValue<MODEL>(it) }
-			}
+			val results = searchResult.parseResults<MODEL>()
 			PageQueryResult(
 				total = searchResult.count.toInt(),
 				items = results,
@@ -150,9 +149,7 @@ class RedisSnapView(
 		val queryWithType = query?.trimToNull() ?: "*"
 
 		val searchResult = connection.ftSearch(MODEL::class.simpleName!!, queryWithType, searchArgs.build()).awaitSingle()
-		val results = searchResult.results.mapNotNull { result ->
-			result.fields["$"]?.let { objectMapper.readValue<MODEL>(it) }
-		}
+		val results = searchResult.parseResults<MODEL>()
 		PageQueryResult(
 			total = searchResult.count.toInt(),
 			items = results,
@@ -175,12 +172,17 @@ class RedisSnapView(
 			val connection = conn.reactive()
 			val searchArgs = SearchArgs.builder<String, String>().build()
 			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, "*", searchArgs).awaitSingle()
-			searchResult.results.mapNotNull { result ->
-				result.fields["$"]?.let { objectMapper.readValue<MODEL>(it) }
-			}.asFlow()
+			searchResult.parseResults<MODEL>().asFlow()
 		}
 
 	fun String.trimToNull() = if (this.trim() == "") null else this
+
+	/** Extracts the JSON documents (`$` field) of a search reply and deserializes them. */
+	@PublishedApi
+	internal inline fun <reified MODEL> SearchReply<String, String>.parseResults(): List<MODEL> =
+		results.mapNotNull { result ->
+			result.fields["$"]?.let { json -> objectMapper.readValue<MODEL>(json) }
+		}
 }
 
 object SearchCommand {

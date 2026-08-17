@@ -20,61 +20,29 @@ import s2.automate.core.appevent.AutomateTransitionEnded
 import s2.automate.core.appevent.AutomateTransitionError
 import s2.automate.core.appevent.AutomateTransitionStarted
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
+import s2.automate.core.fixtures.CreateCmd
+import s2.automate.core.fixtures.CreatedEvt
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestEvent
+import s2.automate.core.fixtures.TestState
+import s2.automate.core.fixtures.makeEngine
+import s2.automate.core.fixtures.testAutomate
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Command
-import s2.dsl.automate.S2InitCommand
-import s2.dsl.automate.S2Role
-import s2.dsl.automate.S2State
-import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 
 class S2AutomateEngineImplTest {
 
-    enum class TestState(override val position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    object TestRole : S2Role
-
-    data class TestEntity(val id: String, val state: TestState) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    sealed interface TestEvent {
-        val entityId: String
-    }
-
-    data class CreatedEvt(override val entityId: String) : TestEvent
-    data class DoneEvt(override val entityId: String) : TestEvent
-
-    private val automate: S2Automate = s2 {
-        name = "EngineTest"
-        init<CreateCmd> {
-            to = TestState.Created
-            role = TestRole
-        }
-        transaction<DoCmd> {
-            from = TestState.Created
-            to = TestState.Active
-            role = TestRole
-        }
-    }
+    private val automate: S2Automate = testAutomate("EngineTest")
 
     private class StubPersister(
         private val entities: Map<String, TestEntity>,
@@ -152,21 +120,18 @@ class S2AutomateEngineImplTest {
         eventMapper: (TestEvent) -> TestEvent = { it },
         persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
         omitMissingIds: Boolean = false,
-    ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> {
-        val automateContext = AutomateContext(automate, S2BatchProperties(size = 10))
-        val automatePublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
-        return S2AutomateEngineImpl(
-            automateContext,
-            guard,
-            StubPersister(
-                entities,
-                eventMapper = eventMapper,
-                persistDecorator = persistDecorator,
-                omitMissingIds = omitMissingIds,
-            ),
-            automatePublisher,
-        )
-    }
+    ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> = makeEngine(
+        StubPersister(
+            entities,
+            eventMapper = eventMapper,
+            persistDecorator = persistDecorator,
+            omitMissingIds = omitMissingIds,
+        ),
+        guard = guard,
+        publisher = publisher,
+        automate = automate,
+        batchSize = 10,
+    )
 
     @Test
     suspend fun `create decides guards and persists every command`() {

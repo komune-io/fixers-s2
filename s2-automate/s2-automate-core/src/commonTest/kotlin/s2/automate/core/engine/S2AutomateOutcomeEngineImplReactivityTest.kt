@@ -12,25 +12,20 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
-import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.context.TransitionContext
-import s2.automate.core.guard.GuardVerifier
+import s2.automate.core.fixtures.CreateCmd
+import s2.automate.core.fixtures.CreatedEvt
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestState
+import s2.automate.core.fixtures.makeOutcomeEngine
+import s2.automate.core.fixtures.testAutomate
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.PersistOutcome
-import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Command
-import s2.dsl.automate.S2InitCommand
-import s2.dsl.automate.S2State
-import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -43,58 +38,7 @@ import kotlin.test.assertTrue
  */
 class S2AutomateOutcomeEngineImplReactivityTest {
 
-    // ---- domain fixtures ----
-
-    enum class TestState(override var position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    object TestRole : s2.dsl.automate.S2Role
-
-    data class TestEntity(val id: String, val state: TestState) :
-        WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id() = id
-        override fun s2State() = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    data class CreatedEvt(val entityId: String)
-    data class DoneEvt(val entityId: String)
-
-    private val testAutomate: S2Automate = s2 {
-        name = "ReactivityTestAutomate"
-        init<CreateCmd> {
-            to = TestState.Created
-            role = TestRole
-        }
-        transaction<DoCmd> {
-            from = TestState.Created
-            to = TestState.Active
-            role = TestRole
-        }
-    }
-
     // ---- stub doubles ----
-
-    private class PassthroughGuard :
-        GuardVerifier<TestState, String, TestEntity, Any, S2Automate> {
-
-        override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) {}
-
-        override suspend fun <COMMAND : Cmd> evaluateTransition(
-            context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
-        ) {}
-
-        override suspend fun verifyInitTransition(
-            context: InitTransitionAppliedContext<TestState, String, TestEntity, Any, S2Automate>
-        ): InitTransitionAppliedContext<TestState, String, TestEntity, Any, S2Automate> = context
-
-        override suspend fun verifyTransition(
-            context: TransitionAppliedContext<TestState, String, TestEntity, Any, S2Automate>
-        ): TransitionAppliedContext<TestState, String, TestEntity, Any, S2Automate> = context
-    }
 
     /**
      * Counting persister that tracks how many times the batched [load(ids)] overload is called.
@@ -142,18 +86,11 @@ class S2AutomateOutcomeEngineImplReactivityTest {
         }
     }
 
-    private class NoopPublisher : AppEventPublisher {
-        override fun <EVENT> publish(event: EVENT & Any) {}
-    }
-
     private fun makeEngine(
         persister: AutomatePersister<TestState, String, TestEntity, Any, S2Automate>,
         batchSize: Int,
-    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, Any> {
-        val automateContext = AutomateContext(testAutomate, S2BatchProperties(size = batchSize))
-        val publisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(NoopPublisher())
-        return S2AutomateOutcomeEngineImpl(automateContext, PassthroughGuard(), persister, publisher)
-    }
+    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, Any> =
+        makeOutcomeEngine(persister, automate = testAutomate("ReactivityTestAutomate"), batchSize = batchSize)
 
     // ---- B.2 guard: single batched load per chunk ----
 
