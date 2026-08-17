@@ -55,9 +55,7 @@ class S2AutomateBuilder {
 	}
 
 	fun node(exec: S2NodeBuilder.() -> Unit) {
-		val builder = S2NodeBuilder()
-		builder.exec()
-		transactions.addAll(builder.transactions)
+		transactions.addAll(nodeTransitions(exec))
 	}
 }
 

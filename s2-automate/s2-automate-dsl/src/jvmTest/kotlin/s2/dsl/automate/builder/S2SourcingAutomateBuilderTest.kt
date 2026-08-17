@@ -97,8 +97,29 @@ class S2SourcingAutomateBuilderTest {
             }
         }
         assertThat(multi.transitions).hasSize(2)
-        // evt was not set explicitly: result stays null on the flow-transaction path
-        assertThat(multi.transitions.mapNotNull { it.result }).isEmpty()
+    }
+
+    @Test
+    fun `transaction defaults its result to the reified event type`() {
+        val automate = s2Sourcing {
+            name = "Default"
+            transaction<ValidateDraft, DraftValidated> {
+                from = DraftState.Submitted
+                to = DraftState.Validated
+                role = Issuer
+            }
+        }
+        val transition = automate.transitions.single()
+        assertThat(transition.result?.name).isEqualTo(DraftValidated::class.simpleName)
+    }
+
+    @Test
+    fun `version set in the builder is carried onto the automate`() {
+        val versioned = s2Sourcing {
+            name = "Versioned"
+            version = "1.2.3"
+        }
+        assertThat(versioned.version).isEqualTo("1.2.3")
     }
 
     @Test

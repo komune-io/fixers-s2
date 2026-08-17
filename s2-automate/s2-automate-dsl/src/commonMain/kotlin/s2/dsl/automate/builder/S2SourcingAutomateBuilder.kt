@@ -11,7 +11,7 @@ import s2.dsl.automate.toValue
 
 class S2SourcingAutomateBuilder {
 	lateinit var name: String
-	val version: String? = null
+	var version: String? = null
 	val transactions = mutableListOf<S2Transition>()
 
 	inline fun <reified CMD: S2InitCommand, reified EVT: Evt> init(exec: S2InitTransitionBuilder.() -> Unit) {
@@ -36,7 +36,7 @@ class S2SourcingAutomateBuilder {
 				to = builder.to.toValue(),
 				role = builder.role.toValue(),
 				action = CMD::class.toValue(),
-				result = builder.evt?.toValue(),
+				result = (builder.evt ?: EVT::class).toValue(),
 			).let(transactions::add)
 		}
 	}
@@ -56,9 +56,7 @@ class S2SourcingAutomateBuilder {
 	}
 
 	fun node(exec: S2NodeBuilder.() -> Unit) {
-		val builder = S2NodeBuilder()
-		builder.exec()
-		transactions.addAll(builder.transactions)
+		transactions.addAll(nodeTransitions(exec))
 	}
 }
 
