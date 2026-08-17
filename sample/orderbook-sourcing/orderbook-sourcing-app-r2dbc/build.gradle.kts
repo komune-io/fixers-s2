@@ -12,6 +12,7 @@ dependencies {
 	runtimeOnly(libs.postgresql)
 	runtimeOnly(libs.r2dbc.postgresql)
 
+	testImplementation(testFixtures(project(":sample:orderbook-sourcing:orderbook-sourcing-core")))
 	testImplementation(libs.bundles.testcontainers)
 	testImplementation(libs.bundles.testcontainers.postgres)
 	testImplementation(libs.spring.boot.starter.test)

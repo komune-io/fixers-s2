@@ -1,9 +1,9 @@
-package s2.sample.orderbook.sourcing.app.r2dbc
+package s2.sample.orderbook.sourcing.core
 
 import java.util.UUID
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
-import s2.sample.orderbook.sourcing.app.r2dbc.config.OrderBookS2Aggregate
+import s2.sample.orderbook.sourcing.core.config.OrderBookS2Aggregate
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.orderBook.OrderBookCloseCommand
 import s2.sample.subautomate.domain.orderBook.OrderBookClosedEvent

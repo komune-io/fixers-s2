@@ -11,13 +11,13 @@ import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.config.S2BatchProperties
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestEvent
+import s2.automate.core.fixtures.TestRole
+import s2.automate.core.fixtures.TestState
 import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Role
-import s2.dsl.automate.S2State
 import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -38,24 +38,6 @@ import kotlin.test.assertTrue
  * provided by the interface.
  */
 class AutomatePersisterLoadOutcomeDefaultsTest {
-
-    // ---- domain fixtures ----
-
-    private enum class TestState(override var position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    private object TestRole : S2Role
-
-    private data class TestEntity(
-        val id: String,
-        val state: TestState,
-    ) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    private sealed interface TestEvent { val entityId: String }
 
     private val testAutomate: S2Automate = s2 {
         name = "TestAutomate"

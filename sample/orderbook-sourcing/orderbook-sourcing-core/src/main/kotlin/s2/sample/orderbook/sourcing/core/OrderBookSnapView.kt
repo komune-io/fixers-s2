@@ -1,4 +1,4 @@
-package s2.sample.orderbook.sourcing.app.r2dbc
+package s2.sample.orderbook.sourcing.core
 
 import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.runBlocking

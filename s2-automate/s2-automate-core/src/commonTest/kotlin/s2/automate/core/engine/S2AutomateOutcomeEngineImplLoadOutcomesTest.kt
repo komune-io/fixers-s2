@@ -8,27 +8,20 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
-import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.context.TransitionContext
-import s2.automate.core.guard.GuardVerifier
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestEvent
+import s2.automate.core.fixtures.TestState
+import s2.automate.core.fixtures.makeOutcomeEngine
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.LoadOutcome
 import s2.automate.core.persist.PersistOutcome
-import s2.dsl.automate.Cmd
 import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Command
-import s2.dsl.automate.S2Role
-import s2.dsl.automate.S2State
-import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,56 +41,7 @@ import kotlin.test.assertTrue
  */
 class S2AutomateOutcomeEngineImplLoadOutcomesTest {
 
-    // ---- domain fixtures (local — convention in this repo's tests) ----
-
-    enum class TestState(override var position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    object TestRole : S2Role
-
-    data class TestEntity(
-        val id: String,
-        val state: TestState,
-    ) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    data class CreateCmd(val id: String) : s2.dsl.automate.S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    sealed interface TestEvent { val entityId: String }
-    data class DoneEvt(override val entityId: String) : TestEvent
-
-    private val testAutomate: S2Automate = s2 {
-        name = "TestAutomate"
-        init<CreateCmd> {
-            to = TestState.Created
-            role = TestRole
-        }
-        transaction<DoCmd> {
-            from = TestState.Created
-            to = TestState.Active
-            role = TestRole
-        }
-    }
-
     // ---- stub doubles ----
-
-    private class PassthroughGuardVerifier :
-        GuardVerifier<TestState, String, TestEntity, TestEvent, S2Automate> {
-        override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) {}
-        override suspend fun <COMMAND : Cmd> evaluateTransition(
-            context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
-        ) {}
-        override suspend fun verifyInitTransition(
-            context: InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>
-        ) = context
-        override suspend fun verifyTransition(
-            context: TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>
-        ) = context
-    }
 
     /**
      * Stub persister whose [loadWithOutcomes] is overridden to emit a scripted
@@ -168,18 +112,11 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
         ): TestEntity? = throw cause
     }
 
-    private class NoopPublisher : AppEventPublisher {
-        override fun <EVENT> publish(event: EVENT & Any) {}
-    }
-
     private fun makeEngine(
         persister: AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate>,
         batchSize: Int = 10,
-    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> {
-        val ctx = AutomateContext(testAutomate, S2BatchProperties(size = batchSize))
-        val pub = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(NoopPublisher())
-        return S2AutomateOutcomeEngineImpl(ctx, PassthroughGuardVerifier(), persister, pub)
-    }
+    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
+        makeOutcomeEngine(persister, batchSize = batchSize)
 
     private fun cmd(id: String) = DoCmd(id).asEnvelopeWithType("Cmd", id = id)
 

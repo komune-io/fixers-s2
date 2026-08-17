@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import s2.sample.orderbook.sourcing.app.r2dbc.config.SpringTestBase
+import s2.sample.orderbook.sourcing.core.OrderBookDeciderImpl
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.model.OrderBook
 import s2.sample.subautomate.domain.model.OrderBookId

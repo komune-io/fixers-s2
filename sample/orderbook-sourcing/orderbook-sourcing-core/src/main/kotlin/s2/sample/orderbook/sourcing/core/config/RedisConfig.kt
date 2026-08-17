@@ -1,4 +1,4 @@
-package s2.sample.orderbook.sourcing.app.mongodb.config
+package s2.sample.orderbook.sourcing.core.config
 
 import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
@@ -9,8 +9,10 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+// Explicitly open: this module does not apply the kotlin-spring (allopen) plugin,
+// and @Configuration classes must be subclassable for CGLIB proxying.
 @Configuration
-class RedisConfig {
+open class RedisConfig {
 
 	companion object {
 		private const val DEFAULT_REDIS_PORT = 6379
@@ -25,12 +27,12 @@ class RedisConfig {
 	private var redisPort: Int = DEFAULT_REDIS_PORT
 
 	@Bean
-	fun redisClient(): RedisClient {
+	open fun redisClient(): RedisClient {
 		return RedisClient.create("redis://$redisHost:$redisPort")
 	}
 
 	@Bean
-	fun redisConnectionPool(
+	open fun redisConnectionPool(
 		client: RedisClient
 	): GenericObjectPool<StatefulRedisConnection<String, String>> {
 		val poolConfig = GenericObjectPoolConfig<StatefulRedisConnection<String, String>>()

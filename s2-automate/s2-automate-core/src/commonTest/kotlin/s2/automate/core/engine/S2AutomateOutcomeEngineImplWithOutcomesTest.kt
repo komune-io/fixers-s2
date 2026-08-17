@@ -9,24 +9,24 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
+import s2.automate.core.fixtures.CreateCmd
+import s2.automate.core.fixtures.CreatedEvt
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestEvent
+import s2.automate.core.fixtures.TestState
+import s2.automate.core.fixtures.makeOutcomeEngine
 import s2.automate.core.guard.GuardVerifier
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Command
-import s2.dsl.automate.S2InitCommand
-import s2.dsl.automate.S2State
-import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,45 +41,6 @@ import kotlin.test.assertTrue
  * - size preservation through chunking (5 commands, batch.size=2 → 5 outcomes back)
  */
 class S2AutomateOutcomeEngineImplWithOutcomesTest {
-
-    // ---- domain fixtures ----
-
-    enum class TestState(override var position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    object TestRole : s2.dsl.automate.S2Role
-
-    data class TestEntity(
-        val id: String,
-        val state: TestState,
-    ) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    sealed interface TestEvent {
-        val entityId: String
-    }
-
-    data class CreatedEvt(override val entityId: String) : TestEvent
-    data class DoneEvt(override val entityId: String) : TestEvent
-
-    private val testAutomate: S2Automate = s2 {
-        name = "TestAutomate"
-        init<CreateCmd> {
-            to = TestState.Created
-            role = TestRole
-        }
-        transaction<DoCmd> {
-            from = TestState.Created
-            to = TestState.Active
-            role = TestRole
-        }
-    }
 
     // ---- stub doubles ----
 
@@ -203,11 +164,8 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         persister: StubPersister,
         publisher: RecordingAppEventPublisher,
         batchSize: Int = 2,
-    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> {
-        val automateContext = AutomateContext(testAutomate, S2BatchProperties(size = batchSize))
-        val automateEventPublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
-        return S2AutomateOutcomeEngineImpl(automateContext, guard, persister, automateEventPublisher)
-    }
+    ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
+        makeOutcomeEngine(persister, guard = guard, publisher = publisher, batchSize = batchSize)
 
     // ---- tests ----
 

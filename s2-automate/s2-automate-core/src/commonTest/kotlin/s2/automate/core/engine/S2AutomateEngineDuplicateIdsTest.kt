@@ -9,27 +9,21 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import s2.automate.core.appevent.publisher.AppEventPublisher
-import s2.automate.core.appevent.publisher.AutomateEventPublisher
-import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
-import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.context.TransitionAppliedContext
-import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
-import s2.automate.core.guard.GuardVerifier
+import s2.automate.core.fixtures.DoCmd
+import s2.automate.core.fixtures.DoneEvt
+import s2.automate.core.fixtures.TestEntity
+import s2.automate.core.fixtures.TestEvent
+import s2.automate.core.fixtures.TestState
+import s2.automate.core.fixtures.makeEngine
+import s2.automate.core.fixtures.makeOutcomeEngine
+import s2.automate.core.fixtures.testAutomate
 import s2.automate.core.persist.AutomatePersister
 import s2.automate.core.persist.PersistOutcome
-import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
-import s2.dsl.automate.S2Command
-import s2.dsl.automate.S2InitCommand
-import s2.dsl.automate.S2Role
-import s2.dsl.automate.S2State
-import s2.dsl.automate.builder.s2
-import s2.dsl.automate.model.WithS2Id
-import s2.dsl.automate.model.WithS2State
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -43,35 +37,7 @@ import kotlin.test.assertTrue
  */
 class S2AutomateEngineDuplicateIdsTest {
 
-    enum class TestState(override val position: Int) : S2State {
-        Created(0), Active(1)
-    }
-
-    object TestRole : S2Role
-
-    data class TestEntity(val id: String, val state: TestState) : WithS2Id<String>, WithS2State<TestState> {
-        override fun s2Id(): String = id
-        override fun s2State(): TestState = state
-    }
-
-    data class CreateCmd(val id: String) : S2InitCommand
-    data class DoCmd(override val id: String) : S2Command<String>
-
-    sealed interface TestEvent { val entityId: String }
-    data class DoneEvt(override val entityId: String) : TestEvent
-
-    private val automate: S2Automate = s2 {
-        name = "DuplicateIdsTest"
-        init<CreateCmd> {
-            to = TestState.Created
-            role = TestRole
-        }
-        transaction<DoCmd> {
-            from = TestState.Created
-            to = TestState.Active
-            role = TestRole
-        }
-    }
+    private val automate: S2Automate = testAutomate("DuplicateIdsTest")
 
     /**
      * Behaves like a real repository: `findAllById` returns one row per *distinct* id,
@@ -105,53 +71,20 @@ class S2AutomateEngineDuplicateIdsTest {
         }
     }
 
-    private class PassthroughGuardVerifier :
-        GuardVerifier<TestState, String, TestEntity, TestEvent, S2Automate> {
-        override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) = Unit
-        override suspend fun <COMMAND : Cmd> evaluateTransition(
-            context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
-        ) = Unit
-
-        override suspend fun verifyInitTransition(
-            context: InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>
-        ) = context
-
-        override suspend fun verifyTransition(
-            context: TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>
-        ) = context
-    }
-
-    private class NoopPublisher : AppEventPublisher {
-        override fun <EVENT> publish(event: EVENT & Any) = Unit
-    }
-
     private val entities = mapOf(
         "1" to TestEntity("1", TestState.Created),
         "2" to TestEntity("2", TestState.Created),
     )
 
-    private fun automateContext(batchSize: Int) =
-        AutomateContext(automate, S2BatchProperties(size = batchSize, concurrency = 1))
-
     private fun engine(
         persister: DedupingPersister,
         batchSize: Int = 10,
-    ) = S2AutomateEngineImpl(
-        automateContext(batchSize),
-        PassthroughGuardVerifier(),
-        persister,
-        AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(NoopPublisher()),
-    )
+    ) = makeEngine(persister, automate = automate, batchSize = batchSize, concurrency = 1)
 
     private fun outcomeEngine(
         persister: DedupingPersister,
         batchSize: Int = 10,
-    ) = S2AutomateOutcomeEngineImpl(
-        automateContext(batchSize),
-        PassthroughGuardVerifier(),
-        persister,
-        AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(NoopPublisher()),
-    )
+    ) = makeOutcomeEngine(persister, automate = automate, batchSize = batchSize, concurrency = 1)
 
     // ---- doTransition: whole batch rejected ----
 
