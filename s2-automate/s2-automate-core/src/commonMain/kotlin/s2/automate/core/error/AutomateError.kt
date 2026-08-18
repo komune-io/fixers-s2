@@ -69,22 +69,6 @@ fun persistLambdaThrowError(cause: Throwable) =
         cause = cause,
     )
 
-@Deprecated("Use unknownError", ReplaceWith("unknownError(e)"))
-@Suppress("FunctionNaming", "kotlin:S100")
-fun ERROR_UNKNOWN(e: Exception) = unknownError(e)
-
-@Deprecated("Use invalidTransitionError", ReplaceWith("invalidTransitionError(state, command)"))
-@Suppress("FunctionNaming", "kotlin:S100")
-fun ERROR_INVALID_TRANSITION(state: String, command: String) = invalidTransitionError(state, command)
-
-@Deprecated("Use entityNotFoundError", ReplaceWith("entityNotFoundError(id)"))
-@Suppress("FunctionNaming", "kotlin:S100")
-fun ERROR_ENTITY_NOT_FOUND(id: String) = entityNotFoundError(id)
-
-@Deprecated("Use persistLambdaThrowError", ReplaceWith("persistLambdaThrowError(cause)"))
-@Suppress("FunctionNaming", "kotlin:S100")
-fun ERROR_PERSIST_LAMBDA_THROW(cause: Throwable) = persistLambdaThrowError(cause)
-
 fun S2Error.asException() = AutomateException(listOf(this), this.cause)
 
 fun S2Error.throwException() {

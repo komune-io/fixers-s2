@@ -57,19 +57,6 @@ class AutomateErrorTest {
     }
 
     @Test
-    @Suppress("DEPRECATION")
-    fun `deprecated ERROR_ shims delegate to the renamed functions`() {
-        val cause = IllegalStateException("boom")
-        assertEquals(unknownError(cause).type, ERROR_UNKNOWN(cause).type)
-        assertEquals(
-            invalidTransitionError("Created", "DoCmd").payload,
-            ERROR_INVALID_TRANSITION("Created", "DoCmd").payload
-        )
-        assertEquals(entityNotFoundError("42").payload, ERROR_ENTITY_NOT_FOUND("42").payload)
-        assertEquals(persistLambdaThrowError(cause).description, ERROR_PERSIST_LAMBDA_THROW(cause).description)
-    }
-
-    @Test
     fun `asException builds an AutomateException carrying the error`() {
         val cause = IllegalStateException("boom")
         val exception = s2error("CODE", "desc", cause = cause).asException()

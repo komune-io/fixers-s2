@@ -69,6 +69,22 @@ fun testAutomate(automateName: String = "TestAutomate"): S2Automate = s2 {
     }
 }
 
+/**
+ * Variant of [testAutomate] whose `DoCmd` transition loops back to [TestState.Created]:
+ * used to pin that a self-transition neither exits nor enters a state.
+ */
+fun selfTransitionAutomate(automateName: String = "SelfTransitionAutomate"): S2Automate = s2 {
+    name = automateName
+    init<CreateCmd> {
+        to = TestState.Created
+        role = TestRole
+    }
+    selfTransaction<DoCmd> {
+        states += TestState.Created
+        role = TestRole
+    }
+}
+
 /** Guard that always passes — used for non-guard failure scenarios. */
 class PassthroughGuard<EVENT> : GuardVerifier<TestState, String, TestEntity, EVENT, S2Automate> {
 
@@ -89,6 +105,16 @@ class PassthroughGuard<EVENT> : GuardVerifier<TestState, String, TestEntity, EVE
 
 class NoopPublisher : AppEventPublisher {
     override fun <EVENT> publish(event: EVENT & Any) = Unit
+}
+
+/** Collects every published app event so tests can assert on what the engine emitted. */
+class RecordingPublisher : AppEventPublisher {
+    val published = mutableListOf<Any>()
+    override fun <EVENT> publish(event: EVENT & Any) {
+        published.add(event)
+    }
+
+    inline fun <reified EVENT : Any> eventsOf(): List<EVENT> = published.filterIsInstance<EVENT>()
 }
 
 fun <EVENT> makeEngine(

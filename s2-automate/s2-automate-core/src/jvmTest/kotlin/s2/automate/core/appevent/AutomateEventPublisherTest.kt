@@ -117,8 +117,9 @@ class AutomateEventPublisherTest {
         assertEquals(TestState.Created, ended.from)
         assertEquals(TestState.Active, ended.to)
 
-        val sessionError = AutomateSessionError(automate, null)
+        val boom = IllegalStateException("boom")
+        val sessionError = AutomateSessionError(automate, boom)
         assertEquals(automate, sessionError.automate)
-        assertEquals(null, sessionError.exception)
+        assertSame(boom, sessionError.exception)
     }
 }
