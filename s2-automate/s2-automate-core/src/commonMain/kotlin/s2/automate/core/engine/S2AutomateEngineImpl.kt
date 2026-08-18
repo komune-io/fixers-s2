@@ -92,12 +92,22 @@ ENTITY : WithS2Id<ID> {
     private suspend fun persistInit(
         contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): EnvelopedFlow<EVENT> {
+        // [AutomatePersister.persistInit] emits one event per received context, in the same
+        // order, so contexts are correlated to their persisted event positionally — same
+        // contract doTransition relies on. The queue keeps only the contexts the persister
+        // has consumed but not yet answered, so a batching persister still pairs correctly
+        // without buffering the whole flow.
+        val awaitingPersist = ArrayDeque<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
         return contexts.map {
             guardExecutor.verifyInitTransition(it)
+            awaitingPersist.addLast(it)
             it
         }.let {
-            persister.persistInit(it).mapToEnvelopeWithRandomId(type = "Evt")
-        }
+            persister.persistInit(it)
+        }.map { event ->
+            awaitingPersist.removeFirstOrNull()?.let(::sendEndInitTransitionEvent)
+            event
+        }.mapToEnvelopeWithRandomId(type = "Evt")
     }
 
     private suspend fun persist(

@@ -97,7 +97,14 @@ ENTITY : WithS2Id<ID> {
         successCtxs: List<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): List<PersistOutcome<EVENT>> {
         if (successCtxs.isEmpty()) return emptyList()
-        return persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }
+        val ctxByMsgId = successCtxs.associateBy { it.msgId }
+        return persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }.also { outcomes ->
+            outcomes.forEach { outcome ->
+                if (outcome is PersistOutcome.Success) {
+                    ctxByMsgId[outcome.msgId]?.let(::sendEndInitTransitionEvent)
+                }
+            }
+        }
     }
 
     private suspend fun <COMMAND : S2Command<ID>, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT> partitionTransitions(

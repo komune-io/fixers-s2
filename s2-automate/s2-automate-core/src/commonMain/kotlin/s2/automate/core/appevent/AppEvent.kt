@@ -7,6 +7,15 @@ import s2.dsl.automate.model.WithS2State
 interface AppEvent
 
 /**
+ * Notification when state is entered.
+ *
+ * @param state the state
+ */
+class AutomateStateEntered(
+	val state: S2State,
+) : AppEvent
+
+/**
  * Notification when state is exited.
  *
  * @param state the state
@@ -33,6 +42,18 @@ class AutomateTransitionNotAccepted(
 class AutomateInitTransitionStarted(
 	val msg: Msg,
 ) : AppEvent
+
+/**
+ * Notification when init transition ended.
+ *
+ * @param transition the transition
+ */
+class AutomateInitTransitionEnded<STATE, ENTITY>(
+	val to: STATE,
+	val msg: Msg,
+	val entity: ENTITY,
+) : AppEvent
+		where STATE : S2State, ENTITY : WithS2State<STATE>
 
 /**
  * Notification when transition started.
@@ -65,6 +86,15 @@ class AutomateTransitionEnded<STATE, ENTITY>(
 class AutomateTransitionError(
 	val msg: Msg,
 	val exception: Exception,
+) : AppEvent
+
+/**
+ * Notification when automate starts
+ *
+ * @param automate the automate
+ */
+class AutomateSessionStarted<AUTOMATE>(
+	val automate: AUTOMATE,
 ) : AppEvent
 
 /**

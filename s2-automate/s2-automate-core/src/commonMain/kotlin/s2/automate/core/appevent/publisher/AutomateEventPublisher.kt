@@ -1,8 +1,11 @@
 package s2.automate.core.appevent.publisher
 
+import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
 import s2.automate.core.persist.AutomatePersistFailure
+import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
+import s2.automate.core.appevent.AutomateStateEntered
 import s2.automate.core.appevent.AutomateStateExited
 import s2.automate.core.appevent.AutomateTransitionEnded
 import s2.automate.core.appevent.AutomateTransitionError
@@ -18,6 +21,10 @@ class AutomateEventPublisher<STATE, ID, ENTITY, AUTOMATE>(
 ): AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
+	override fun automateStateEntered(event: AutomateStateEntered) {
+		publisher.publish(event)
+	}
+
 	override fun automateStateExited(event: AutomateStateExited) {
 		publisher.publish(event)
 	}
@@ -30,6 +37,10 @@ where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 		publisher.publish(event)
 	}
 
+	override fun automateInitTransitionEnded(event: AutomateInitTransitionEnded<STATE, ENTITY>) {
+		publisher.publish(event)
+	}
+
 	override fun automateTransitionStarted(event: AutomateTransitionStarted) {
 		publisher.publish(event)
 	}
@@ -39,6 +50,10 @@ where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 	}
 
 	override fun automateTransitionError(event: AutomateTransitionError) {
+		publisher.publish(event)
+	}
+
+	override fun automateSessionStarted(event: AutomateSessionStarted<AUTOMATE>) {
 		publisher.publish(event)
 	}
 
