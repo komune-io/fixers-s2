@@ -287,8 +287,6 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
         assertEquals(1, pub.published.size, "exactly one publish for one Committed")
         val published = pub.published.first()
-        // init path aligned with the transition path: publish the raw domain event so that
-        // application listeners subscribed to their domain event types receive it.
         assertFalse(
             published is Envelope<*>,
             "init path must publish the bare event (not an Envelope); got: ${published::class.simpleName}"

@@ -175,11 +175,6 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
         }.map { it.data }
     }
 
-    /**
-     * Publishes the **raw domain event** for every [PersistOutcome.Success] and an
-     * [AutomatePersistFailure] for every [PersistOutcome.Failure] — same payload contract
-     * as the init-path overload, see its KDoc for the rationale.
-     */
     override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
