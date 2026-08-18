@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
+import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateEntered
@@ -52,8 +53,8 @@ ENTITY : WithS2Id<ID> {
 
     /**
      * [prepareCreationContextForOutcomes] with legacy exception handling: any failure is
-     * routed through [handleException], which publishes the transition error and re-wraps
-     * non-[AutomateException] throws.
+     * routed through [handleException], which publishes the transition and session errors
+     * and re-wraps non-[AutomateException] throws.
      */
     protected suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT>
     prepareCreationContext(
@@ -280,10 +281,23 @@ ENTITY : WithS2Id<ID> {
         }
     }
 
+    /**
+     * Single error funnel of the legacy (throwing) engine paths. Publishes the command-level
+     * [AutomateTransitionError] and the session-level [AutomateSessionError] before rethrowing.
+     *
+     * The outcomes engine does NOT route through here: it classifies failures per command into
+     * [PersistOutcome] values instead of throwing, so neither error event fires on that path.
+     */
     protected fun <T> handleException(command: Envelope<out Message>, e: Exception): T {
         publisher.automateTransitionError(
             AutomateTransitionError(
                 msg = command.data,
+                exception = e
+            )
+        )
+        publisher.automateSessionError(
+            AutomateSessionError(
+                automate = automateContext.automate,
                 exception = e
             )
         )

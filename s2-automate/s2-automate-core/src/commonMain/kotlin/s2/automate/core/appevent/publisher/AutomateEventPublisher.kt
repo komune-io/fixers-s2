@@ -2,6 +2,7 @@ package s2.automate.core.appevent.publisher
 
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
+import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
@@ -58,6 +59,10 @@ where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 	}
 
 	override fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>) {
+		publisher.publish(event)
+	}
+
+	override fun automateSessionError(event: AutomateSessionError) {
 		publisher.publish(event)
 	}
 

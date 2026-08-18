@@ -2,6 +2,7 @@ package s2.automate.core.appevent.listener
 
 import s2.automate.core.appevent.AutomateInitTransitionEnded
 import s2.automate.core.appevent.AutomateInitTransitionStarted
+import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.persist.AutomatePersistFailure
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
@@ -87,6 +88,14 @@ interface AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 	 * @param stateMachine the statemachine
 	 */
 	fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>)
+
+	/**
+	 * Notified when statemachine enters error it can't recover from.
+	 *
+	 * @param stateMachine the state machine
+	 * @param exception the exception
+	 */
+	fun automateSessionError(event: AutomateSessionError)
 
 	/**
 	 * Notified when a persist operation fails.

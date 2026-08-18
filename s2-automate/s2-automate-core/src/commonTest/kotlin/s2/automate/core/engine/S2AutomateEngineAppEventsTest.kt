@@ -8,12 +8,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.AutomateInitTransitionEnded
+import s2.automate.core.appevent.AutomateSessionError
 import s2.automate.core.appevent.AutomateSessionStarted
 import s2.automate.core.appevent.AutomateSessionStopped
 import s2.automate.core.appevent.AutomateStateEntered
 import s2.automate.core.appevent.AutomateStateExited
 import s2.automate.core.appevent.AutomateTransitionEnded
+import s2.automate.core.appevent.AutomateTransitionError
 import s2.automate.core.context.AutomateContext
+import s2.automate.core.error.AutomateException
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.fixtures.CreateCmd
@@ -34,6 +37,8 @@ import s2.dsl.automate.S2Automate
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -228,5 +233,51 @@ class S2AutomateEngineAppEventsTest {
         assertEquals(0, publisher.eventsOf<AutomateStateExited>().size)
         assertEquals(0, publisher.eventsOf<AutomateStateEntered>().size)
         assertEquals(1, publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
+    }
+
+    // ---- error funnel ----
+
+    @Test
+    fun `a failing command publishes transition error and session error exactly once`() = runTest {
+        val publisher = RecordingPublisher()
+        val automate = testAutomate("ErroringAutomate")
+        val engine = makeEngine(EchoPersister(), publisher = publisher, automate = automate)
+        val boom = IllegalStateException("decide blew up")
+
+        // handleException re-wraps the non-AutomateException throw before rethrowing it,
+        // but the published events must carry the original exception.
+        assertFailsWith<AutomateException> {
+            engine.create<CreateCmd, TestEntity, TestEvent>(createCommands("1")) { throw boom }.toList()
+        }
+
+        val transitionErrors = publisher.eventsOf<AutomateTransitionError>()
+        assertEquals(1, transitionErrors.size)
+        assertSame(boom, transitionErrors.single().exception)
+
+        val sessionErrors = publisher.eventsOf<AutomateSessionError>()
+        assertEquals(1, sessionErrors.size)
+        assertSame(automate, sessionErrors.single().automate)
+        assertSame(boom, sessionErrors.single().exception)
+    }
+
+    /**
+     * Pins the asymmetry: the outcomes engine classifies failures into [PersistOutcome] values
+     * instead of throwing, so it never routes through `handleException` and publishes neither
+     * error event. Wiring [AutomateSessionError] there would fire once per failed command in a
+     * batch that the caller already sees as ordinary per-item outcomes.
+     */
+    @Test
+    fun `createWithOutcomes publishes no transition error nor session error`() = runTest {
+        val publisher = RecordingPublisher()
+        val engine = makeOutcomeEngine(EchoPersister(), publisher = publisher)
+        val boom = IllegalStateException("decide blew up")
+
+        val outcomes = engine
+            .createWithOutcomes<CreateCmd, TestEntity, TestEvent>(createCommands("1")) { throw boom }
+            .toList()
+
+        assertEquals(1, outcomes.filter { it.data is PersistOutcome.Indeterminate }.size)
+        assertEquals(0, publisher.eventsOf<AutomateTransitionError>().size)
+        assertEquals(0, publisher.eventsOf<AutomateSessionError>().size)
     }
 }

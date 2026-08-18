@@ -51,6 +51,7 @@ class AutomateEventPublisherTest {
         AutomateTransitionError(cmd, IllegalStateException("boom")),
         AutomateSessionStarted(automate),
         AutomateSessionStopped(automate),
+        AutomateSessionError(automate, IllegalStateException("boom")),
         AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error("ERR", "desc")),
     )
 
@@ -75,6 +76,7 @@ class AutomateEventPublisherTest {
                     listener.automateSessionStarted(event as AutomateSessionStarted<S2Automate>)
                 is AutomateSessionStopped<*> ->
                     listener.automateSessionStopped(event as AutomateSessionStopped<S2Automate>)
+                is AutomateSessionError -> listener.automateSessionError(event)
                 is AutomatePersistFailure -> listener.automatePersistFailure(event)
                 else -> error("Unhandled event $event")
             }
@@ -114,5 +116,10 @@ class AutomateEventPublisherTest {
         val ended = AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity)
         assertEquals(TestState.Created, ended.from)
         assertEquals(TestState.Active, ended.to)
+
+        val boom = IllegalStateException("boom")
+        val sessionError = AutomateSessionError(automate, boom)
+        assertEquals(automate, sessionError.automate)
+        assertSame(boom, sessionError.exception)
     }
 }

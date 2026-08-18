@@ -1,6 +1,7 @@
 package s2.automate.core.appevent
 
 import s2.dsl.automate.Msg
+import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
@@ -104,4 +105,15 @@ class AutomateSessionStarted<AUTOMATE>(
  */
 class AutomateSessionStopped<AUTOMATE>(
 	val automate: AUTOMATE,
+) : AppEvent
+
+/**
+ * Notification when automate enters error.
+ *
+ * @param automate the automate
+ * @param exception the exception
+ */
+class AutomateSessionError(
+	val automate: S2Automate,
+	val exception: Exception,
 ) : AppEvent
