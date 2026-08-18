@@ -27,7 +27,6 @@ tasks {
 
 fixers {
 	bundle {
-		id = "s2"
 		group = "io.komune.s2"
 		name = "S2"
 		description = "Fixers S2"
