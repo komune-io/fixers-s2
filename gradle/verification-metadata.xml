@@ -283,6 +283,11 @@
             <pgp value="41CD49B4EF5876F9E9F691DABAC30622339994C4"/>
          </artifact>
       </component>
+      <component group="org.jspecify" name="jspecify" version="1.0.1">
+         <artifact name="jspecify-1.0.1.jar">
+            <pgp value="41CD49B4EF5876F9E9F691DABAC30622339994C4"/>
+         </artifact>
+      </component>
       <component group="org.objenesis" name="objenesis" version="3.3">
          <artifact name="objenesis-3.3.jar">
             <pgp value="E85AED155021AF8A6C6B7A4A7C7D8456294423BA"/>
