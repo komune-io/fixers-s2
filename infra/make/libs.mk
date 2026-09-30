@@ -9,10 +9,10 @@ lint:
 	./gradlew detekt
 
 build:
-	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test
+	VERSION=$(VERSION) ./gradlew clean build publishToMavenLocal -x test -x jvmTest -x jsTest -x jsBrowserTest
 
 test:
-	./gradlew test
+	./gradlew allTests test
 
 check:
 	VERSION=$(VERSION) ./gradlew sonar
