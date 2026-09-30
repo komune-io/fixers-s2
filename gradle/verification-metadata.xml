@@ -32,6 +32,7 @@
             <trusting group="org.apache.commons"/>
          </trusted-key>
          <trusted-key id="33FD4BFD33554634053D73C0C2148900BCD3C2AF" group="^org[.]jetbrains($|([.].*))" regex="true"/>
+         <trusted-key id="41CD49B4EF5876F9E9F691DABAC30622339994C4" group="org.jspecify" name="jspecify"/>
          <trusted-key id="48B086A7D843CFA258E83286928FBF39003C0425">
             <trusting group="io.micrometer"/>
             <trusting group="^io[.]projectreactor($|([.].*))" regex="true"/>
@@ -105,6 +106,11 @@
       </component>
       <component group="com.nimbusds" name="nimbus-jose-jwt" version="10.9">
          <artifact name="nimbus-jose-jwt-10.9.jar">
+            <pgp value="82F0964816AD7319CB0CCCF93EFD9D223D715E9A"/>
+         </artifact>
+      </component>
+      <component group="com.nimbusds" name="nimbus-jose-jwt" version="10.9.1">
+         <artifact name="nimbus-jose-jwt-10.9.1.jar">
             <pgp value="82F0964816AD7319CB0CCCF93EFD9D223D715E9A"/>
          </artifact>
       </component>
@@ -280,6 +286,11 @@
       </component>
       <component group="org.jspecify" name="jspecify" version="1.0.0">
          <artifact name="jspecify-1.0.0.jar">
+            <pgp value="41CD49B4EF5876F9E9F691DABAC30622339994C4"/>
+         </artifact>
+      </component>
+      <component group="org.jspecify" name="jspecify" version="1.0.1">
+         <artifact name="jspecify-1.0.1.jar">
             <pgp value="41CD49B4EF5876F9E9F691DABAC30622339994C4"/>
          </artifact>
       </component>
