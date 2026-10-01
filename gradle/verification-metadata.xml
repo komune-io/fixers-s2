@@ -238,6 +238,11 @@
             <pgp value="B41089A2DA79B0FA5810252872385FF0AF338D52"/>
          </artifact>
       </component>
+      <component group="joda-time" name="joda-time" version="2.14.1">
+         <artifact name="joda-time-2.14.1.jar">
+            <pgp value="B41089A2DA79B0FA5810252872385FF0AF338D52"/>
+         </artifact>
+      </component>
       <component group="net.jodah" name="typetools" version="0.6.3">
          <artifact name="typetools-0.6.3.jar">
             <pgp value="16FFFF8AD10219BC78B42B18243FBB4D5814C621"/>
