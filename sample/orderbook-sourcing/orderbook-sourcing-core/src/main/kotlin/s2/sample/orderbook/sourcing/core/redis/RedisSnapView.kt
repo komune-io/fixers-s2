@@ -163,7 +163,10 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> count(): Long =
 		searchConnection.withConnection { conn ->
-			conn.commands(RedisReactiveCommands.factory()).ftSearch(MODEL::class.simpleName!!, "*").map { it.count }.awaitSingle()
+			conn.commands(RedisReactiveCommands.factory())
+				.ftSearch(MODEL::class.simpleName!!, "*")
+				.map { it.count }
+				.awaitSingle()
 		}
 
 	// S6309: the whole search must run inside withConnection, the flow is materialized before returning.
