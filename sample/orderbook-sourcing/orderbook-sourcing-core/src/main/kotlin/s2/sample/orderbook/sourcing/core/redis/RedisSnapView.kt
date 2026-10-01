@@ -3,6 +3,7 @@ package s2.sample.orderbook.sourcing.core.redis
 import f2.dsl.cqrs.page.OffsetPagination
 import f2.dsl.cqrs.page.PageQueryResult
 import io.lettuce.core.api.StatefulRedisConnection
+import io.lettuce.core.api.reactive.RedisReactiveCommands
 import io.lettuce.core.codec.StringCodec
 import io.lettuce.core.json.DefaultJsonParser
 import io.lettuce.core.json.JsonPath
@@ -36,7 +37,7 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> get(id: String): MODEL? =
 		searchConnection.withConnection { conn ->
-			val reactive = conn.reactive()
+			val reactive = conn.commands(RedisReactiveCommands.factory())
 			reactive.jsonGet(buildId<MODEL>(id))
 				.awaitFirstOrNull()?.let { value ->
 					if (value.isNull) null else objectMapper.readValue<MODEL>(value.toString())
@@ -45,7 +46,7 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> delete(id: String): Boolean =
 		searchConnection.withConnection { conn ->
-			conn.reactive().jsonDel(buildId<MODEL>(id)).awaitSingleOrNull()
+			conn.commands(RedisReactiveCommands.factory()).jsonDel(buildId<MODEL>(id)).awaitSingleOrNull()
 			true
 		}
 
@@ -53,7 +54,7 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> save(id: String, entity: MODEL): MODEL =
 		searchConnection.withConnection { conn ->
-			val reactive = conn.reactive()
+			val reactive = conn.commands(RedisReactiveCommands.factory())
 			val json = objectMapper.valueToTree<ObjectNode>(entity).apply {
 				put(TYPE, MODEL::class.simpleName)
 			}.toString()
@@ -118,7 +119,7 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> searchById(field: String, id: String): PageQueryResult<MODEL> =
 		searchConnection.withConnection { conn ->
-			val connection = conn.reactive()
+			val connection = conn.commands(RedisReactiveCommands.factory())
 			val queryByTag = id(field, id)
 
 			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, queryByTag).awaitSingle()
@@ -138,7 +139,7 @@ class RedisSnapView(
 		pagination: OffsetPagination?,
 		sortBy: String?
 	): PageQueryResult<MODEL> = searchConnection.withConnection { conn ->
-		val connection = conn.reactive()
+		val connection = conn.commands(RedisReactiveCommands.factory())
 		val searchArgs = SearchArgs.builder<String>()
 
 		val pp = pagination ?: OffsetPagination(offset = 0, limit = 10000)
@@ -162,14 +163,14 @@ class RedisSnapView(
 
 	suspend inline fun <reified MODEL> count(): Long =
 		searchConnection.withConnection { conn ->
-			conn.reactive().ftSearch(MODEL::class.simpleName!!, "*").map { it.count }.awaitSingle()
+			conn.commands(RedisReactiveCommands.factory()).ftSearch(MODEL::class.simpleName!!, "*").map { it.count }.awaitSingle()
 		}
 
 	// S6309: the whole search must run inside withConnection, the flow is materialized before returning.
 	@Suppress("kotlin:S6309")
 	suspend inline fun <reified MODEL> all(): Flow<MODEL> =
 		searchConnection.withConnection { conn ->
-			val connection = conn.reactive()
+			val connection = conn.commands(RedisReactiveCommands.factory())
 			val searchArgs = SearchArgs.builder<String>().build()
 			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, "*", searchArgs).awaitSingle()
 			searchResult.parseResults<MODEL>().asFlow()
