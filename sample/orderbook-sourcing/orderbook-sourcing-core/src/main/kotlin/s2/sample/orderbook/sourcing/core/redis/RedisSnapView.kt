@@ -139,12 +139,12 @@ class RedisSnapView(
 		sortBy: String?
 	): PageQueryResult<MODEL> = searchConnection.withConnection { conn ->
 		val connection = conn.reactive()
-		val searchArgs = SearchArgs.builder<String, String>()
+		val searchArgs = SearchArgs.builder<String>()
 
 		val pp = pagination ?: OffsetPagination(offset = 0, limit = 10000)
 		searchArgs.limit(pp.offset.toLong(), pp.limit.toLong())
 		sortBy?.let {
-			searchArgs.sortBy(SortByArgs.builder<String>().attribute(sortBy).build())
+			searchArgs.sortBy(SortByArgs.builder().attribute(sortBy).build())
 		}
 		val queryWithType = query?.trimToNull() ?: "*"
 
@@ -170,7 +170,7 @@ class RedisSnapView(
 	suspend inline fun <reified MODEL> all(): Flow<MODEL> =
 		searchConnection.withConnection { conn ->
 			val connection = conn.reactive()
-			val searchArgs = SearchArgs.builder<String, String>().build()
+			val searchArgs = SearchArgs.builder<String>().build()
 			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, "*", searchArgs).awaitSingle()
 			searchResult.parseResults<MODEL>().asFlow()
 		}
@@ -179,9 +179,9 @@ class RedisSnapView(
 
 	/** Extracts the JSON documents (`$` field) of a search reply and deserializes them. */
 	@PublishedApi
-	internal inline fun <reified MODEL> SearchReply<String, String>.parseResults(): List<MODEL> =
+	internal inline fun <reified MODEL> SearchReply<String>.parseResults(): List<MODEL> =
 		results.mapNotNull { result ->
-			result.fields["$"]?.let { json -> objectMapper.readValue<MODEL>(json) }
+			result.fields["$"]?.takeUnless { it.isNull }?.let { json -> objectMapper.readValue<MODEL>(json.asString()) }
 		}
 }
 
