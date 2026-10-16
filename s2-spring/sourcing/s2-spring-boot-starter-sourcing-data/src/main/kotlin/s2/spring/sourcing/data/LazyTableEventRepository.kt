@@ -8,9 +8,8 @@ import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
 
 /**
- * Creates the delegate's table on the first operation instead of at construction,
- * so building the repository never blocks the calling thread. A failed creation is
- * retried by the next operation.
+ * Creates the delegate's table, once, before its first operation, so that building the
+ * store never blocks the calling thread. A failed creation is retried by the next operation.
  */
 internal class LazyTableEventRepository<EVENT, ID>(
 	private val delegate: EventRepository<EVENT, ID>,
