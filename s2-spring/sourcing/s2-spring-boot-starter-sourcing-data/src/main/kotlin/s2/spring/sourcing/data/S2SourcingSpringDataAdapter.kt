@@ -1,6 +1,5 @@
 package s2.spring.sourcing.data
 
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
 import s2.dsl.automate.Evt
@@ -29,13 +28,11 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	@Autowired
 	lateinit var eventRepositoryFactory: EventRepositoryFactory
 
-	override fun eventStore(): EventRepository<EVENT, ID> {
-		return eventRepositoryFactory.create(entityType(), json()).also {
-			runBlocking {
-				it.createTable()
-			}
-		}
+	private val eventStore: EventRepository<EVENT, ID> by lazy {
+		LazyTableEventRepository(eventRepositoryFactory.create(entityType(), json()))
 	}
+
+	override fun eventStore(): EventRepository<EVENT, ID> = eventStore
 
 
 	open fun json(): Json = Json {

@@ -11,4 +11,6 @@ dependencies {
 	implementation(libs.spring.boot.autoconfigure)
 	kapt(libs.spring.boot.configuration.processor)
 	implementation(libs.bundles.spring.data.commons)
+
+	testImplementation(libs.bundles.test.junit)
 }
