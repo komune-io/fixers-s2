@@ -2,6 +2,7 @@ package s2.spring.sourcing.data
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import org.springframework.beans.factory.SmartInitializingSingleton
 import org.springframework.beans.factory.annotation.Autowired
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2State
@@ -18,7 +19,8 @@ abstract class S2SourcingSpringDataAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
 	executor: EXECUTOR,
 	view: View<EVENT, ENTITY>,
 	snapRepository: SnapRepository<ENTITY, ID>? = null
-): S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(executor, view, snapRepository) where
+): S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(executor, view, snapRepository),
+	SmartInitializingSingleton where
 STATE: S2State,
 ENTITY: WithS2State<STATE>,
 ENTITY: WithS2Id<ID>,
@@ -29,11 +31,20 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 	@Autowired
 	lateinit var eventRepositoryFactory: EventRepositoryFactory
 
-	override fun eventStore(): EventRepository<EVENT, ID> {
-		return eventRepositoryFactory.create(entityType(), json()).also {
-			runBlocking {
-				it.createTable()
-			}
+	private val eventStore = lazy<EventRepository<EVENT, ID>> {
+		LazyTableEventRepository(eventRepositoryFactory.create(entityType(), json()))
+	}
+
+	override fun eventStore(): EventRepository<EVENT, ID> = eventStore.value
+
+	/**
+	 * Creates the table on the startup thread, so it exists before the application runners
+	 * (database migrations among them) touch it. A lazily initialised bean never gets here:
+	 * the first operation on its store creates the table.
+	 */
+	override fun afterSingletonsInstantiated() {
+		if (eventStore.isInitialized()) {
+			runBlocking { eventStore.value.createTable() }
 		}
 	}
 
