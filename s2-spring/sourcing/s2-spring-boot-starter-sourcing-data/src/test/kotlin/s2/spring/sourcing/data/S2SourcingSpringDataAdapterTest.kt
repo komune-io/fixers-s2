@@ -44,7 +44,7 @@ class S2SourcingSpringDataAdapterTest {
 		override fun s2Id() = id
 	}
 
-	class TestAdapter : S2SourcingSpringDataAdapter<TestEntity, TestState, TestEvent, String,
+	open class TestAdapter : S2SourcingSpringDataAdapter<TestEntity, TestState, TestEvent, String,
 			S2AutomateDeciderSpring<TestEntity, TestState, TestEvent, String>>(
 		S2AutomateDeciderSpring(), { _, model -> model }
 	) {
@@ -120,6 +120,50 @@ class S2SourcingSpringDataAdapterTest {
 		val store = CompletableFuture.supplyAsync({ adapter.eventStore() }, loop)
 
 		assertThat(store.get(5, TimeUnit.SECONDS)).isNotNull
+	}
+
+	@Test
+	suspend fun `startup creates the table once, before any operation`() {
+		val repository = RecordingRepository()
+		val adapter = adapter(repository)
+		adapter.eventStore()
+
+		adapter.afterSingletonsInstantiated()
+		assertThat(repository.calls).containsExactly("createTable")
+		adapter.eventStore().persist(TestEvent("1"))
+
+		assertThat(repository.calls).containsExactly("createTable", "persist")
+	}
+
+	@Test
+	fun `a subclass caching super eventStore shares the one store`() {
+		val repository = RecordingRepository()
+		val adapter = object : TestAdapter() {
+			private val store by lazy { super.eventStore() }
+			override fun eventStore() = store
+		}.apply { eventRepositoryFactory = CountingFactory(repository) }
+
+		val first = adapter.eventStore()
+		adapter.afterSingletonsInstantiated()
+
+		assertThat(adapter.eventStore()).isSameAs(first)
+		assertThat((adapter.eventRepositoryFactory as CountingFactory).created.get()).isEqualTo(1)
+		assertThat(repository.calls).containsExactly("createTable")
+	}
+
+	@Test
+	fun `a subclass with its own store gets no table from startup`() {
+		val repository = RecordingRepository()
+		val own = RecordingRepository()
+		val adapter = object : TestAdapter() {
+			override fun eventStore() = own
+		}.apply { eventRepositoryFactory = CountingFactory(repository) }
+
+		adapter.eventStore()
+		adapter.afterSingletonsInstantiated()
+
+		assertThat((adapter.eventRepositoryFactory as CountingFactory).created.get()).isZero()
+		assertThat(own.calls).isEmpty()
 	}
 
 	@Test
