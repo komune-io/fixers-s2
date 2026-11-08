@@ -50,18 +50,15 @@ fixers {
 	}
 }
 
-// Pin patched transitive npm deps of the Kotlin/JS test toolchain (Dependabot alerts on
-// kotlin-js-store/yarn.lock). mocha 11.7.6, shipped by KGP, caps them at vulnerable majors.
+// Pin patched transitive npm deps of the Kotlin/JS test toolchain. Versions, and why the pins
+// exist and when to remove them, live with the npm-* entries in gradle/libs.versions.toml.
 // Paths are scoped: an unscoped "glob" also upgrades karma's glob 7 and breaks karma.
-// Upstream bumps do not make a pin safe to drop (mocha 12 still asks for minimatch ^10, which is
-// vulnerable): remove a pin only once a lock regenerated without it still resolves patched versions
-// for every advisory. Regenerate the lock with `make -f infra/make/libs.mk js-lock-refresh`.
 plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
 	the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
-		resolution("**/mocha/glob", "14.0.4")
-		resolution("**/mocha/minimatch", "11.0.5")
-		resolution("**/karma-webpack/minimatch", "11.0.5")
-		resolution("**/mocha/serialize-javascript", "7.1.4")
-		resolution("**/mocha/diff", "8.0.4")
+		resolution("**/mocha/glob", libs.versions.npm.mocha.glob.get())
+		resolution("**/mocha/minimatch", libs.versions.npm.mocha.minimatch.get())
+		resolution("**/karma-webpack/minimatch", libs.versions.npm.karma.webpack.minimatch.get())
+		resolution("**/mocha/serialize-javascript", libs.versions.npm.mocha.serialize.javascript.get())
+		resolution("**/mocha/diff", libs.versions.npm.mocha.diff.get())
 	}
 }
