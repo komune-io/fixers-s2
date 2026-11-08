@@ -60,5 +60,6 @@ plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
 		resolution("**/mocha/minimatch", "11.0.5")
 		resolution("**/karma-webpack/minimatch", "11.0.5")
 		resolution("**/mocha/serialize-javascript", "7.1.4")
+		resolution("**/mocha/diff", "8.0.4")
 	}
 }
