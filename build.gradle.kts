@@ -49,3 +49,16 @@ fixers {
 		sonatypeSnapshots = true
 	}
 }
+
+// Pin patched transitive npm deps of the Kotlin/JS test toolchain (Dependabot alerts on
+// kotlin-js-store/yarn.lock). mocha 11.7.6, shipped by KGP, caps them at vulnerable majors.
+// Paths are scoped: an unscoped "glob" also upgrades karma's glob 7 and breaks karma.
+// Remove once KGP ships mocha >= 12. Regenerate the lock with `make -f infra/make/libs.mk js-lock-refresh`.
+plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
+	the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
+		resolution("**/mocha/glob", "14.0.4")
+		resolution("**/mocha/minimatch", "11.0.5")
+		resolution("**/karma-webpack/minimatch", "11.0.5")
+		resolution("**/mocha/serialize-javascript", "7.1.4")
+	}
+}
