@@ -12,11 +12,10 @@ dependencies {
 	implementation(libs.kotlinx.coroutines.reactor)
 	runtimeOnly(libs.postgresql)
 	runtimeOnly(libs.r2dbc.postgresql)
-	constraints {
-		runtimeOnly(libs.scram.client) {
-			because("GHSA-p9jg-fcr6-3mhf: r2dbc-postgresql 1.1.3 pins scram 3.2")
-		}
-	}
+	// GHSA-p9jg-fcr6-3mhf: r2dbc-postgresql 1.1.3 pins scram 3.2. Declared directly, not as a
+	// constraint, so the patched versions also reach Maven consumers through the POM.
+	runtimeOnly(libs.scram.client)
+	runtimeOnly(libs.scram.common)
 
 	// Test dependencies
 	testImplementation(libs.bundles.testcontainers)

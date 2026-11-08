@@ -74,6 +74,7 @@ testcontainers-redis = { group = "com.redis", name = "testcontainers-redis", ver
 postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 r2dbc-postgresql = { group = "org.postgresql", name = "r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 scram-client = { group = "com.ongres.scram", name = "scram-client", version.ref = "scram" }
+scram-common = { group = "com.ongres.scram", name = "scram-common", version.ref = "scram" }
 
 [bundles]
 spring-data-commons = ["jakarta-persistence-api", "spring-context", "spring-data-commons"]
