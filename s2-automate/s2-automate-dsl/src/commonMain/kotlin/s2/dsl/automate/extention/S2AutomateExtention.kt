@@ -34,6 +34,10 @@ fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Bo
     }
 }
 
+/**
+ * [canExecuteTransitionAnd] for a state known by its name, such as [s2StateName] of a JSON payload's
+ * `status`: [hasAccess] is asked only when [C] leaves that state.
+ */
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionByNameAnd(
     stateName: String?, hasAccess: () -> Boolean
 ): Boolean {
