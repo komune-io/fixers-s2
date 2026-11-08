@@ -29,4 +29,17 @@ class S2StateNameJsTest {
 		val other: dynamic = JSON.parse("""{"position":0}""")
 		assertNull(s2StateName(other))
 	}
+
+	@Test
+	fun stateNameRefusesAnObjectThatIsNotAnEnumCopy() {
+		val bare: dynamic = JSON.parse("""{"name":"Closed"}""")
+		assertNull(s2StateName(bare))
+		assertNull(s2StateName(Error("Closed")))
+	}
+
+	@Test
+	fun stateNameRefusesTheKeyShape() {
+		val keyed: dynamic = JSON.parse("""{"key":"Closed"}""")
+		assertNull(s2StateName(keyed))
+	}
 }

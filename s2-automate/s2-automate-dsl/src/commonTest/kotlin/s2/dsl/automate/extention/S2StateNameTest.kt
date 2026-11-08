@@ -2,13 +2,19 @@ package s2.dsl.automate.extention
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Command
 import s2.dsl.automate.S2InitCommand
+import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2Role
+import s2.dsl.automate.S2RoleValue
+import s2.dsl.automate.S2StateValue
+import s2.dsl.automate.S2Transition
+import s2.dsl.automate.S2TransitionValue
 import s2.dsl.automate.S2State
 import s2.dsl.automate.builder.s2
 import s2.dsl.automate.toValue
@@ -23,6 +29,13 @@ sealed class DoorState(override val position: Int) : S2State {
 }
 
 object Clerk : S2Role
+
+enum class DeskRole : S2Role {
+	Reception,
+	Manager {
+		override fun toString() = "manager"
+	}
+}
 
 class OpenTicket : S2InitCommand
 data class CloseTicket(override val id: String) : S2Command<String>
@@ -80,5 +93,41 @@ class S2StateNameTest {
 		assertTrue(automate.canExecuteTransitionByNameAnd<CloseTicket>(s2StateName("Open")) { true })
 		assertFalse(automate.canExecuteTransitionByNameAnd<CloseTicket>(s2StateName("Open")) { false })
 		assertFalse(automate.canExecuteTransitionByNameAnd<CloseTicket>(s2StateName(TicketState.Closed)) { true })
+	}
+
+	@Test
+	fun automateRecordsTheNameOfEachEnumRole() {
+		assertEquals("Reception", DeskRole.Reception.toValue().name)
+		assertEquals("Manager", DeskRole.Manager.toValue().name)
+	}
+
+	@Test
+	fun automateRefusesTwoStatesSharingAName() {
+		val role = S2RoleValue("Clerk")
+		val close = S2TransitionValue("CloseTicket")
+		assertFailsWith<IllegalArgumentException> {
+			S2Automate(
+				name = "Ticket",
+				version = null,
+				transitions = arrayOf(
+					S2Transition(S2StateValue("TicketState", 0), S2StateValue("TicketState", 1), role, close, null),
+				),
+			)
+		}
+	}
+
+	@Test
+	fun automateRefusesTwoNamesSharingAPosition() {
+		val role = S2RoleValue("Clerk")
+		val close = S2TransitionValue("CloseTicket")
+		assertFailsWith<IllegalArgumentException> {
+			S2Automate(
+				name = "Ticket",
+				version = null,
+				transitions = arrayOf(
+					S2Transition(S2StateValue("Open", 0), S2StateValue("Closed", 0), role, close, null),
+				),
+			)
+		}
 	}
 }
