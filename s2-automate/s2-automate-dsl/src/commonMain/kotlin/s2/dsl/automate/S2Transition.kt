@@ -55,7 +55,12 @@ fun S2Role.toValue(): S2RoleValue {
 }
 fun S2State.toValue(): S2StateValue {
 	return S2StateValue(
-		name = this::class.simpleName!!,
+		name = stateName(),
 		position = this.position,
 	)
 }
+
+/**
+ * The name the JSON carries: an enum entry serializes as its own name, not as its class's.
+ */
+internal fun S2State.stateName(): String = (this as? Enum<*>)?.name ?: this::class.simpleName!!
