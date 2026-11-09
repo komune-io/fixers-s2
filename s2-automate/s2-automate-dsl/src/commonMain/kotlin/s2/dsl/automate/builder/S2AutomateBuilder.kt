@@ -1,7 +1,5 @@
 package s2.dsl.automate.builder
 
-import kotlin.js.JsExport
-import kotlin.js.JsName
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2InitCommand
@@ -59,8 +57,6 @@ class S2AutomateBuilder {
 	}
 }
 
-@JsExport
-@JsName("s2")
 fun s2(exec: S2AutomateBuilder.() -> Unit): S2Automate {
 	val builder = S2AutomateBuilder()
 	builder.exec()

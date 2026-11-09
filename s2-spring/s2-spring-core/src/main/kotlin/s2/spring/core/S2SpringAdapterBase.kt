@@ -19,7 +19,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.spring.core.publisher.SpringEventPublisher
 import s2.spring.core.role.springSecurityRoles
 
-abstract class S2SpringAdapterBase<ENTITY, STATE, EVENT, ID> where
+abstract class S2SpringAdapterBase<ENTITY, STATE, EVENT, ID : Any> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,

@@ -13,6 +13,15 @@ plugins {
 	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
+subprojects {
+	// A type the JS export cannot render becomes `any` in the TypeScript contract: fail the build instead.
+	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+		tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
+			compilerOptions.freeCompilerArgs.add("-Xwarning-level=NON_EXPORTABLE_TYPE:error")
+		}
+	}
+}
+
 tasks {
 	register<com.github.gradle.node.yarn.task.YarnTask>("installYarn") {
 		dependsOn("build")

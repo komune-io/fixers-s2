@@ -36,7 +36,7 @@ import s2.dsl.automate.toValue
  * @param rolesProvider the roles held by the current caller, resolved per command — on Spring
  * this reads the current `SecurityContext`.
  */
-class RoleGuard<STATE, ID, ENTITY, EVENT>(
+class RoleGuard<STATE, ID : Any, ENTITY, EVENT>(
 	private val rolesProvider: suspend () -> Set<S2RoleValue>,
 ) : GuardAdapter<STATE, ID, ENTITY, EVENT, S2Automate>() where
 STATE : S2State,

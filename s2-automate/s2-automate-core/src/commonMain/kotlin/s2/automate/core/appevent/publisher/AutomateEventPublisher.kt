@@ -17,7 +17,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class AutomateEventPublisher<STATE, ID, ENTITY, AUTOMATE>(
+class AutomateEventPublisher<STATE, ID : Any, ENTITY, AUTOMATE>(
 	private val publisher: AppEventPublisher
 ): AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {

@@ -29,7 +29,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Decide
 
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION", "TooManyFunctions")
-open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>(
+open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
     private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
     private val outcomeExecutor: S2AutomateOutcomeEngine<STATE, ENTITY, ID, Evt>,
     private val publisher: AppEventPublisher,

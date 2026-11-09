@@ -14,7 +14,7 @@ import s2.spring.sourcing.data.event.EventSourcing
 
 // S6309: the suspend modifier is mandated by the EventRepository contract (published API).
 @Suppress("kotlin:S6309")
-class MongoEventRepository<EVENT, ID>(
+class MongoEventRepository<EVENT, ID : Any>(
 	private val json: Json,
 	private val eventRepository: SpringDataEventRepository<EVENT, ID>,
 	private val eventType: KClass<EVENT>

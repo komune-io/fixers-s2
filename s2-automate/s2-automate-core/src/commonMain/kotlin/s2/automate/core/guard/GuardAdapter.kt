@@ -10,7 +10,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-open class GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE> : Guard<STATE, ID, ENTITY, EVENT, AUTOMATE> where
+open class GuardAdapter<STATE, ID : Any, ENTITY, EVENT, AUTOMATE> : Guard<STATE, ID, ENTITY, EVENT, AUTOMATE> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,

@@ -19,7 +19,7 @@ import s2.sourcing.dsl.Decide
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
-open class S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID, EVENT>(
+open class S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID : Any, EVENT>(
 	private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
 	private val publisher: AppEventPublisher,
 	private val projectionLoader: Loader<EVENT, ENTITY, ID>,

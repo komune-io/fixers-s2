@@ -9,7 +9,7 @@ import s2.sourcing.dsl.event.EventRepository
 interface EventRepositoryFactory {
 
 
-    fun <EVENT, ID> create(
+    fun <EVENT, ID : Any> create(
         eventType: KClass<EVENT>,
         json: Json
     ): EventRepository<EVENT, ID> where EVENT : Evt, EVENT : WithS2Id<ID>

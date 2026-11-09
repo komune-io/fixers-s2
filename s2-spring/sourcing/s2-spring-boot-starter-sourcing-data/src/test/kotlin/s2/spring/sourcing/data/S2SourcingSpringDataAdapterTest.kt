@@ -75,7 +75,7 @@ class S2SourcingSpringDataAdapterTest {
 		val created = AtomicInteger()
 
 		@Suppress("UNCHECKED_CAST")
-		override fun <EVENT, ID> create(eventType: KClass<EVENT>, json: Json): EventRepository<EVENT, ID>
+		override fun <EVENT, ID : Any> create(eventType: KClass<EVENT>, json: Json): EventRepository<EVENT, ID>
 				where EVENT : Evt, EVENT : WithS2Id<ID> {
 			created.incrementAndGet()
 			return repository as EventRepository<EVENT, ID>

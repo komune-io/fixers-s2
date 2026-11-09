@@ -31,7 +31,7 @@ import s2.sourcing.dsl.Decide
 // S6309: the suspend modifier is mandated by the S2AutomateStoringEvolver contracts (published API).
 // S6514: interface delegation with "by" is impossible, the engine is injected after construction.
 @Suppress("kotlin:S6309", "kotlin:S6514", "DEPRECATION", "OVERRIDE_DEPRECATION", "TooManyFunctions")
-open class S2AutomateExecutorSpring<STATE, ID, ENTITY> :
+open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {

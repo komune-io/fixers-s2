@@ -17,7 +17,7 @@ import s2.sourcing.dsl.event.EventRepository
 
 // S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
 @Suppress("kotlin:S6309")
-class S2AutomateSourcingPersister<STATE, ID, ENTITY, EVENT>(
+class S2AutomateSourcingPersister<STATE, ID : Any, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
     private val eventStore: EventRepository<EVENT, ID>,
     private val snapPersister: SnapPersister<STATE, ID, ENTITY, EVENT>,
@@ -28,7 +28,7 @@ ENTITY : WithS2Id<ID>,
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
-    override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID & Any>): Flow<ENTITY?> {
+    override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> {
         return ids.map { id ->
             projectionLoader.load(id)
         }

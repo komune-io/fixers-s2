@@ -11,7 +11,7 @@ import s2.sourcing.dsl.event.EventRepository
  * Creates the delegate's table, once, before its first operation, so that building the
  * store never blocks the calling thread. A failed creation is retried by the next operation.
  */
-internal class LazyTableEventRepository<EVENT, ID>(
+internal class LazyTableEventRepository<EVENT, ID : Any>(
 	private val delegate: EventRepository<EVENT, ID>,
 ) : EventRepository<EVENT, ID> where EVENT : Evt, EVENT : WithS2Id<ID> {
 
