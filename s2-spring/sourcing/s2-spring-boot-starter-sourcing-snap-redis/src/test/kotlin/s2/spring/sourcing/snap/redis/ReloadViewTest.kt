@@ -24,9 +24,10 @@ class ReloadViewTest {
 	private class View(var count: Long = 0, var deleteFailure: Exception? = null) : RedisSnapRepository<Model> {
 		var deleted = 0
 
-		override suspend fun all(): Flow<Model> = emptyFlow()
+		override fun all(): Flow<Model> = emptyFlow()
 		override suspend fun stored(): List<Model> = emptyList()
-		override suspend fun count(): Long = count
+		override suspend fun count(): Long = error("emptiness is counted by key")
+		override suspend fun storedCount(): Long = count
 		override suspend fun get(id: String): Model? = null
 		override suspend fun save(entity: Model): Model = entity
 		override suspend fun deleteAll(): Int {
@@ -84,11 +85,14 @@ class ReloadViewTest {
 	}
 
 	@Test
-	suspend fun `a replay that fails is emptied, so the next start replays it again`() {
-		decider.failure = IllegalStateException("Redis refused a save")
+	suspend fun `a replay that fails is emptied, so the next start replays it again, and fails the start`() {
+		val failure = IllegalStateException("Redis refused a save")
+		decider.failure = failure
 
-		reload.reload()
+		val thrown = runCatching { reload.reload() }.exceptionOrNull()
 
+		assertThat(thrown).isSameAs(failure)
+		assertThat(checkNotNull(thrown).suppressed).isEmpty()
 		assertThat(view.deleted).isEqualTo(1)
 	}
 
@@ -97,9 +101,20 @@ class ReloadViewTest {
 		view.count = 3
 		decider.failure = IllegalStateException("Redis refused a save")
 
-		reload.reload(forceReload = true)
+		val thrown = runCatching { reload.reload(forceReload = true) }.exceptionOrNull()
 
+		assertThat(thrown).hasMessage("Redis refused a save")
 		assertThat(view.deleted).isEqualTo(2)
+	}
+
+	@Test
+	suspend fun `a cancelled emptying is not taken for a failure of its own`() {
+		decider.failure = IllegalStateException("Redis refused a save")
+		view.deleteFailure = CancellationException("shutting down")
+
+		val thrown = runCatching { reload.reload() }.exceptionOrNull()
+
+		assertThat(thrown).isInstanceOf(CancellationException::class.java)
 	}
 
 	@Test

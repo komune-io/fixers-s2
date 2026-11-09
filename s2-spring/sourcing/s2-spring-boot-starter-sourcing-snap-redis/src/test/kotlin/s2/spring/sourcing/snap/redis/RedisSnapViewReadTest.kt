@@ -28,7 +28,7 @@ class RedisSnapViewReadTest {
 	private fun decode(document: String) = Model(document.substringAfter(":\"").substringBefore("\""))
 
 	private fun whole(total: Long, vararg hits: SearchReply.SearchResult<String>) =
-		searchPage("Model", total, reply(*hits).documents(), null, ::decode)
+		RedisSnapView.searchPage("Model", total, reply(*hits).documents(), null, ::decode)
 
 	@Test
 	fun `a root-path array yields the document it holds`() {
@@ -93,7 +93,7 @@ class RedisSnapViewReadTest {
 	fun `a page leaves a hit without a document out of its total too, and is never refused`() {
 		val documents = reply(hit("Model-1", """{"id":"1"}"""), hit("Model-2")).documents()
 
-		val page = searchPage("Model", 3, documents, OffsetPagination(offset = 0, limit = 10), ::decode)
+		val page = RedisSnapView.searchPage("Model", 3, documents, OffsetPagination(offset = 0, limit = 10), ::decode)
 
 		assertThat(page.items).containsExactly(Model("1"))
 		assertThat(page.total).isEqualTo(2)

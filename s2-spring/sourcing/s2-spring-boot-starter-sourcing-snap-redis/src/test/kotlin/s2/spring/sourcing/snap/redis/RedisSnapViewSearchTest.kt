@@ -96,4 +96,13 @@ class RedisSnapViewSearchTest {
 		assertThat(view.getAll<SearchProbeSnap>(listOf(id)).getValue(id).name).isEqualTo(text)
 		assertThat(view.search<SearchProbeSnap>(null, null, null).items.single().name).isEqualTo(text)
 	}
+
+	open class Named(val name: String)
+
+	class Labelled(name: String, val label: String, val rank: Int) : Named(name)
+
+	@Test
+	fun `the TEXT index of a model takes its String properties, inherited ones included`() {
+		assertThat(view.textFields(Labelled::class).map { it.field }).containsExactlyInAnyOrder("label", "name")
+	}
 }

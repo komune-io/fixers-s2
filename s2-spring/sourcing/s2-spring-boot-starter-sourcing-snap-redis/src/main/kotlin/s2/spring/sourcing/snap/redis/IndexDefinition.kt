@@ -6,33 +6,36 @@ import io.lettuce.core.protocol.CommandArgs
 import java.nio.ByteBuffer
 
 /**
- * What an index is, in the terms `FT.INFO` reads back: its language, whether it ignores stopwords, and per
- * attribute, in schema order, its path, name, type and the flags this module sets. Two definitions are
- * equal when the index needs no re-creation. The [phonetic] matcher, which `FT.INFO` does not show, is sent
- * on every TEXT attribute and not compared.
+ * What an index is, in the terms `FT.INFO` reads back: the key prefixes it reads, its language, whether it
+ * ignores stopwords, and per attribute, in schema order, its path, name, type and the flags this module sets.
+ * Two definitions are equal when the index needs no re-creation. The [phonetic] matcher is sent on every TEXT
+ * attribute and not compared: `FT.INFO` does not show it (Redis Stack 6.2.2), so an index cannot tell it.
  */
 data class IndexDefinition(
+	val prefixes: List<String>,
 	val language: String,
 	val keepsStopwords: Boolean,
 	val attributes: List<Attribute>,
-	val phonetic: String? = null,
+	val phonetic: String?,
 ) {
 	data class Attribute(val identifier: String, val name: String, val type: String, val flags: Set<String>)
 
 	override fun equals(other: Any?): Boolean =
 		other is IndexDefinition &&
+			prefixes == other.prefixes &&
 			language == other.language &&
 			keepsStopwords == other.keepsStopwords &&
 			attributes == other.attributes
 
-	override fun hashCode(): Int = listOf(language, keepsStopwords, attributes).hashCode()
+	override fun hashCode(): Int = listOf(prefixes, language, keepsStopwords, attributes).hashCode()
 
 	fun createArgs(indexName: String): CommandArgs<String, String> {
 		val args = CommandArgs(StringCodec.UTF8)
 			.add(indexName)
 			.add("ON").add("JSON")
-			.add("PREFIX").add("1").add(indexName)
-			.add("LANGUAGE").add(language)
+			.add("PREFIX").add(prefixes.size.toString())
+		prefixes.forEach { args.add(it) }
+		args.add("LANGUAGE").add(language)
 		// RediSearch's default list leaves English words out of the index, so a name holding « Or » or « If »
 		// could not be found by that word, and a search naming it found nothing.
 		if (!keepsStopwords) args.add("STOPWORDS").add("0")
@@ -56,7 +59,12 @@ data class IndexDefinition(
 		private val FLAGS = mapOf(TEXT to setOf(NOSTEM, SORTABLE), "NUMERIC" to setOf(SORTABLE))
 		private val COMPARED_FLAGS = FLAGS.values.flatten().toSet()
 
-		fun of(fields: List<RedisIndexField>, settings: IndexSettings) = IndexDefinition(
+		/**
+		 * The index of [indexName] over [fields]: it reads the keys `<indexName>-…` only, the dash keeping out
+		 * a model whose name starts with this one's.
+		 */
+		fun of(indexName: String, fields: List<RedisIndexField>, settings: IndexSettings) = IndexDefinition(
+			prefixes = listOf("$indexName-"),
 			language = settings.language.value,
 			keepsStopwords = false,
 			attributes = fields.map { field ->
@@ -76,14 +84,23 @@ data class IndexDefinition(
 		 * cannot be read as one, which says nothing about the index itself.
 		 */
 		fun read(info: Map<String, Any?>): IndexDefinition? {
-			// `FT.INFO` leaves RediSearch's own default language out of its answer.
-			val language = asFields(info["index_definition"])?.let { it["default_language"]?.toString() ?: DEFAULT_LANGUAGE }
+			val definition = asFields(info["index_definition"])
+			val prefixes = definition?.get("prefixes")?.let { read ->
+				if (read is List<*>) read.map(Any?::toString) else listOf(read.toString())
+			}
 			// One unreadable attribute makes the whole answer unreadable.
 			val attributes = (info["attributes"] as? List<*>)?.map(::attribute)?.takeIf { null !in it }?.filterNotNull()
-			if (language == null || attributes == null) return null
+			if (prefixes == null || attributes == null) return null
 			val stopwords = info["stopwords_list"]
-			// Without a list of its own the index keeps RediSearch's default one.
-			return IndexDefinition(language, !(stopwords is List<*> && stopwords.isEmpty()), attributes)
+			return IndexDefinition(
+				prefixes = prefixes,
+				// `FT.INFO` leaves RediSearch's own default language out of its answer.
+				language = definition["default_language"]?.toString() ?: DEFAULT_LANGUAGE,
+				// Without a list of its own the index keeps RediSearch's default one.
+				keepsStopwords = !(stopwords is List<*> && stopwords.isEmpty()),
+				attributes = attributes,
+				phonetic = null,
+			)
 		}
 
 		private val HEAD = listOf("identifier", "attribute", "type")

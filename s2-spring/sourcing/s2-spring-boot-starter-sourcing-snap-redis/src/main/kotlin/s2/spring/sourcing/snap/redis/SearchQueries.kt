@@ -1,8 +1,9 @@
 package s2.spring.sourcing.snap.redis
 
 /**
- * RediSearch's default result window (`MAXSEARCHRESULTS`, which nothing here raises): one search returns no
- * more than this many documents, whatever its total says.
+ * Rows one search answers at most here, whatever its total says: a whole read past it is refused. It is the
+ * `MAXSEARCHRESULTS` Redis Stack 6.2.2 answers (`FT.CONFIG GET MAXSEARCHRESULTS`: 10000); a server set lower
+ * answers fewer rows than counted, which a whole read refuses as short.
  */
 const val SEARCH_WINDOW = 10_000
 

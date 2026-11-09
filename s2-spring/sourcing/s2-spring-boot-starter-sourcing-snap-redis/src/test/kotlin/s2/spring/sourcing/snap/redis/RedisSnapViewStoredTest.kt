@@ -121,6 +121,37 @@ class RedisSnapViewStoredTest {
 		assertThat(view.get<WindowProbeSnap>("one")).isNull()
 	}
 
+	@Test
+	suspend fun `an index reads its own model's keys only, not a model whose name starts the same`() {
+		sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
+		view.save("own", WindowProbeSnap("own"))
+
+		view.createIndex<WindowProbeSnap>(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG))
+
+		assertThat(view.count<WindowProbeSnap>()).isEqualTo(1)
+		assertThat(view.search<WindowProbeSnap>(null, null, null).items).containsExactly(WindowProbeSnap("own"))
+	}
+
+	@Test
+	suspend fun `stored snapshots are counted by key, those the index dropped included`() {
+		view.createIndex<UnindexedProbeSnap>(RedisIndexField(UnindexedProbeSnap::weight.name, RedisFieldType.NUMERIC))
+		view.save("light", UnindexedProbeSnap(id = "light", weight = 1))
+		view.save("unreadable", UnindexedProbeSnap(id = "unreadable", weight = "not a number"))
+
+		assertThat(view.count<UnindexedProbeSnap>()).isEqualTo(1)
+		assertThat(view.storedCount<UnindexedProbeSnap>()).isEqualTo(2)
+	}
+
+	@Test
+	suspend fun `more ids than one batch holds are all read`() {
+		val async = RedisStack.connection.async()
+		val ids = (1..STORE_BATCH + 1).map { "b$it" }
+		ids.map { async.jsonSet(view.buildId<WindowProbeSnap>(it), JsonPath.ROOT_PATH, """{"id":"$it"}""") }
+			.forEach { it.get(1, TimeUnit.MINUTES) }
+
+		assertThat(view.getAll<WindowProbeSnap>(ids)).hasSize(STORE_BATCH + 1)
+	}
+
 	private fun dropAll() = runBlocking {
 		view.dropIndex<UnindexedProbeSnap>()
 		view.dropIndex<WindowProbeSnap>()

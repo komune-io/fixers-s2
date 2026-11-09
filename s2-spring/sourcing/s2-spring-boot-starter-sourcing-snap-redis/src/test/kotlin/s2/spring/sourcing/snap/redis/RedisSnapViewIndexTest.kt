@@ -91,7 +91,7 @@ class RedisSnapViewIndexTest {
 
 	@Test
 	suspend fun `an index of an older definition is replaced, stopwords included`() {
-		val older = IndexDefinition.of(listOf(ID), RedisStack.settings).copy(keepsStopwords = true)
+		val older = IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).copy(keepsStopwords = true)
 		view.make("IndexProbeSnap", older)
 		assertThat(definitionOf("IndexProbeSnap").keepsStopwords).isTrue()
 
@@ -142,7 +142,7 @@ class RedisSnapViewIndexTest {
 		RedisStack.connection.sync().dispatch(
 			SearchCommand.FT_CREATE,
 			StatusOutput(StringCodec.UTF8),
-			IndexDefinition.of(listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
+			IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
 		)
 
 		view.createIndex<IndexProbeSnap>(ID)
@@ -225,5 +225,24 @@ class RedisSnapViewIndexTest {
 		assertThat(RedisCommandExecutionException("Index already exists").isIndexAlreadyPresent()).isTrue()
 		assertThat(RedisCommandExecutionException("Duplicate field in schema - id").isIndexAlreadyPresent()).isFalse()
 		assertThat(IllegalStateException("Index already exists").isIndexAlreadyPresent()).isFalse()
+	}
+
+	@Test
+	fun `an index absent or unreadable once created is not one a start waits for`() {
+		val wanted = IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings)
+
+		assertThat(view.created("IndexProbeSnap", null, wanted)).isFalse()
+		assertThat(view.created("IndexProbeSnap", mapOf("attributes" to emptyList<Any?>()), wanted)).isFalse()
+		assertThat(levelsOf("IndexProbeSnap")).containsExactly(Level.ERROR, Level.ERROR)
+	}
+
+	@Test
+	suspend fun `an index made but read back otherwise is an error, still waited for`() {
+		view.createIndex<IndexProbeSnap>(ID)
+		val info = requireNotNull(view.indexInfo("IndexProbeSnap"))
+		val other = IndexDefinition.of("IndexProbeSnap", listOf(ID, ID), RedisStack.settings)
+
+		assertThat(view.created("IndexProbeSnap", info, other)).isTrue()
+		assertThat(levelsOf("IndexProbeSnap")).contains(Level.ERROR)
 	}
 }
