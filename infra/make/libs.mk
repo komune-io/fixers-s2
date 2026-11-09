@@ -32,7 +32,7 @@ verify-metadata: verify-metadata-dry
 verify-metadata-dry:
 	./gradlew --write-verification-metadata pgp,sha256 --export-keys --dry-run build publishToMavenLocal
 
-# Regenerates kotlin-js-store/yarn.lock from scratch, applying the yarn resolutions in build.gradle.kts.
+# Regenerates kotlin-js-store/yarn.lock from scratch (the build sets no yarn resolutions).
 js-lock-refresh:
 	rm -rf build/js kotlin-js-store/yarn.lock
 	./gradlew rootPackageJson --rerun kotlinUpgradeYarnLock

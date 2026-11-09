@@ -739,19 +739,22 @@ function $serializer_getInstance_3() {
   return $serializer_instance_3;
 }
 function toValue(_this__u8e3s4) {
+  return new S2TransitionValue(s2SimpleName(_this__u8e3s4));
+}
+function s2SimpleName(_this__u8e3s4) {
   var tmp0 = _this__u8e3s4.r9();
   var tmp$ret$0;
   $l$block: {
     // Inline function 'kotlin.requireNotNull' call
     if (tmp0 == null) {
-      var message = 'A transition needs a named class: ' + toString_0(_this__u8e3s4);
+      var message = 'An S2 class needs a name: ' + toString_0(_this__u8e3s4);
       throw IllegalArgumentException.g3(toString_0(message));
     } else {
       tmp$ret$0 = tmp0;
       break $l$block;
     }
   }
-  return new S2TransitionValue(tmp$ret$0);
+  return tmp$ret$0;
 }
 //region block: post-declaration
 initMetadataForInterface(Automate, 'Automate');
