@@ -61,11 +61,6 @@ cucumber-java = { group = "io.cucumber", name = "cucumber-java" }
 cucumber-java8 = { group = "io.cucumber", name = "cucumber-java8" }
 cucumber-junit-platform-engine = { group = "io.cucumber", name = "cucumber-junit-platform-engine" }
 
-# Arrow (versions from BOM)
-arrow-core = { group = "io.arrow-kt", name = "arrow-core" }
-arrow-optics = { group = "io.arrow-kt", name = "arrow-optics" }
-arrow-optics-ksp = { group = "io.arrow-kt", name = "arrow-optics-ksp-plugin" }
-
 # Project-specific (not in BOM)
 lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind" }
@@ -90,5 +85,5 @@ testcontainers = ["spring-boot-testcontainers", "testcontainers-junit-jupiter", 
 testcontainers-postgres = ["testcontainers-postgresql", "testcontainers-r2dbc"]
 
 [plugins]
-# Project-specific only — fixers, kotlin, spring-boot, ksp plugins come from the catalogue
+# Project-specific only — fixers, kotlin, spring-boot plugins come from the catalogue
 node-gradle = { id = "com.github.node-gradle.node", version.ref = "node-gradle" }
