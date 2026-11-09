@@ -148,7 +148,7 @@ class S2AutomateEngineAppEventsTest {
             TestEntity(cmd.data.id, TestState.Created) to CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, outcomes.filter { it.data is PersistOutcome.Rejected }.size)
+        assertEquals(1, outcomes.count { it.data is PersistOutcome.Rejected })
         assertEquals(0, publisher.eventsOf<AutomateInitTransitionEnded<*, *>>().size)
         assertEquals(0, publisher.eventsOf<AutomateSessionStarted<*>>().size)
     }
@@ -276,7 +276,7 @@ class S2AutomateEngineAppEventsTest {
             .createWithOutcomes<CreateCmd, TestEntity, TestEvent>(createCommands("1")) { throw boom }
             .toList()
 
-        assertEquals(1, outcomes.filter { it.data is PersistOutcome.Indeterminate }.size)
+        assertEquals(1, outcomes.count { it.data is PersistOutcome.Indeterminate })
         assertEquals(0, publisher.eventsOf<AutomateTransitionError>().size)
         assertEquals(0, publisher.eventsOf<AutomateSessionError>().size)
     }

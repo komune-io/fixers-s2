@@ -46,7 +46,6 @@ class S2AutomateEngineImplTest {
 
     private class StubPersister(
         private val entities: Map<String, TestEntity>,
-        private val eventMapper: (TestEvent) -> TestEvent = { it },
         private val persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
         /** Mimics a `findAllById`-style persister: ids without entity are simply not emitted. */
         private val omitMissingIds: Boolean = false,
@@ -72,7 +71,7 @@ class S2AutomateEngineImplTest {
 
         override suspend fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<TestEvent> = persistDecorator(transitionContexts.map { eventMapper(it.event) })
+        ): Flow<TestEvent> = persistDecorator(transitionContexts.map { it.event })
     }
 
     private class RecordingPublisher : AppEventPublisher {
@@ -117,20 +116,17 @@ class S2AutomateEngineImplTest {
         guard: PassthroughGuardVerifier = PassthroughGuardVerifier(),
         publisher: RecordingPublisher = RecordingPublisher(),
         entities: Map<String, TestEntity> = mapOf("1" to TestEntity("1", TestState.Created)),
-        eventMapper: (TestEvent) -> TestEvent = { it },
         persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
         omitMissingIds: Boolean = false,
     ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> = makeEngine(
         StubPersister(
             entities,
-            eventMapper = eventMapper,
             persistDecorator = persistDecorator,
             omitMissingIds = omitMissingIds,
         ),
         guard = guard,
         publisher = publisher,
         automate = automate,
-        batchSize = 10,
     )
 
     @Test
@@ -305,7 +301,7 @@ class S2AutomateEngineImplTest {
         val engine = engine(
             publisher = publisher,
             entities = mapOf("1" to TestEntity("1", TestState.Created)),
-            eventMapper = { DoneEvt("persisted") },
+            persistDecorator = { events -> events.map { DoneEvt("persisted") } },
         )
 
         val commands = flowOf(DoCmd("1")).mapToEnvelopeWithRandomId(type = "Cmd")

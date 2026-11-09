@@ -6,8 +6,9 @@ import s2.dsl.automate.S2Role
 import s2.dsl.automate.S2State
 
 class S2TransitionBuilder {
-    var from: S2State? = null
-    var froms = mutableListOf<S2State>()
+	var from: S2State? = null
+	@Suppress("DoubleMutabilityForCollection") // public DSL: `val` would remove the setter consumers may call
+	var froms = mutableListOf<S2State>()
 	lateinit var to: S2State
 	lateinit var role: S2Role
 	var evt: KClass<out Evt>? = null

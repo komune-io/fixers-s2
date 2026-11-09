@@ -47,6 +47,7 @@ ENTITY : WithS2Id<ID> {
             @Suppress("UNCHECKED_CAST")
             persistInit(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
         }.map {
+            @Suppress("UNCHECKED_CAST") // persistInit returns EVENT; decide built this one as EVENT_OUT
             it as Envelope<EVENT_OUT>
         }
     }
@@ -59,7 +60,7 @@ ENTITY : WithS2Id<ID> {
             guardExecutor.evaluateTransition(transitionContext)
             val fromState = entity.s2State()
             val (entityMutated, result) = exec(transitionContext.command, entity)
-            TransitionAppliedContext(
+            TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>(
                 automateContext = automateContext,
                 msgId = transitionContext.command.id,
                 from = fromState,
@@ -69,7 +70,6 @@ ENTITY : WithS2Id<ID> {
             )
         }.chunk(automateContext.batch.size).map { transitionContexts ->
             val transitionContextsFlow = transitionContexts.asFlow()
-                as Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
             // Events are correlated to their context positionally: [AutomatePersister.persist]
             // emits one event per received context, in the same order. Correlating by event
             // equality would misroute two equal events of the same chunk to the same context
@@ -80,6 +80,7 @@ ENTITY : WithS2Id<ID> {
                     ?: throw persisterEventCountError(transitionContexts.size, index + 1).asException()
                 sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
                 persistedCount = index + 1
+                @Suppress("UNCHECKED_CAST") // persist returns EVENT; exec decided this one as EVENT_OUT
                 event as EVENT_OUT
             }.onCompletion { cause ->
                 if (cause == null && persistedCount < transitionContexts.size) {

@@ -29,7 +29,8 @@ class R2dbcEventRepository<EVENT, ID : Any>(
 	private val r2dbcEntityTemplate: R2dbcEntityTemplate,
 	private val eventType: KClass<EVENT>,
 
-	private val tableName: String = "s2_event_sourcing_${eventType.simpleName!!}".lowercase()
+	private val tableName: String =
+		"s2_event_sourcing_${requireNotNull(eventType.simpleName) { "An event class needs a name" }}".lowercase()
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
@@ -40,7 +41,7 @@ EVENT: WithS2Id<ID>
 
 	override suspend fun load(id: ID): Flow<EVENT> {
 		val query = Query
-			.query(Criteria.where("obj_id").`is`(id!!))
+			.query(Criteria.where("obj_id").`is`(id))
 			.sort(sortByCreatedDate)
 		return selectEvents(query)
 	}

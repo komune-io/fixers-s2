@@ -67,9 +67,12 @@ class RedisSnapView(
 				?: error("JSON not found after save")
 		}
 
-	suspend inline fun <reified MODEL> dropIndex() =
+	inline fun <reified MODEL> indexName(): String =
+		checkNotNull(MODEL::class.simpleName) { "A Redis index needs a named model class" }
+
+	suspend inline fun <reified MODEL> dropIndex(): Unit =
 		searchConnection.withConnection { conn ->
-			val indexName = MODEL::class.simpleName!!
+			val indexName = indexName<MODEL>()
 			try {
 				val args = CommandArgs(StringCodec.UTF8).add(indexName)
 				conn.sync().dispatch(SearchCommand.FT_DROPINDEX, StatusOutput(StringCodec.UTF8), args)
@@ -78,9 +81,12 @@ class RedisSnapView(
 			}
 		}
 
-	suspend inline fun <reified MODEL> createIndex(vararg fields: RedisIndexField) =
+	suspend inline fun <reified MODEL> createIndex(vararg fields: RedisIndexField): Unit =
+		createIndex<MODEL>(fields.asList())
+
+	suspend inline fun <reified MODEL> createIndex(fields: List<RedisIndexField>): Unit =
 		searchConnection.withConnection { conn ->
-			val indexName = MODEL::class.simpleName!!
+			val indexName = indexName<MODEL>()
 			try {
 				val args = CommandArgs(StringCodec.UTF8)
 					.add(indexName)
@@ -114,7 +120,7 @@ class RedisSnapView(
 			.filter { it.name != "Companion" }
 			.filter { it.type == String::class.java }
 			.map { field -> RedisIndexField(field.name, RedisFieldType.TEXT) }
-		createIndex<MODEL>(*fields.toTypedArray())
+		createIndex<MODEL>(fields)
 	}
 
 	suspend inline fun <reified MODEL> searchById(field: String, id: String): PageQueryResult<MODEL> =
@@ -122,7 +128,7 @@ class RedisSnapView(
 			val connection = conn.commands(RedisReactiveCommands.factory())
 			val queryByTag = id(field, id)
 
-			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, queryByTag).awaitSingle()
+			val searchResult = connection.ftSearch(indexName<MODEL>(), queryByTag).awaitSingle()
 			val results = searchResult.parseResults<MODEL>()
 			PageQueryResult(
 				total = searchResult.count.toInt(),
@@ -149,7 +155,7 @@ class RedisSnapView(
 		}
 		val queryWithType = query?.trimToNull() ?: "*"
 
-		val searchResult = connection.ftSearch(MODEL::class.simpleName!!, queryWithType, searchArgs.build()).awaitSingle()
+		val searchResult = connection.ftSearch(indexName<MODEL>(), queryWithType, searchArgs.build()).awaitSingle()
 		val results = searchResult.parseResults<MODEL>()
 		PageQueryResult(
 			total = searchResult.count.toInt(),
@@ -164,7 +170,7 @@ class RedisSnapView(
 	suspend inline fun <reified MODEL> count(): Long =
 		searchConnection.withConnection { conn ->
 			conn.commands(RedisReactiveCommands.factory())
-				.ftSearch(MODEL::class.simpleName!!, "*")
+				.ftSearch(indexName<MODEL>(), "*")
 				.map { it.count }
 				.awaitSingle()
 		}
@@ -175,7 +181,7 @@ class RedisSnapView(
 		searchConnection.withConnection { conn ->
 			val connection = conn.commands(RedisReactiveCommands.factory())
 			val searchArgs = SearchArgs.builder<String>().build()
-			val searchResult = connection.ftSearch(MODEL::class.simpleName!!, "*", searchArgs).awaitSingle()
+			val searchResult = connection.ftSearch(indexName<MODEL>(), "*", searchArgs).awaitSingle()
 			searchResult.parseResults<MODEL>().asFlow()
 		}
 
@@ -223,11 +229,11 @@ suspend inline fun <T> GenericObjectPool<StatefulRedisConnection<String, String>
 		success = true
 		return result
 	} catch (e: Exception) {
-		runCatching { invalidateObject(conn) }
+		runCatching { invalidateObject(conn) }.onFailure(e::addSuppressed)
 		throw e
 	} finally {
 		if (success) {
-			runCatching { returnObject(conn) }
+			val _ = runCatching { returnObject(conn) }
 		}
 	}
 }
@@ -237,7 +243,7 @@ fun id(field: String, id: String): String {
 }
 
 fun String?.addWildcard(): String {
-	val queryBuilder1 = this ?: ""
+	val queryBuilder1 = this.orEmpty()
 	return queryBuilder1
 		.split(" ")
 		.filter { it.isNotBlank() }

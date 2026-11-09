@@ -70,7 +70,7 @@ class RetryTaskChannelTest {
         val exception = assertThrows<Exception> {
             retryTaskChannel.addToPersistQueue<String, String>(event) { _ ->
                 attempts.incrementAndGet()
-                throw IllegalStateException("Non-retryable exception")
+                error("Non-retryable exception")
             }
         }
 

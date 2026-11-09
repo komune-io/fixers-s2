@@ -33,11 +33,11 @@ private suspend fun reactiveAuthentication(): Authentication? =
 	ReactiveSecurityContextHolder.getContext().awaitFirstOrNull()?.authentication
 
 private fun threadBoundAuthentication(): Authentication? =
-	SecurityContextHolder.getContext()?.authentication
+	SecurityContextHolder.getContext().authentication
 
 private fun Authentication?.toS2Roles(): Set<S2RoleValue> {
 	if (this == null || !isAuthenticated) return emptySet()
-	return authorities.orEmpty()
+	return authorities
 		.mapNotNull { it.authority }
 		.map { S2RoleValue(it.removePrefix(ROLE_AUTHORITY_PREFIX)) }
 		.toSet()

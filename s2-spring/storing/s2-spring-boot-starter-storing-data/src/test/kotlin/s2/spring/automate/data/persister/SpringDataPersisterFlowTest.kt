@@ -233,6 +233,7 @@ class SpringDataPersisterFlowTest {
 
     // ---- reactive repository ----
 
+    @Suppress("ForbiddenVoid") // ReactiveCrudRepository declares its deletes as Mono<Void>
     private class InMemoryReactiveRepository(
         initial: Map<String, TestEntity> = emptyMap(),
     ) : ReactiveCrudRepository<TestEntity, String> {

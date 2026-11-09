@@ -41,7 +41,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-abstract class S2AutomateEngineBase<STATE, ID : Any, ENTITY, EVENT>(
+open class S2AutomateEngineBase<STATE, ID : Any, ENTITY, EVENT>(
     protected val automateContext: AutomateContext<S2Automate>,
     protected val guardExecutor: GuardVerifier<STATE, ID, ENTITY, EVENT, S2Automate>,
     protected val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,
@@ -158,7 +158,7 @@ ENTITY : WithS2Id<ID> {
         cmds: List<Envelope<COMMAND>>
     ): List<Pair<Envelope<COMMAND>, ENTITY?>> {
         rejectDuplicateIds(cmds)
-        val ids = cmds.mapNotNull { it.data.id }.asFlow()
+        val ids = cmds.map { it.data.id }.asFlow()
         val entities = mutableMapOf<Any, ENTITY?>()
         persister.load(automateContext, ids = ids).collect { entity ->
             val id = entity?.s2Id()
@@ -167,9 +167,7 @@ ENTITY : WithS2Id<ID> {
             }
         }
         return cmds.map { cmd ->
-            val id = cmd.data.id
-            val entity = if (id != null) entities[id] else null
-            cmd to entity
+            cmd to entities[cmd.data.id]
         }
     }
 
@@ -194,13 +192,13 @@ ENTITY : WithS2Id<ID> {
     protected suspend fun <COMMAND : S2Command<ID>> loadBatchWithOutcomes(
         cmds: List<Envelope<COMMAND>>
     ): List<LoadedSlot<COMMAND, ENTITY>> {
-        val ids = cmds.mapNotNull { it.data.id }.asFlow()
+        val ids = cmds.map { it.data.id }.asFlow()
         val outcomes = persister.loadWithOutcomes(automateContext, ids).toList()
         val byId = outcomes.associateBy { it.id }
         val seenIds = mutableSetOf<ID>()
         return cmds.map { cmd ->
             val cmdId = cmd.data.id
-            if (cmdId != null && !seenIds.add(cmdId)) {
+            if (!seenIds.add(cmdId)) {
                 return@map LoadedSlot.Failed(
                     cmd,
                     PersistOutcome.Rejected<Nothing>(

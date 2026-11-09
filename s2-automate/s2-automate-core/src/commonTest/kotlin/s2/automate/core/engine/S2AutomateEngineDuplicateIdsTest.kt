@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -79,12 +80,12 @@ class S2AutomateEngineDuplicateIdsTest {
     private fun engine(
         persister: DedupingPersister,
         batchSize: Int = 10,
-    ) = makeEngine(persister, automate = automate, batchSize = batchSize, concurrency = 1)
+    ) = makeEngine(persister, automate = automate, batch = S2BatchProperties(size = batchSize, concurrency = 1))
 
     private fun outcomeEngine(
         persister: DedupingPersister,
         batchSize: Int = 10,
-    ) = makeOutcomeEngine(persister, automate = automate, batchSize = batchSize, concurrency = 1)
+    ) = makeOutcomeEngine(persister, automate = automate, batch = S2BatchProperties(size = batchSize, concurrency = 1))
 
     // ---- doTransition: whole batch rejected ----
 
@@ -101,7 +102,7 @@ class S2AutomateEngineDuplicateIdsTest {
 
         assertIs<AutomateException>(exception)
         assertEquals("ERROR_DUPLICATE_COMMAND_IDS", exception.errors.single().type)
-        assertTrue(exception.errors.single().payload["ids"]!!.contains("1"))
+        assertTrue(exception.errors.single().payload.getValue("ids").contains("1"))
         // nothing was persisted: the batch is refused as a whole
         assertEquals(emptyList(), persister.persistedIds)
     }

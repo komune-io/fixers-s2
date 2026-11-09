@@ -99,8 +99,8 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
     ): Flow<EVENT_OUT> {
         return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd"),
             { cmd, entity ->
-                val (entity, event) = exec(cmd.data, entity)
-                entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+                val (evolved, event) = exec(cmd.data, entity)
+                evolved to cmd.mapEnvelopeWithType({ event }, type = "Evt")
             }
         ).map { it.data }.onEach {
             publisher.publish(it)

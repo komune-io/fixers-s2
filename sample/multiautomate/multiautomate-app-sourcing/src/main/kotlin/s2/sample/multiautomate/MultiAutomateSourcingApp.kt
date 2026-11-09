@@ -12,6 +12,6 @@ const val PACKAGE = "s2.sample.multiautomate"
 @SpringBootApplication(scanBasePackages = [PACKAGE])
 class MultiAutomateSourcingApp
 
-fun main(args: Array<String>) {
+fun main(vararg args: String) {
 	runApplication<MultiAutomateSourcingApp>(*args)
 }

@@ -51,7 +51,7 @@ ENTITY : WithS2State<STATE> {
 		return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
 			val event = buildEvent(cmd.data)
 			val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
-			val entity = projectionLoader.evolve(flowOf(event))!!
+			val entity = checkNotNull(projectionLoader.evolve(flowOf(event))) { "The projection of an init event is null" }
 			entity to evl
 		}.mapAndPublishData()
 	}
@@ -73,7 +73,9 @@ ENTITY : WithS2State<STATE> {
 	): Flow<EVENT_OUT> {
 		return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { command, entity ->
 			val event = exec(command.data, entity)
-			val entityUpdated = projectionLoader.evolve(flowOf(event), entity)!!
+			val entityUpdated = checkNotNull(projectionLoader.evolve(flowOf(event), entity)) {
+				"The projection of an event is null"
+			}
 			entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
 		}.mapAndPublishData()
 	}

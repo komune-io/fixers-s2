@@ -8,6 +8,7 @@ import org.springframework.http.codec.multipart.FilePart
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
+@Suppress("ForbiddenVoid") // FilePart declares transferTo as Mono<Void>
 class StubFilePart(
     val name: String
 ): FilePart {

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -116,7 +117,7 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
         persister: AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate>,
         batchSize: Int = 10,
     ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
-        makeOutcomeEngine(persister, batchSize = batchSize)
+        makeOutcomeEngine(persister, batch = S2BatchProperties(size = batchSize))
 
     private fun cmd(id: String) = DoCmd(id).asEnvelopeWithType("Cmd", id = id)
 
@@ -246,7 +247,8 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
         results.forEach { envelope ->
             val outcome = envelope.data
             val transient = assertIs<PersistOutcome.Transient<TestEvent>>(outcome,
-                "legacy-load throw must surface as Transient (retryable) via default impl, got ${outcome::class.simpleName}")
+                "legacy-load throw must surface as Transient (retryable) via default impl, " +
+                    "got ${outcome::class.simpleName}")
             assertEquals("ERROR_PERSIST_LAMBDA_THROW", transient.error.type,
                 "the default impl wraps the throwable in ERROR_PERSIST_LAMBDA_THROW")
         }

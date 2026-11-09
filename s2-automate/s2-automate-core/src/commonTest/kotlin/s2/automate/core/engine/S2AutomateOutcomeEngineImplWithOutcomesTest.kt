@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.appevent.publisher.AppEventPublisher
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
@@ -165,7 +166,7 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         publisher: RecordingAppEventPublisher,
         batchSize: Int = 2,
     ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
-        makeOutcomeEngine(persister, guard = guard, publisher = publisher, batchSize = batchSize)
+        makeOutcomeEngine(persister, guard = guard, publisher = publisher, batch = S2BatchProperties(size = batchSize))
 
     // ---- tests ----
 

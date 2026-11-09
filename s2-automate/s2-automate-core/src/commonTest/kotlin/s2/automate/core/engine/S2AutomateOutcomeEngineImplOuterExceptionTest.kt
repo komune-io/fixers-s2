@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
@@ -152,7 +153,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         persister: AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate>,
         batchSize: Int = 10,
     ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
-        makeOutcomeEngine(persister, guard = guard, batchSize = batchSize)
+        makeOutcomeEngine(persister, guard = guard, batch = S2BatchProperties(size = batchSize))
 
     // ---- tests ----
 
@@ -331,7 +332,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     }
 
     @Test
-    fun `createWithOutcomes - CancellationException from decide lambda propagates instead of becoming Indeterminate`() = runTest {
+    fun `createWithOutcomes - CancellationException from decide propagates, not Indeterminate`() = runTest {
         // The runCatching in partitionCreations previously caught CancellationException
         // and converted it to a per-id Indeterminate outcome — silently swallowing the
         // cooperative cancellation signal so the parent scope never unwound.
@@ -368,7 +369,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     }
 
     @Test
-    fun `doTransitionWithOutcomes - CancellationException from exec lambda propagates instead of becoming Indeterminate`() = runTest {
+    fun `doTransitionWithOutcomes - CancellationException from exec propagates, not Indeterminate`() = runTest {
         // Same expectation for partitionTransitions: CancellationException thrown
         // by the exec lambda (or by guardExecutor.evaluateTransition) must propagate
         // up the coroutine tree rather than being mapped to Indeterminate.

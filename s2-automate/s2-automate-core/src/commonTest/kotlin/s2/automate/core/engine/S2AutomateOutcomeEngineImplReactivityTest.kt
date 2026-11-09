@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.TransitionAppliedContext
@@ -90,7 +91,11 @@ class S2AutomateOutcomeEngineImplReactivityTest {
         persister: AutomatePersister<TestState, String, TestEntity, Any, S2Automate>,
         batchSize: Int,
     ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, Any> =
-        makeOutcomeEngine(persister, automate = testAutomate("ReactivityTestAutomate"), batchSize = batchSize)
+        makeOutcomeEngine(
+            persister,
+            automate = testAutomate("ReactivityTestAutomate"),
+            batch = S2BatchProperties(size = batchSize),
+        )
 
     // ---- B.2 guard: single batched load per chunk ----
 

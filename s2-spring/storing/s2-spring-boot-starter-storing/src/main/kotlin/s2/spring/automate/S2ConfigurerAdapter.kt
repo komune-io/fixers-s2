@@ -25,7 +25,7 @@ ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
 	@Autowired
-	private lateinit var eventPublisher: SpringEventPublisher
+	internal lateinit var eventPublisher: SpringEventPublisher
 
 	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> =
 		buildEngine(::S2AutomateEngineImpl)

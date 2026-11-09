@@ -19,6 +19,7 @@ class AssertionCrudEntityTest {
 
     // ---- reactive ----
 
+    @Suppress("ForbiddenVoid") // ReactiveCrudRepository declares its deletes as Mono<Void>
     private class InMemoryReactiveRepository(
         private val store: Map<String, Entity>,
     ) : ReactiveCrudRepository<Entity, String> {

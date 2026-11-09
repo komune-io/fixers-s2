@@ -2,8 +2,8 @@ package s2.automate.core.storing.snap
 
 import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,12 +20,13 @@ data class RetryTask<ENTITY, EVENT>(
 class RetryTaskChannel(
     private val maxAttempts: Int = 5,
     private val delayMillis: Long = 1000,
-    private val retryOn: KClass<*>
+    private val retryOn: KClass<*>,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : CoroutineScope {
 
     private val supervisorJob = SupervisorJob()
     override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Default + supervisorJob
+        get() = dispatcher + supervisorJob
 
     private val persistChannel = Channel<suspend () -> Unit>()
 
@@ -34,15 +35,10 @@ class RetryTaskChannel(
     }
 
     private fun CoroutineScope.launchPersistWorker() = launch {
+        // A task never throws, retry turns every failure into the task's result: a throw would
+        // kill the single worker, and every later addToPersistQueue send would suspend forever.
         for (task in persistChannel) {
-            try {
-                task()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-                // a failing task must not kill the single worker, or every
-                // subsequent addToPersistQueue send would suspend forever
-            }
+            task()
         }
     }
 
@@ -61,15 +57,14 @@ class RetryTaskChannel(
     private suspend fun <T> retry(
         block: suspend () -> T
     ): Result<T> {
-        var attempts = 0
-        while (true) {
-            val result = runCatching { block() }
-            val failure = result.exceptionOrNull() ?: return result
-            if (!retryOn.isInstance(failure)) return result
-            attempts++
-            if (attempts >= maxAttempts) return result
+        var attempts = 1
+        var result = runCatching { block() }
+        while (attempts < maxAttempts && result.exceptionOrNull()?.let { retryOn.isInstance(it) } == true) {
             delay(delayMillis)
+            result = runCatching { block() }
+            attempts++
         }
+        return result
     }
 
 
