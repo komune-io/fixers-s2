@@ -50,6 +50,7 @@ fixers {
 	}
 	kt2Ts {
 		outputDirectory = "ts"
+		committedFiles = io.komune.fixers.gradle.config.model.Kt2TsFiles.DECLARATIONS
 	}
 	npm {
 		organization = "komune"
