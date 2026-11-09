@@ -14,7 +14,7 @@ import org.springframework.data.annotation.Version
 @Entity
 @MappedSuperclass
 @EntityListeners
-@Suppress("LongParameterList") // public constructor: moving the audit fields out would break its callers
+@Suppress("LongParameterList") // mirrors the persisted event row and its audit columns
 class EventSourcing<ID>(
 	@Id
 	val id: String,
