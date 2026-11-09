@@ -79,32 +79,6 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
     }
 
     /**
-     * Emits nothing — every requested id is "not found". Default impl should
-     * surface them as [LoadOutcome.Rejected] with ERROR_ENTITY_NOT_FOUND.
-     */
-    private class EmptyPersister :
-        AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
-
-        override suspend fun persistInit(
-            transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<TestEvent> = error("not used")
-
-        override suspend fun persist(
-            transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<TestEvent> = error("not used")
-
-        override suspend fun load(
-            automateContexts: AutomateContext<S2Automate>,
-            ids: Flow<String>,
-        ): Flow<TestEntity?> = ids.map { null }
-
-        override suspend fun load(
-            automateContexts: AutomateContext<S2Automate>,
-            id: String,
-        ): TestEntity? = null
-    }
-
-    /**
      * Emits an entity for some ids and nothing for others (simulates a backing
      * store that returns a partial result set).
      */

@@ -14,6 +14,7 @@ import org.springframework.data.annotation.Version
 @Entity
 @MappedSuperclass
 @EntityListeners
+@Suppress("LongParameterList") // mirrors the persisted event row and its audit columns
 class EventSourcing<ID>(
 	@Id
 	val id: String,

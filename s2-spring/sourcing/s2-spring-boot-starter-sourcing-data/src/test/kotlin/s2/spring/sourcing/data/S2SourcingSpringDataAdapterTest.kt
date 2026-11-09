@@ -7,13 +7,13 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -186,9 +186,9 @@ class S2SourcingSpringDataAdapterTest {
 			return repository.calls.toList()
 		}
 
-		assertThat(firstCall { it.load("1") }).containsExactly("createTable", "load")
-		assertThat(firstCall { it.loadAll() }).containsExactly("createTable", "loadAll")
-		assertThat(firstCall { it.persist(flowOf(TestEvent("1"))) }).containsExactly("createTable", "persistAll")
+		assertThat(firstCall { it.load("1").collect() }).containsExactly("createTable", "load")
+		assertThat(firstCall { it.loadAll().collect() }).containsExactly("createTable", "loadAll")
+		assertThat(firstCall { it.persist(flowOf(TestEvent("1"))).collect() }).containsExactly("createTable", "persistAll")
 		assertThat(firstCall { it.createTable() }).containsExactly("createTable")
 	}
 
@@ -197,9 +197,11 @@ class S2SourcingSpringDataAdapterTest {
 		val repository = RecordingRepository()
 		val store = adapter(repository).eventStore()
 
-		withContext(Dispatchers.Default) {
-			coroutineScope {
-				(1..20).map { async { store.persist(TestEvent("$it")) } }.awaitAll()
+		Executors.newFixedThreadPool(4).asCoroutineDispatcher().use { pool ->
+			withContext(pool) {
+				coroutineScope {
+					(1..20).map { async { store.persist(TestEvent("$it")) } }.awaitAll()
+				}
 			}
 		}
 

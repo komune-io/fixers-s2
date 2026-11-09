@@ -30,7 +30,7 @@ sealed class InfiniteLoopRole : S2Role {
 	class User : InfiniteLoopRole()
 
 	override fun toString(): String {
-		return this::class.simpleName!!
+		return this::class.simpleName ?: super.toString()
 	}
 }
 
@@ -41,7 +41,7 @@ open class InfiniteLoopState(
 	object Running : InfiniteLoopState(0)
 
 	override fun toString(): String {
-		return this::class.simpleName!!
+		return this::class.simpleName ?: super.toString()
 	}
 }
 

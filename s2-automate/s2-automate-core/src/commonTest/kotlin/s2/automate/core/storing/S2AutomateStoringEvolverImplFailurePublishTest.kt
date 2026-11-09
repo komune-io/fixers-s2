@@ -85,7 +85,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = commands.map { cmd ->
-            decide(cmd) // run the decide to satisfy callers
+            val _ = decide(cmd) // run the decide to satisfy callers
             nextOutcome().asEnvelopeWithType("Evt") as Envelope<PersistOutcome<EVENT_OUT>>
         }
 
@@ -95,7 +95,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = commands.map { cmd ->
-            exec(cmd, TestEntity(cmd.data.id, TestState.Created))
+            val _ = exec(cmd, TestEntity(cmd.data.id, TestState.Created))
             nextOutcome().asEnvelopeWithType("Evt") as Envelope<PersistOutcome<EVENT_OUT>>
         }
     }
@@ -202,7 +202,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     }
 
     @Test
-    fun `all 4 Failure categories produce AutomatePersistFailure with correct category string on init path`() = runTest {
+    fun `all 4 Failure categories publish AutomatePersistFailure with their category on init path`() = runTest {
         val outcomes: List<PersistOutcome<Evt>> = listOf(
             PersistOutcome.Rejected("r", s2error("RC", "msg")),
             PersistOutcome.Transient("t", s2error("TC", "msg")),
@@ -223,7 +223,12 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         assertEquals(4, pub.errorEvents.size)
         val categories = pub.errorEvents.map { it.category }
         assertEquals(
-            listOf(ErrorCategory.Rejected, ErrorCategory.Transient, ErrorCategory.Indeterminate, ErrorCategory.Conflict),
+            listOf(
+                ErrorCategory.Rejected,
+                ErrorCategory.Transient,
+                ErrorCategory.Indeterminate,
+                ErrorCategory.Conflict,
+            ),
             categories
         )
     }

@@ -5,6 +5,7 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.protocol.ProtocolVersion
 import io.lettuce.core.support.ConnectionPoolSupport
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.toList
 import org.apache.commons.pool2.impl.GenericObjectPool
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
@@ -142,7 +143,7 @@ class RedisSnapViewIntegrationTest {
 			redisSnapView.save<TestEntity>("s3", TestEntity("s3", "Charlie", "closed"))
 
 			// Wait briefly for index to catch up
-			Thread.sleep(500)
+			delay(500)
 
 			val result = redisSnapView.search<TestEntity>(query = null, pagination = null, sortBy = null)
 			assertTrue(result.total >= 3, "Expected at least 3 results, got ${result.total}")

@@ -15,7 +15,7 @@ class OrderBookSnapView(
 ): SnapRepository<OrderBook, String>  {
 
     @PostConstruct
-    fun init() = runBlocking {
+    fun init(): Unit = runBlocking {
         redisSnapView.createIndex<OrderBook>(
             RedisIndexField(OrderBook::id.name, RedisFieldType.TAG)
         )

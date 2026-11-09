@@ -12,19 +12,16 @@ import org.springframework.context.annotation.Configuration
 // Explicitly open: this module does not apply the kotlin-spring (allopen) plugin,
 // and @Configuration classes must be subclassable for CGLIB proxying.
 @Configuration
-open class RedisConfig {
+open class RedisConfig(
+	@Value("\${spring.data.redis.host:localhost}")
+	private val redisHost: String,
+	@Value("\${spring.data.redis.port:6379}")
+	private val redisPort: Int,
+) {
 
 	companion object {
-		private const val DEFAULT_REDIS_PORT = 6379
 		private const val DEFAULT_POOL_SIZE = 8
 	}
-
-	@Value("\${spring.data.redis.host:localhost}")
-	private lateinit var redisHost: String
-
-	@Suppress("MagicNumber")
-	@Value("\${spring.data.redis.port:6379}")
-	private var redisPort: Int = DEFAULT_REDIS_PORT
 
 	@Bean
 	open fun redisClient(): RedisClient {

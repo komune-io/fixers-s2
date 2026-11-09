@@ -8,18 +8,9 @@ lettuce = "7.9.0.RELEASE"
 commons-pool = "2.13.1"
 node-gradle = "7.1.0"
 
-# npm resolution pins for patched transitive deps of the Kotlin/JS test toolchain
-# (Dependabot alerts on kotlin-js-store/yarn.lock), applied in the root build.gradle.kts.
-# mocha 11.7.6, shipped by KGP, caps them at vulnerable majors.
-# Paths are scoped there: an unscoped "glob" also upgrades karma's glob 7 and breaks karma.
-# Upstream bumps do not make a pin safe to drop (mocha 12 still asks for minimatch ^10, which is
-# vulnerable): remove a pin only once a lock regenerated without it still resolves patched versions
-# for every advisory. Regenerate the lock with `make -f infra/make/libs.mk js-lock-refresh`.
-npm-mocha-glob = "14.0.4"
-npm-mocha-minimatch = "11.0.5"
-npm-karma-webpack-minimatch = "11.0.5"
-npm-mocha-serialize-javascript = "7.1.4"
-npm-mocha-diff = "8.0.4"
+# Spring Boot images of the samples (fixers image convention: builder pinned by digest, health checker)
+paketo-builder-noble-java-tiny = "0.0.211@sha256:8da9782949bb9f39f4b9d8079216531fe2791286fe33bbf450e533949cfbcc91"
+paketo-health-checker = "2.14.2"
 
 [libraries]
 # F2 (versions from BOM)
@@ -70,11 +61,6 @@ cucumber-java = { group = "io.cucumber", name = "cucumber-java" }
 cucumber-java8 = { group = "io.cucumber", name = "cucumber-java8" }
 cucumber-junit-platform-engine = { group = "io.cucumber", name = "cucumber-junit-platform-engine" }
 
-# Arrow (versions from BOM)
-arrow-core = { group = "io.arrow-kt", name = "arrow-core" }
-arrow-optics = { group = "io.arrow-kt", name = "arrow-optics" }
-arrow-optics-ksp = { group = "io.arrow-kt", name = "arrow-optics-ksp-plugin" }
-
 # Project-specific (not in BOM)
 lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind" }
@@ -99,5 +85,5 @@ testcontainers = ["spring-boot-testcontainers", "testcontainers-junit-jupiter", 
 testcontainers-postgres = ["testcontainers-postgresql", "testcontainers-r2dbc"]
 
 [plugins]
-# Project-specific only — fixers, kotlin, spring-boot, ksp plugins come from the catalogue
+# Project-specific only — fixers, kotlin, spring-boot plugins come from the catalogue
 node-gradle = { id = "com.github.node-gradle.node", version.ref = "node-gradle" }

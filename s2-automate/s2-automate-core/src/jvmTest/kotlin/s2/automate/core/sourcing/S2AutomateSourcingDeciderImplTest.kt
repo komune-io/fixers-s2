@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.toList
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.engine.S2AutomateEngine
 import s2.dsl.automate.Evt
@@ -68,7 +69,8 @@ class S2AutomateSourcingDeciderImplTest {
         }
     }
 
-    private class StubLoader : Loader<TestEvent, TestEntity, String> {
+    /** [nullProjection]: the view projects every event to nothing, as a buggy View would. */
+    private class StubLoader(private val nullProjection: Boolean = false) : Loader<TestEvent, TestEntity, String> {
         var reloadHistoryCalled = false
         override suspend fun load(id: String): TestEntity? = TestEntity(id)
         override suspend fun load(events: Flow<TestEvent>): TestEntity? = evolve(events)
@@ -76,7 +78,7 @@ class S2AutomateSourcingDeciderImplTest {
             evolve(news, TestEntity(id))
 
         override suspend fun evolve(events: Flow<TestEvent>, entity: TestEntity?): TestEntity? =
-            events.fold(entity) { _, event -> TestEntity(event.s2Id()) }
+            if (nullProjection) null else events.fold(entity) { _, event -> TestEntity(event.s2Id()) }
 
         override suspend fun reloadHistory(): List<TestEntity> {
             reloadHistoryCalled = true
@@ -117,6 +119,28 @@ class S2AutomateSourcingDeciderImplTest {
         val event = decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
         assertEquals(DoneEvt("7"), event)
         assertEquals(listOf<Any>(DoneEvt("7")), publisher.published)
+    }
+
+    @Test
+    suspend fun `init fails when the projection of its event is null`() {
+        val publisher = RecordingPublisher()
+        val decider = decider(publisher, loader = StubLoader(nullProjection = true))
+        val exception = assertThrows<IllegalStateException> {
+            decider.init(CreateCmd("1")) { CreatedEvt("1") }
+        }
+        assertEquals("The projection of an init event is null", exception.message)
+        assertTrue(publisher.published.isEmpty())
+    }
+
+    @Test
+    suspend fun `transition fails when the projection of its event is null`() {
+        val publisher = RecordingPublisher()
+        val decider = decider(publisher, loader = StubLoader(nullProjection = true))
+        val exception = assertThrows<IllegalStateException> {
+            decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
+        }
+        assertEquals("The projection of an event is null", exception.message)
+        assertTrue(publisher.published.isEmpty())
     }
 
     @Test

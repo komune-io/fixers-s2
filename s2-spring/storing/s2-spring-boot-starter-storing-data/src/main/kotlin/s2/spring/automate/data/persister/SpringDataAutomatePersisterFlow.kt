@@ -25,24 +25,24 @@ ENTITY : WithS2Id<ID> {
 
 	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> repository.findAllById(ids).toList() }
 
-	override suspend fun load(automateContext: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
+	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
 		loader.load(ids)
 
 	override suspend fun persistInit(
-		transitionContext: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
-		return transitionContext.map {
+		return transitionContexts.map {
 			repository.save(it.entity)
 			it.event
 		}
 	}
 
 	override suspend fun persist(
-		transitionContext: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> {
-		val eventsFlow: Flow<EVENT> = transitionContext.map { it.event }
+		val eventsFlow: Flow<EVENT> = transitionContexts.map { it.event }
 
-		val entitiesFlow: Flow<ENTITY> = transitionContext.map { it.entity }
+		val entitiesFlow: Flow<ENTITY> = transitionContexts.map { it.entity }
 		repository.saveAll(entitiesFlow.toList())
 
 		return eventsFlow

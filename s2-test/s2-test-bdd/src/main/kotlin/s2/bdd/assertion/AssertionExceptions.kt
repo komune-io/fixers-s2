@@ -2,6 +2,7 @@ package s2.bdd.assertion
 
 import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.ListAssert
 import s2.bdd.data.TestContext
 
 fun AssertionBdd.exceptions(testContext: TestContext) = AssertionExceptions(testContext)
@@ -32,6 +33,6 @@ class AssertionExceptions(
             matching(matcher).hasSizeLessThanOrEqualTo(times)
         }
 
-        fun matching(matcher: (E) -> Boolean) = Assertions.assertThat(exceptions.filter(matcher))
+        fun matching(matcher: (E) -> Boolean): ListAssert<E> = Assertions.assertThat(exceptions.filter(matcher))
     }
 }

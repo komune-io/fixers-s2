@@ -2,8 +2,8 @@ package s2.automate.core.appevent
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import s2.automate.core.appevent.listener.AutomateListener
 import s2.automate.core.appevent.listener.AutomateListenerAdapter
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.appevent.publisher.AutomateEventPublisher
@@ -40,55 +40,30 @@ class AutomateEventPublisherTest {
     private val entity = TestEntity("1", TestState.Created)
     private val cmd = CreateCmd("1")
 
-    private fun allEvents(): List<AppEvent> = listOf(
-        AutomateStateEntered(TestState.Created),
-        AutomateStateExited(TestState.Created),
-        AutomateTransitionNotAccepted(TestState.Created, cmd),
-        AutomateInitTransitionStarted(cmd),
-        AutomateInitTransitionEnded(TestState.Created, cmd, entity),
-        AutomateTransitionStarted(TestState.Created, cmd),
-        AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity),
-        AutomateTransitionError(cmd, IllegalStateException("boom")),
-        AutomateSessionStarted(automate),
-        AutomateSessionStopped(automate),
-        AutomateSessionError(automate, IllegalStateException("boom")),
-        AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error("ERR", "desc")),
-    )
-
-    private fun dispatch(
-        listener: s2.automate.core.appevent.listener.AutomateListener<TestState, String, TestEntity, S2Automate>,
-        events: List<AppEvent>,
-    ) {
-        events.forEach { event ->
-            @Suppress("UNCHECKED_CAST")
-            when (event) {
-                is AutomateStateEntered -> listener.automateStateEntered(event)
-                is AutomateStateExited -> listener.automateStateExited(event)
-                is AutomateTransitionNotAccepted -> listener.automateTransitionNotAccepted(event)
-                is AutomateInitTransitionStarted -> listener.automateInitTransitionStarted(event)
-                is AutomateInitTransitionEnded<*, *> ->
-                    listener.automateInitTransitionEnded(event as AutomateInitTransitionEnded<TestState, TestEntity>)
-                is AutomateTransitionStarted -> listener.automateTransitionStarted(event)
-                is AutomateTransitionEnded<*, *> ->
-                    listener.automateTransitionEnded(event as AutomateTransitionEnded<TestState, TestEntity>)
-                is AutomateTransitionError -> listener.automateTransitionError(event)
-                is AutomateSessionStarted<*> ->
-                    listener.automateSessionStarted(event as AutomateSessionStarted<S2Automate>)
-                is AutomateSessionStopped<*> ->
-                    listener.automateSessionStopped(event as AutomateSessionStopped<S2Automate>)
-                is AutomateSessionError -> listener.automateSessionError(event)
-                is AutomatePersistFailure -> listener.automatePersistFailure(event)
-                else -> error("Unhandled event $event")
-            }
-        }
-    }
+    /** Calls every listener callback once, each with its own event, and returns the events sent. */
+    private fun dispatchAll(listener: AutomateListener<TestState, String, TestEntity, S2Automate>): List<AppEvent> =
+        listOf(
+            AutomateStateEntered(TestState.Created).also(listener::automateStateEntered),
+            AutomateStateExited(TestState.Created).also(listener::automateStateExited),
+            AutomateTransitionNotAccepted(TestState.Created, cmd).also(listener::automateTransitionNotAccepted),
+            AutomateInitTransitionStarted(cmd).also(listener::automateInitTransitionStarted),
+            AutomateInitTransitionEnded(TestState.Created, cmd, entity).also(listener::automateInitTransitionEnded),
+            AutomateTransitionStarted(TestState.Created, cmd).also(listener::automateTransitionStarted),
+            AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity)
+                .also(listener::automateTransitionEnded),
+            AutomateTransitionError(cmd, IllegalStateException("boom")).also(listener::automateTransitionError),
+            AutomateSessionStarted(automate).also(listener::automateSessionStarted),
+            AutomateSessionStopped(automate).also(listener::automateSessionStopped),
+            AutomateSessionError(automate, IllegalStateException("boom")).also(listener::automateSessionError),
+            AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error("ERR", "desc"))
+                .also(listener::automatePersistFailure),
+        )
 
     @Test
     fun `AutomateEventPublisher forwards every listener callback to the publisher`() {
         val publisher = RecordingPublisher()
         val automatePublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
-        val events = allEvents()
-        dispatch(automatePublisher, events)
+        val events = dispatchAll(automatePublisher)
         assertEquals(events.size, publisher.published.size)
         events.zip(publisher.published).forEach { (sent, received) ->
             assertSame(sent, received)
@@ -99,8 +74,7 @@ class AutomateEventPublisherTest {
     fun `AutomateListenerAdapter ignores every event by default`() {
         val adapter = AutomateListenerAdapter<TestState, String, TestEntity, S2Automate>()
         // Must not throw: every callback is an explicit no-op.
-        dispatch(adapter, allEvents())
-        assertTrue(true)
+        assertEquals(12, dispatchAll(adapter).size)
     }
 
     @Test

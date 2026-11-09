@@ -33,7 +33,7 @@ sealed class EndableLoopRole : S2Role {
 	class User : EndableLoopRole()
 
 	override fun toString(): String {
-		return this::class.simpleName!!
+		return this::class.simpleName ?: super.toString()
 	}
 }
 
@@ -44,7 +44,7 @@ open class EndableLoopState(
 	object Ended : EndableLoopState(1)
 
 	override fun toString(): String {
-		return this::class.simpleName!!
+		return this::class.simpleName ?: super.toString()
 	}
 }
 

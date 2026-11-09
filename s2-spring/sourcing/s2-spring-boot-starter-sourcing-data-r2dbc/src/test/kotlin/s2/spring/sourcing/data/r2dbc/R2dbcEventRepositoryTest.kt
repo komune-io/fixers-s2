@@ -24,13 +24,10 @@ data class TestEvent(
     override fun s2Id() = id
 }
 
-class R2dbcEventRepositoryTest : SpringTestBase() {
-
-    @Autowired
-    private lateinit var databaseClient: DatabaseClient
-
-    @Autowired
-    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
+class R2dbcEventRepositoryTest @Autowired constructor(
+    private val databaseClient: DatabaseClient,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+) : SpringTestBase {
 
     private lateinit var eventRepository: R2dbcEventRepository<TestEvent, String>
 

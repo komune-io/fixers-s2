@@ -28,7 +28,7 @@ class S2SourcingAutomateBuilder {
 		val builder = S2TransitionBuilder()
 		builder.exec()
 		builder.from?.let(builder.froms::add)
-		builder.froms.map { from ->
+		builder.froms.forEach { from ->
 			S2Transition(
 				from = from.toValue(),
 				to = builder.to.toValue(),

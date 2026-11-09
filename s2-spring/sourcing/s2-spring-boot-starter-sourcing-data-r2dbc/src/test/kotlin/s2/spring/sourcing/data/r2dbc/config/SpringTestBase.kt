@@ -10,4 +10,4 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 @ExtendWith(SpringExtension::class)
 @Import(ContainersConfig::class)
 @SpringBootTest(classes = [TestApplication::class])
-abstract class SpringTestBase
+interface SpringTestBase

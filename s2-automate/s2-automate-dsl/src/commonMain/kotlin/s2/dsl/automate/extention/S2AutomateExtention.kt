@@ -4,13 +4,14 @@ import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
 import s2.dsl.automate.isNamed
+import s2.dsl.automate.s2SimpleName
 import s2.dsl.automate.model.WithS2State
 
 
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionAnd(
     model: WithS2State<out S2State>, hasAccess: () -> Boolean
 ): Boolean {
-    return isAvailableTransition(model, C::class.simpleName!!) && hasAccess()
+    return isAvailableTransition(model, C::class.s2SimpleName()) && hasAccess()
 }
 
 fun S2Automate.isAvailableTransition(state: WithS2State<out S2State>?, type: String): Boolean {
@@ -43,5 +44,5 @@ fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Bo
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionByNameAnd(
     stateName: String?, hasAccess: () -> Boolean
 ): Boolean {
-    return isAvailableTransitionByName(stateName, C::class.simpleName!!) && hasAccess()
+    return isAvailableTransitionByName(stateName, C::class.s2SimpleName()) && hasAccess()
 }

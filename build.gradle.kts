@@ -2,6 +2,7 @@ plugins {
 	alias(catalogue.plugins.kotlin.spring) apply false
 	alias(catalogue.plugins.kotlin.serialization) apply false
 	alias(catalogue.plugins.kotlin.kapt) apply false
+	alias(catalogue.plugins.spring.boot) apply false
 	alias(libs.plugins.node.gradle)
 
 	alias(catalogue.plugins.f2.bom)
@@ -13,11 +14,17 @@ plugins {
 	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
+// Every Spring Boot image follows the fixers convention: a builder pinned by digest and Paketo's health
+// checker. Listing buildpacks replaces the builder's defaults, so the Java buildpack comes first.
 subprojects {
-	// A type the JS export cannot render becomes `any` in the TypeScript contract: fail the build instead.
-	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-		tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
-			compilerOptions.freeCompilerArgs.add("-Xwarning-level=NON_EXPORTABLE_TYPE:error")
+	pluginManager.withPlugin("org.springframework.boot") {
+		tasks.withType<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>().configureEach {
+			builder = "docker.io/paketobuildpacks/builder-noble-java-tiny:" +
+				rootProject.libs.versions.paketo.builder.noble.java.tiny.get()
+			buildpacks = listOf(
+				"urn:cnb:builder:paketo-buildpacks/java",
+				"docker.io/paketobuildpacks/health-checker:${rootProject.libs.versions.paketo.health.checker.get()}",
+			)
 		}
 	}
 }
@@ -41,6 +48,10 @@ fixers {
 		description = "Fixers S2"
 		url = "https://github.com/komune-io/fixers-s2"
 	}
+	kt2Ts {
+		outputDirectory = "ts"
+		committedFiles = io.komune.fixers.gradle.config.model.Kt2TsFiles.DECLARATIONS
+	}
 	npm {
 		organization = "komune"
 	}
@@ -56,18 +67,5 @@ fixers {
 	}
 	repositories {
 		sonatypeSnapshots = true
-	}
-}
-
-// Pin patched transitive npm deps of the Kotlin/JS test toolchain. Versions, and why the pins
-// exist and when to remove them, live with the npm-* entries in gradle/libs.versions.toml.
-// Paths are scoped: an unscoped "glob" also upgrades karma's glob 7 and breaks karma.
-plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
-	the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
-		resolution("**/mocha/glob", libs.versions.npm.mocha.glob.get())
-		resolution("**/mocha/minimatch", libs.versions.npm.mocha.minimatch.get())
-		resolution("**/karma-webpack/minimatch", libs.versions.npm.karma.webpack.minimatch.get())
-		resolution("**/mocha/serialize-javascript", libs.versions.npm.mocha.serialize.javascript.get())
-		resolution("**/mocha/diff", libs.versions.npm.mocha.diff.get())
 	}
 }

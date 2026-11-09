@@ -2,6 +2,7 @@ package s2.bdd.assertion
 
 import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.ListAssert
 import s2.bdd.data.TestContext
 
 fun AssertionBdd.events(testContext: TestContext) = AssertionApplicationEvents(testContext)
@@ -33,6 +34,6 @@ class AssertionApplicationEvents(
             matching(matcher).hasSizeLessThanOrEqualTo(times)
         }
 
-        fun matching(matcher: (Event) -> Boolean) = Assertions.assertThat(events.filter(matcher))
+        fun matching(matcher: (Event) -> Boolean): ListAssert<Event> = Assertions.assertThat(events.filter(matcher))
     }
 }

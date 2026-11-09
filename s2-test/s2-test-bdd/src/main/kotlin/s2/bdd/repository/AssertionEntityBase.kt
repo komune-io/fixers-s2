@@ -22,6 +22,6 @@ abstract class AssertionEntityBase<ENTITY, ID : Any, ASSERTER> : AssertionEntity
     override suspend fun assertThatId(id: ID): ASSERTER {
         val entity = findById(id)
         Assertions.assertThat(entity).isNotNull
-        return assertThat(entity!!)
+        return assertThat(checkNotNull(entity))
     }
 }

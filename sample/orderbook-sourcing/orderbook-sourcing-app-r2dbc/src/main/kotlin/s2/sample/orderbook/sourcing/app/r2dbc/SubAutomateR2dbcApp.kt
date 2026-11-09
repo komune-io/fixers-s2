@@ -8,6 +8,6 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 @SpringBootApplication(scanBasePackages = ["s2"])
 class SubAutomateR2dbcApp
 
-fun main(args: Array<String>) {
+fun main(vararg args: String) {
 	runApplication<SubAutomateR2dbcApp>(*args)
 }

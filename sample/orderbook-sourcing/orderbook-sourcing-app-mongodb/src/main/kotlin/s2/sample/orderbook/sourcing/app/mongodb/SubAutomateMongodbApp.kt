@@ -10,6 +10,6 @@ import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRep
 @SpringBootApplication(scanBasePackages = ["s2"])
 class SubAutomateMongodbApp
 
-fun main(args: Array<String>) {
+fun main(vararg args: String) {
 	runApplication<SubAutomateMongodbApp>(*args)
 }
