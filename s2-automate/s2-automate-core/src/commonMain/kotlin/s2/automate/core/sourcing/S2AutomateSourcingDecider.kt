@@ -5,7 +5,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
-interface S2AutomateSourcingDecider<ENTITY : WithS2State<STATE>, STATE : S2State, EVENT: Any, ID> {
+interface S2AutomateSourcingDecider<ENTITY : WithS2State<STATE>, STATE : S2State, EVENT: Any, ID : Any> {
 
 	suspend fun <EVENT_OUT: EVENT> init(
 		command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT

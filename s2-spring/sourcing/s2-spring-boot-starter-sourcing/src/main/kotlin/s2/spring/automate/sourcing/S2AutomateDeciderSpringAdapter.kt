@@ -25,7 +25,7 @@ import s2.spring.automate.sourcing.persist.S2AutomateSourcingPersister
 import s2.spring.core.S2SpringAdapterBase
 import s2.spring.core.publisher.SpringEventPublisher
 
-abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
+abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID : Any, EXECUTOR>(
 	val executor: EXECUTOR,
 	val view: View<EVENT, ENTITY>,
 	val snapRepository: SnapRepository<ENTITY, ID>? = null,

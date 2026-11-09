@@ -17,7 +17,7 @@ import s2.spring.automate.executor.S2AutomateExecutorSpring
 import s2.spring.core.S2SpringAdapterBase
 import s2.spring.core.publisher.SpringEventPublisher
 
-abstract class S2ConfigurerAdapter<STATE, ID, ENTITY, out EXECUTER>
+abstract class S2ConfigurerAdapter<STATE, ID : Any, ENTITY, out EXECUTER>
 	: InitializingBean, S2SpringAdapterBase<ENTITY, STATE, Evt, ID>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,

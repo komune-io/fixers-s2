@@ -16,7 +16,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-open class AutomateListenerAdapter<STATE, ID, ENTITY, AUTOMATE> : AutomateListener<STATE, ID, ENTITY, AUTOMATE>
+open class AutomateListenerAdapter<STATE, ID : Any, ENTITY, AUTOMATE> : AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 		where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
 	override fun automateStateEntered(event: AutomateStateEntered) { /* no-op by default, override to react to this event */ }

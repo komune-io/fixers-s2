@@ -16,7 +16,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-interface AutomatePersister<STATE, ID, ENTITY, EVENT, AUTOMATE> where
+interface AutomatePersister<STATE, ID : Any, ENTITY, EVENT, AUTOMATE> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
@@ -36,9 +36,9 @@ ENTITY : WithS2Id<ID> {
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
-	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID & Any>): Flow<ENTITY?>
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID>): Flow<ENTITY?>
 
-	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID & Any): ENTITY? =
+	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID): ENTITY? =
 		load(automateContexts, flowOf(id)).firstOrNull()
 
 	/**
@@ -60,14 +60,14 @@ ENTITY : WithS2Id<ID> {
 	 */
 	suspend fun loadWithOutcomes(
 		automateContexts: AutomateContext<AUTOMATE>,
-		ids: Flow<ID & Any>,
-	): Flow<LoadOutcome<ID & Any, ENTITY>> = flow {
+		ids: Flow<ID>,
+	): Flow<LoadOutcome<ID, ENTITY>> = flow {
 		val idList = ids.toList()
 		if (idList.isEmpty()) return@flow
-		val loaded = mutableMapOf<ID & Any, ENTITY>()
+		val loaded = mutableMapOf<ID, ENTITY>()
 		val failure: Throwable? = try {
 			load(automateContexts, idList.asFlow()).collect { entity ->
-				entity?.s2Id()?.let { id -> loaded[id] = entity }
+				entity?.let { loaded[it.s2Id()] = it }
 			}
 			null
 		} catch (e: CancellationException) {
@@ -80,7 +80,7 @@ ENTITY : WithS2Id<ID> {
 		}
 		if (failure != null) {
 			idList.forEach { id ->
-				emit(LoadOutcome.Transient<ID & Any, ENTITY>(id, persistLambdaThrowError(failure)))
+				emit(LoadOutcome.Transient<ID, ENTITY>(id, persistLambdaThrowError(failure)))
 			}
 			return@flow
 		}

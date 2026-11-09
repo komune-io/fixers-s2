@@ -13,7 +13,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class GuardVerifierImpl<STATE, ID, ENTITY, EVENT, AUTOMATE>(
+class GuardVerifierImpl<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>(
 	private val guards: List<Guard<STATE, ID, ENTITY, EVENT, AUTOMATE>>,
 	private val publisher: AutomateEventPublisher<STATE, ID, ENTITY, AUTOMATE>,
 ): GuardVerifier<STATE, ID, ENTITY, EVENT, AUTOMATE> where

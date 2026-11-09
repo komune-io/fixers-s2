@@ -6,7 +6,7 @@ import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.view.ViewLoader
 
-class SnapLoader<EVENT, ENTITY, ID>(
+class SnapLoader<EVENT, ENTITY, ID : Any>(
 	private val snapRepository: SnapRepository<ENTITY, ID>,
 	private val viewLoader: ViewLoader<EVENT, ENTITY, ID>
 ): Loader<EVENT, ENTITY, ID> where
@@ -14,11 +14,11 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 ENTITY: WithS2Id<ID> {
 
-	override suspend fun load(id: ID & Any): ENTITY? {
+	override suspend fun load(id: ID): ENTITY? {
 		return snapRepository.get(id) ?: viewLoader.load(id)
 	}
 
-	override suspend fun loadAndEvolve(id: ID & Any, news: Flow<EVENT>): ENTITY? {
+	override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
 		return load(id).let { entity ->
 			viewLoader.evolve(news, entity)
 		}

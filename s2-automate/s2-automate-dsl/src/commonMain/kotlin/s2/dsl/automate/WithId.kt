@@ -4,7 +4,7 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 
 @JsExport
-interface WithId<ID> {
+interface WithId<ID : Any> {
 	@JsName("id")
 	val id: ID
 }

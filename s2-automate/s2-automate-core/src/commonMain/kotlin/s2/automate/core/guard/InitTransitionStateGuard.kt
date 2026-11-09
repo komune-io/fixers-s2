@@ -16,7 +16,7 @@ import s2.dsl.automate.model.WithS2State
  * do not expose any init transition, and would see every creation rejected. Enable it by
  * overriding `S2SpringAdapterBase.validateInitTransitions()` or by adding it to `guards()`.
  */
-class InitTransitionStateGuard<STATE, ID, ENTITY, EVENT, AUTOMATE>
+class InitTransitionStateGuard<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>
 	: GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,

@@ -14,7 +14,7 @@ class R2dbcEventRepositoryFactory(
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
 ): EventRepositoryFactory {
 
-    override fun <EVENT, ID> create(
+    override fun <EVENT, ID : Any> create(
         eventType: KClass<EVENT>,
         json: Json
     ): EventRepository<EVENT, ID> where EVENT : WithS2Id<ID>, EVENT : Evt {

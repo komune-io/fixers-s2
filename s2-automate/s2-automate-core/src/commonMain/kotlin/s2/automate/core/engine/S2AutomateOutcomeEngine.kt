@@ -8,7 +8,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
-interface S2AutomateOutcomeEngine<STATE, ENTITY, ID, EVENT> where
+interface S2AutomateOutcomeEngine<STATE, ENTITY, ID : Any, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
 

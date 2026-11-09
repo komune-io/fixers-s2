@@ -30,7 +30,7 @@ typealias S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT> = suspend (COMMAND, ENTITY) ->
  * are deprecated and will be removed in a future major release.
  */
 @Suppress("DEPRECATION", "TooManyFunctions")
-interface S2AutomateStoringEvolverFlow<STATE : S2State, ID, ENTITY : WithS2State<STATE>, EVENT: Evt> {
+interface S2AutomateStoringEvolverFlow<STATE : S2State, ID : Any, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
 	@Deprecated(
 		message = "Confusing name: this decides events from init commands, it is not a sourcing fold.",

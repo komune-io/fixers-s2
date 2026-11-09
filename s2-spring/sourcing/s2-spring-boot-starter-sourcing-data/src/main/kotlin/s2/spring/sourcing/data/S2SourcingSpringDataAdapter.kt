@@ -15,7 +15,7 @@ import s2.spring.automate.sourcing.S2AutomateDeciderSpring
 import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapter
 import s2.spring.sourcing.data.event.EventRepositoryFactory
 
-abstract class S2SourcingSpringDataAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(
+abstract class S2SourcingSpringDataAdapter<ENTITY, STATE, EVENT, ID : Any, EXECUTOR>(
 	executor: EXECUTOR,
 	view: View<EVENT, ENTITY>,
 	snapRepository: SnapRepository<ENTITY, ID>? = null

@@ -8,7 +8,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class TransitionStateGuard<STATE, ID, ENTITY, EVENT, AUTOMATE>
+class TransitionStateGuard<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>
 	: GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,

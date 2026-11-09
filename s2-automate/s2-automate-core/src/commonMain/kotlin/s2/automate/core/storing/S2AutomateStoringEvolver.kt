@@ -6,7 +6,7 @@ import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
-interface S2AutomateStoringEvolver<STATE : S2State, ID, ENTITY : WithS2State<STATE>, EVENT: Evt> {
+interface S2AutomateStoringEvolver<STATE : S2State, ID : Any, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
 	suspend fun <EVENT_OUT: EVENT> createWithEvent(
 		command: S2InitCommand,

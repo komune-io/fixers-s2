@@ -9,6 +9,4 @@ interface S2InitCommand : Cmd
 
 @JsExport
 @JsName("S2Command")
-interface S2Command<ID> : Cmd, WithId<ID> {
-	override val id: ID & Any
-}
+interface S2Command<ID : Any> : Cmd, WithId<ID>

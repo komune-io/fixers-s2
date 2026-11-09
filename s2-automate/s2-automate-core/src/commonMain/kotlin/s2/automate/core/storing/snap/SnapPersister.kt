@@ -10,7 +10,7 @@ import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.snap.SnapRepository
 
-class SnapPersister<STATE, ID, ENTITY, EVENT>(
+class SnapPersister<STATE, ID : Any, ENTITY, EVENT>(
     private val projectionLoader: Loader<EVENT, ENTITY, ID>,
     private val snapRepository: SnapRepository<ENTITY, ID>?,
     private val retryTaskChannel: RetryTaskChannel?
