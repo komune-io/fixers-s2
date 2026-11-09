@@ -139,7 +139,7 @@ ENTITY : WithS2Id<ID> {
         val seen = mutableSetOf<ID>()
         val duplicates = mutableListOf<String>()
         cmds.forEach { cmd ->
-            val id = cmd.data.id ?: return@forEach
+            val id = cmd.data.id
             if (!seen.add(id) && duplicates.none { it == id.toString() }) {
                 duplicates.add(id.toString())
             }

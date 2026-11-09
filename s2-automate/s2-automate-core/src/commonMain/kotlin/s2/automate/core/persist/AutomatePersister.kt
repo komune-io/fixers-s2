@@ -67,7 +67,7 @@ ENTITY : WithS2Id<ID> {
 		val loaded = mutableMapOf<ID, ENTITY>()
 		val failure: Throwable? = try {
 			load(automateContexts, idList.asFlow()).collect { entity ->
-				entity?.s2Id()?.let { id -> loaded[id] = entity }
+				entity?.let { loaded[it.s2Id()] = it }
 			}
 			null
 		} catch (e: CancellationException) {

@@ -9,7 +9,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2State
 
 @JsName("S2AutomateEngine")
-interface S2AutomateEngine<STATE, ENTITY, ID, EVENT> where
+interface S2AutomateEngine<STATE, ENTITY, ID : Any, EVENT> where
 ENTITY : WithS2State<STATE>,
 STATE : S2State {
     suspend fun <COMMAND: S2InitCommand, ENTITY_OUT: ENTITY, EVENT_OUT : EVENT> create(
