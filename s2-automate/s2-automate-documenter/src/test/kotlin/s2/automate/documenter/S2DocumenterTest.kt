@@ -67,7 +67,9 @@ class S2DocumenterTest {
         val content = Files.readString(written)
         assertThat(content).contains("\"name\": \"OrderAutomate\"")
         assertThat(content).contains("OrderCreateCommand")
-        assertThat(content).contains("OrderRole")
+        assertThat(content).contains("\"name\": \"Buyer\"")
+        assertThat(content).contains("\"name\": \"Created\"")
+        assertThat(content).doesNotContain("OrderRole", "OrderState")
     }
 
     @Test

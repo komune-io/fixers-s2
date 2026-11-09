@@ -8,5 +8,8 @@ dependencies {
 	commonMainApi(libs.f2.dsl.cqrs)
 	commonMainApi(libs.kotlinx.serialization.core)
 
+	commonTestImplementation(kotlin("test"))
+	"jvmTestImplementation"(kotlin("test-junit5"))
 	"jvmTestImplementation"(libs.bundles.test.junit)
+	"jsTestImplementation"(kotlin("test-js"))
 }

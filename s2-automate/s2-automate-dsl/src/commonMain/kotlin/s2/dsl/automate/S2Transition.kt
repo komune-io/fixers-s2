@@ -50,12 +50,21 @@ fun KClass<out Msg>.toValue(): S2TransitionValue {
 
 fun S2Role.toValue(): S2RoleValue {
 	return S2RoleValue(
-		name = this::class.simpleName!!,
+		name = s2Name(),
 	)
 }
 fun S2State.toValue(): S2StateValue {
 	return S2StateValue(
-		name = this::class.simpleName!!,
+		name = s2Name(),
 		position = this.position,
 	)
 }
+
+/**
+ * The name the JSON carries for a state or a role. An enum entry serializes as its own name, which
+ * `this::class` does not give: it names the enum, or nothing for an entry with a body.
+ */
+internal fun Any.s2Name(): String = (this as? Enum<*>)?.name ?: this::class.simpleName!!
+
+/** Whether [type] names this transition's command or its resulting event. */
+internal fun S2Transition.isNamed(type: String): Boolean = result?.name == type || action.name == type

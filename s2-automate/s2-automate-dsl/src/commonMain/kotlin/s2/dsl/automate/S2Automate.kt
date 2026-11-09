@@ -4,6 +4,11 @@ import kotlin.js.JsExport
 import kotlin.js.JsName
 import kotlinx.serialization.Serializable
 
+/**
+ * A state is identified by its position, which the engine compares, and by its name, which a JSON
+ * payload carries. The two must agree, so two states sharing either one are refused: an automate
+ * serialized when names were the enum's class name fails here instead of refusing every state.
+ */
 @Serializable
 @JsExport
 @JsName("S2Automate")
@@ -14,6 +19,12 @@ class S2Automate(
 ):Automate {
 
 	val withResultAsAction = this.transitions.all { it.result != null }
+
+	init {
+		val states = transitions.flatMap { listOfNotNull(it.from, it.to) }
+		requireOneToOne(states, { it.name }, { it.position }, "name")
+		requireOneToOne(states, { it.position }, { it.name }, "position")
+	}
 
 	override fun getAvailableTransitions(state: S2State): Array<S2Transition> {
 		return transitions.filter { it.from.isSame(state) }.toTypedArray()
@@ -43,5 +54,14 @@ class S2Automate(
 
 	private fun S2StateValue?.isSame(to: S2State): Boolean {
 		return this?.position == to.position
+	}
+}
+
+private fun <K, V> requireOneToOne(
+	states: List<S2StateValue>, key: (S2StateValue) -> K, value: (S2StateValue) -> V, label: String,
+) {
+	states.groupBy(key).forEach { (k, sharing) ->
+		val values = sharing.map(value).distinct()
+		require(values.size == 1) { "States sharing the $label $k: $values" }
 	}
 }
