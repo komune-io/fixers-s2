@@ -35,6 +35,7 @@ VERSION=$(cat VERSION) ./gradlew clean build publishToMavenLocal -x test
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing`: Event-sourced approach (persist events, rebuild state)
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing-data-mongodb`: MongoDB event store
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing-data-r2dbc`: R2DBC event store
+- `s2-spring/sourcing/s2-spring-boot-starter-sourcing-snap-redis`: snapshot views in Redis (RedisJSON + RediSearch), `ReloadView` to replay them
 
 ### Testing
 - `s2-test/s2-test-bdd`: Cucumber BDD test utilities
