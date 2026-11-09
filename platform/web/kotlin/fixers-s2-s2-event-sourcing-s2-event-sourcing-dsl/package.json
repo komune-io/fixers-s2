@@ -1,0 +1,11 @@
+{
+  "name": "fixers-s2-s2-event-sourcing-s2-event-sourcing-dsl",
+  "version": "0.47.0-SNAPSHOT",
+  "main": "kotlin/fixers-s2-s2-event-sourcing-s2-event-sourcing-dsl.mjs",
+  "types": "kotlin/fixers-s2-s2-event-sourcing-s2-event-sourcing-dsl.d.mts",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

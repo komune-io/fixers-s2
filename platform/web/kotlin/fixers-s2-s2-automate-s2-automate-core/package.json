@@ -1,0 +1,11 @@
+{
+  "name": "fixers-s2-s2-automate-s2-automate-core",
+  "version": "0.47.0-SNAPSHOT",
+  "main": "kotlin/fixers-s2-s2-automate-s2-automate-core.mjs",
+  "types": "kotlin/fixers-s2-s2-automate-s2-automate-core.d.mts",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}
