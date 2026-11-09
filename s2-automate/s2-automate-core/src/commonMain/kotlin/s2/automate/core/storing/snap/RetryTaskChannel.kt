@@ -35,8 +35,8 @@ class RetryTaskChannel(
     }
 
     private fun CoroutineScope.launchPersistWorker() = launch {
-        // A task never throws, retry turns every failure into the task's result: a throw would
-        // kill the single worker, and every later addToPersistQueue send would suspend forever.
+        // retry() wraps every attempt in runCatching, so a task completes its deferred instead of
+        // throwing: a throw would kill this single worker and suspend every later send forever.
         for (task in persistChannel) {
             task()
         }

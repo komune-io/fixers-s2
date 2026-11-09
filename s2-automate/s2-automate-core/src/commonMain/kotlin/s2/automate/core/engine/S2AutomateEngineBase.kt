@@ -41,7 +41,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-open class S2AutomateEngineBase<STATE, ID : Any, ENTITY, EVENT>(
+open class S2AutomateEngineBase<STATE, ID : Any, ENTITY, EVENT> protected constructor(
     protected val automateContext: AutomateContext<S2Automate>,
     protected val guardExecutor: GuardVerifier<STATE, ID, ENTITY, EVENT, S2Automate>,
     protected val persister: AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate>,

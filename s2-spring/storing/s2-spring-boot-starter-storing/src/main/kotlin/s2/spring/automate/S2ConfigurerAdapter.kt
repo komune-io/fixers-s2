@@ -24,8 +24,9 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
+	@Suppress("VarCouldBeVal") // assigned by Spring field injection; a constructor parameter would break subclasses
 	@Autowired
-	internal lateinit var eventPublisher: SpringEventPublisher
+	private lateinit var eventPublisher: SpringEventPublisher
 
 	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> =
 		buildEngine(::S2AutomateEngineImpl)

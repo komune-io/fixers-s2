@@ -44,7 +44,7 @@ class S2StateValue(
 
 fun KClass<out Msg>.toValue(): S2TransitionValue {
 	return S2TransitionValue(
-		name = requireNotNull(simpleName) { "A transition needs a named class: $this" },
+		name = s2SimpleName(),
 	)
 }
 
@@ -64,8 +64,11 @@ fun S2State.toValue(): S2StateValue {
  * The name the JSON carries for a state or a role. An enum entry serializes as its own name, which
  * `this::class` does not give: it names the enum, or nothing for an entry with a body.
  */
-internal fun Any.s2Name(): String =
-	(this as? Enum<*>)?.name ?: requireNotNull(this::class.simpleName) { "An anonymous object has no S2 name" }
+internal fun Any.s2Name(): String = (this as? Enum<*>)?.name ?: this::class.s2SimpleName()
+
+/** The simple name S2 serializes for a class; an anonymous class has none and cannot be used. */
+@PublishedApi
+internal fun KClass<*>.s2SimpleName(): String = requireNotNull(simpleName) { "An S2 class needs a name: $this" }
 
 /** Whether [type] names this transition's command or its resulting event. */
 internal fun S2Transition.isNamed(type: String): Boolean = result?.name == type || action.name == type

@@ -67,7 +67,8 @@ class RedisSnapView(
 				?: error("JSON not found after save")
 		}
 
-	inline fun <reified MODEL> indexName(): String =
+	@PublishedApi
+	internal inline fun <reified MODEL> indexName(): String =
 		checkNotNull(MODEL::class.simpleName) { "A Redis index needs a named model class" }
 
 	suspend inline fun <reified MODEL> dropIndex(): Unit =
