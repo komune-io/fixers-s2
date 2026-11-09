@@ -1,5 +1,8 @@
 package s2.bdd
 
+import io.cucumber.core.backend.CucumberInvocationTargetException
+import io.cucumber.core.backend.Located
+import java.lang.reflect.InvocationTargetException
 import kotlinx.coroutines.reactor.ReactorContext
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -74,6 +77,20 @@ class CucumberStepsDefinitionTest {
             steps.runStep { throw IllegalStateException("unexpected") }
         }.isInstanceOf(IllegalStateException::class.java)
         assertThat(steps.context.errors.lastOfType(IllegalStateException::class)).isNotNull()
+    }
+
+    @Test
+    fun `step rethrows the cause of a step invocation failure`() {
+        val steps = Steps()
+        val located = object : Located {
+            override fun isDefinedAt(stackTraceElement: StackTraceElement) = false
+            override fun getLocation() = "steps.kt:1"
+        }
+        val cause = IllegalStateException("step failed")
+        assertThatThrownBy {
+            steps.runStep { throw CucumberInvocationTargetException(located, InvocationTargetException(cause)) }
+        }.isSameAs(cause)
+        assertThat(steps.context.errors.lastOfType(IllegalStateException::class)).isNull()
     }
 
     @Test
