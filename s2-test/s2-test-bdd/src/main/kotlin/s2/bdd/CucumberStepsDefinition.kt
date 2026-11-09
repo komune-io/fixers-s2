@@ -61,8 +61,10 @@ abstract class CucumberStepsDefinition {
                 logger.error("Step execution failed", actualException)
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
-                logger.error("Step execution failed", e.cause)
-                throw e.cause
+                // Declared nullable: some Cucumber versions leave the cause unset.
+                val cause: Throwable? = e.cause
+                logger.error("Step execution failed", cause ?: e)
+                throw cause ?: e
             } catch (e: Exception) {
                 logger.error("Step execution failed", e)
                 if (e.cause is F2Exception) {
