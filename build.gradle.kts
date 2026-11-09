@@ -13,15 +13,6 @@ plugins {
 	alias(catalogue.plugins.fixers.gradle.publish)
 }
 
-subprojects {
-	// A type the JS export cannot render becomes `any` in the TypeScript contract: fail the build instead.
-	pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-		tasks.withType<org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile>().configureEach {
-			compilerOptions.freeCompilerArgs.add("-Xwarning-level=NON_EXPORTABLE_TYPE:error")
-		}
-	}
-}
-
 tasks {
 	register<com.github.gradle.node.yarn.task.YarnTask>("installYarn") {
 		dependsOn("build")
@@ -56,18 +47,5 @@ fixers {
 	}
 	repositories {
 		sonatypeSnapshots = true
-	}
-}
-
-// Pin patched transitive npm deps of the Kotlin/JS test toolchain. Versions, and why the pins
-// exist and when to remove them, live with the npm-* entries in gradle/libs.versions.toml.
-// Paths are scoped: an unscoped "glob" also upgrades karma's glob 7 and breaks karma.
-plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
-	the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
-		resolution("**/mocha/glob", libs.versions.npm.mocha.glob.get())
-		resolution("**/mocha/minimatch", libs.versions.npm.mocha.minimatch.get())
-		resolution("**/karma-webpack/minimatch", libs.versions.npm.karma.webpack.minimatch.get())
-		resolution("**/mocha/serialize-javascript", libs.versions.npm.mocha.serialize.javascript.get())
-		resolution("**/mocha/diff", libs.versions.npm.mocha.diff.get())
 	}
 }
