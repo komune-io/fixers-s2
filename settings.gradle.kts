@@ -58,6 +58,7 @@ include(
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb",
 	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-r2dbc",
+	"s2-spring:sourcing:s2-spring-boot-starter-sourcing-snap-redis",
 )
 
 include(
