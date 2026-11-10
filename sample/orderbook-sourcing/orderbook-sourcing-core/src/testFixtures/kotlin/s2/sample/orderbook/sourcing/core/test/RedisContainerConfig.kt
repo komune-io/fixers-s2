@@ -10,9 +10,11 @@ class RedisContainerConfig {
 
     companion object {
         private const val REDIS_PORT = 6379
+        private const val REDIS_IMAGE =
+            "redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7"
 
         val redisContainer: GenericContainer<*> =
-            GenericContainer(DockerImageName.parse("redis/redis-stack:latest"))
+            GenericContainer(DockerImageName.parse(REDIS_IMAGE))
                 .withExposedPorts(REDIS_PORT)
     }
 

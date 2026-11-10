@@ -1,11 +1,9 @@
 [versions]
 fixers = "0.47.0-SNAPSHOT"
-testcontainers-redis = "3.0.1"
 postgresql = "42.7.14"
 r2dbc-postgresql = "1.1.3.RELEASE"
 scram = "3.4"
 lettuce = "7.9.0.RELEASE"
-commons-pool = "2.13.1"
 node-gradle = "7.1.0"
 
 # Spring Boot images of the samples (fixers image convention: builder pinned by digest, health checker)
@@ -21,7 +19,6 @@ f2-dsl-function = { group = "io.komune.f2", name = "f2-dsl-function" }
 spring-boot-autoconfigure = { group = "org.springframework.boot", name = "spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { group = "org.springframework.boot", name = "spring-boot-configuration-processor" }
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
-spring-boot-starter-data-redis-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-redis-reactive" }
 spring-boot-starter-data-mongodb-reactive = { group = "org.springframework.boot", name = "spring-boot-starter-data-mongodb-reactive" }
 spring-boot-starter-data-r2dbc = { group = "org.springframework.boot", name = "spring-boot-starter-data-r2dbc" }
 spring-boot-testcontainers = { group = "org.springframework.boot", name = "spring-boot-testcontainers" }
@@ -65,12 +62,10 @@ cucumber-junit-platform-engine = { group = "io.cucumber", name = "cucumber-junit
 # Project-specific (not in BOM)
 lettuce-core = { group = "io.lettuce", name = "lettuce-core", version.ref = "lettuce" }
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind" }
-commons-pool2 = { group = "org.apache.commons", name = "commons-pool2", version.ref = "commons-pool" }
 testcontainers-junit-jupiter = { group = "org.testcontainers", name = "testcontainers-junit-jupiter" }
 testcontainers-mongodb = { group = "org.testcontainers", name = "testcontainers-mongodb" }
 testcontainers-postgresql = { group = "org.testcontainers", name = "testcontainers-postgresql" }
 testcontainers-r2dbc = { group = "org.testcontainers", name = "testcontainers-r2dbc" }
-testcontainers-redis = { group = "com.redis", name = "testcontainers-redis", version.ref = "testcontainers-redis" }
 postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 r2dbc-postgresql = { group = "org.postgresql", name = "r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
 scram-client = { group = "com.ongres.scram", name = "scram-client", version.ref = "scram" }
@@ -78,7 +73,6 @@ scram-common = { group = "com.ongres.scram", name = "scram-common", version.ref 
 
 [bundles]
 spring-data-commons = ["jakarta-persistence-api", "spring-context", "spring-data-commons"]
-spring-redis = ["spring-boot-starter-data-redis-reactive", "lettuce-core", "jackson-databind", "commons-pool2"]
 test-junit = ["junit-jupiter", "junit-jupiter-api", "junit-platform-suite", "assertj-core", "kotlinx-coroutines-test"]
 cucumber = ["cucumber-java", "cucumber-java8", "cucumber-junit-platform-engine"]
 kserialization-json = ["kotlinx-serialization-core", "kotlinx-serialization-json"]
