@@ -18,8 +18,6 @@ import s2.dsl.automate.model.WithS2State
  * only in how they reach their repository: [findAllById] and [saveAll] adapt the repository
  * flavour, everything else (aligned loading, batched saving) lives here.
  */
-// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
-@Suppress("kotlin:S6309")
 abstract class BatchingSpringDataPersister<STATE, ID : Any, ENTITY, EVENT>(
 	private val batchParams: S2BatchProperties,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
@@ -36,14 +34,14 @@ ENTITY : WithS2Id<ID> {
 
 	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> findAllById(ids) }
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
+	override fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
 		loader.load(ids)
 
-	override suspend fun persistInit(
+	override fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
 
-	override suspend fun persist(
+	override fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
 	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
 

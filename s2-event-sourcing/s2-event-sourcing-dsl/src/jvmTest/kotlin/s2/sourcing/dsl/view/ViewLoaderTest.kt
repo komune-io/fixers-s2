@@ -52,7 +52,7 @@ class ViewLoaderTest {
     }
 
     class TestEventRepository : EventRepository<TestEvent, String> {
-        override suspend fun load(id: String): Flow<TestEvent> {
+        override fun load(id: String): Flow<TestEvent> {
             return when (id) {
                 "1" -> flowOf(
                     TestEvent("1", 1),
@@ -66,7 +66,7 @@ class ViewLoaderTest {
             }
         }
 
-        override suspend fun loadAll(): Flow<TestEvent> = flowOf(
+        override fun loadAll(): Flow<TestEvent> = flowOf(
             TestEvent("1", 3), // Out of order intentionally
             TestEvent("2", 2),
             TestEvent("1", 1), // Out of order intentionally
@@ -74,7 +74,7 @@ class ViewLoaderTest {
         )
 
         override suspend fun persist(event: TestEvent): TestEvent = event
-        override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
+        override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
         override suspend fun createTable() {}
     }
 
@@ -92,7 +92,7 @@ class ViewLoaderTest {
     }
 
     class TestEventNonComparableRepository : EventRepository<TestEventNonComparable, String> {
-        override suspend fun load(id: String): Flow<TestEventNonComparable> {
+        override fun load(id: String): Flow<TestEventNonComparable> {
             return when (id) {
                 "1" -> flowOf(
                     TestEventNonComparable("1")
@@ -106,13 +106,13 @@ class ViewLoaderTest {
 
         // Load events in a specific order: first Entity-2, then Entity-1
         // Since they don't implement Comparable, this order should be preserved
-        override suspend fun loadAll(): Flow<TestEventNonComparable> = flowOf(
+        override fun loadAll(): Flow<TestEventNonComparable> = flowOf(
             TestEventNonComparable("2"),
             TestEventNonComparable("1")
         )
 
         override suspend fun persist(event: TestEventNonComparable): TestEventNonComparable = event
-        override suspend fun persist(events: Flow<TestEventNonComparable>): Flow<TestEventNonComparable> = events
+        override fun persist(events: Flow<TestEventNonComparable>): Flow<TestEventNonComparable> = events
         override suspend fun createTable() {}
     }
 

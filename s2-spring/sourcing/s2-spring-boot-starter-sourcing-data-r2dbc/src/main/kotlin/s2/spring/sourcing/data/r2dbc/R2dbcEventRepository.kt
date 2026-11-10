@@ -21,8 +21,6 @@ import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.event.EventRepository
 import s2.spring.sourcing.data.event.EventSourcing
 
-// S6309: the suspend modifier is mandated by the EventRepository contract (published API).
-@Suppress("kotlin:S6309")
 class R2dbcEventRepository<EVENT, ID : Any>(
 	private val json: Json,
 	private val databaseClient: DatabaseClient,
@@ -39,19 +37,19 @@ EVENT: WithS2Id<ID>
 		Sort.Order.asc("created_date")
 	)
 
-	override suspend fun load(id: ID): Flow<EVENT> {
+	override fun load(id: ID): Flow<EVENT> {
 		val query = Query
 			.query(Criteria.where("obj_id").`is`(id))
 			.sort(sortByCreatedDate)
 		return selectEvents(query)
 	}
 
-	override suspend fun loadAll(): Flow<EVENT> {
+	override fun loadAll(): Flow<EVENT> {
 		val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
 		return selectEvents(query)
 	}
 
-	override suspend fun persist(events: Flow<EVENT>): Flow<EVENT> {
+	override fun persist(events: Flow<EVENT>): Flow<EVENT> {
 		return events.map { event ->
 			insert(event)
 		}

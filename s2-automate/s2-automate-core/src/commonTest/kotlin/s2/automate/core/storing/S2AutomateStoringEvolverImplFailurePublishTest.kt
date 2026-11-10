@@ -46,7 +46,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         val errorEvents get() = published.filterIsInstance<AutomatePersistFailure>()
         val successEvents get() = published.filter { it !is AutomatePersistFailure }
 
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -54,12 +54,12 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     /** Legacy engine stub (create / doTransition only — no outcome methods). */
     private class LegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd -> decide(cmd).second }
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd ->
@@ -79,8 +79,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         private fun nextOutcome(): PersistOutcome<Evt> = outcomes[idx++ % outcomes.size]
 
+        // A stub engine: the outcome it answers is the one the caller types.
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -89,8 +90,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             nextOutcome().asEnvelopeWithType("Evt") as Envelope<PersistOutcome<EVENT_OUT>>
         }
 
+        // A stub engine: the outcome it answers is the one the caller types.
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>

@@ -16,6 +16,8 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
+// One callback per automate event, twelve events: splitting the listener would split its implementations.
+@Suppress("TooManyFunctions")
 interface AutomateListener<STATE, ID : Any, ENTITY, AUTOMATE>
 		where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 

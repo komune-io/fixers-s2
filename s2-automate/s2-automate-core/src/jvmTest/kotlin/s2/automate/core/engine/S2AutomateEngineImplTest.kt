@@ -56,7 +56,7 @@ class S2AutomateEngineImplTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = if (omitMissingIds) {
@@ -65,18 +65,18 @@ class S2AutomateEngineImplTest {
             ids.map { entities[it] }
         }
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = persistDecorator(transitionContexts.map { it.event })
     }
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }

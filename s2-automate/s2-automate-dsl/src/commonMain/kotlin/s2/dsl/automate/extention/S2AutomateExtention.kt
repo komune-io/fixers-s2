@@ -1,5 +1,6 @@
 package s2.dsl.automate.extention
 
+import kotlin.js.JsExport
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -31,6 +32,7 @@ fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boole
  * object throws. [S2Automate] refuses two states sharing a name or a position, so this answers
  * as [isAvailableTransition] does for the same state.
  */
+@JsExport
 fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Boolean {
     return stateName != null && transitions.any {
         it.from?.name == stateName && it.isNamed(type)

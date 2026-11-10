@@ -14,10 +14,11 @@ object EntryParserDirectory {
         parsers[output] = parser
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun <T: Any> select(output: KClass<T>): EntryParser<T> {
         val parser = parsers[output]
             ?: throw NoParserFoundException(output)
+        // Each parser is registered under the class it outputs.
+        @Suppress("UNCHECKED_CAST")
         return parser as EntryParser<T>
     }
 }

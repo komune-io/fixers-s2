@@ -104,13 +104,13 @@ class PassthroughGuard<EVENT> : GuardVerifier<TestState, String, TestEntity, EVE
 }
 
 class NoopPublisher : AppEventPublisher {
-    override fun <EVENT> publish(event: EVENT & Any) = Unit
+    override fun publish(event: Any) = Unit
 }
 
 /** Collects every published app event so tests can assert on what the engine emitted. */
 class RecordingPublisher : AppEventPublisher {
     val published = mutableListOf<Any>()
-    override fun <EVENT> publish(event: EVENT & Any) {
+    override fun publish(event: Any) {
         published.add(event)
     }
 

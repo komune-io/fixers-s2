@@ -104,6 +104,7 @@ class CucumberStepsDefinitionTest {
     fun `authedContext is empty without an authenticated user`() {
         val steps = Steps()
         val reactorContext: ReactorContext = steps.authed()
+        // The context holds the Mono<SecurityContext> Spring Security's ReactiveSecurityContextHolder reads.
         @Suppress("UNCHECKED_CAST")
         val securityContext =
             reactorContext.context.get<Mono<SecurityContext>>(SecurityContext::class.java)
@@ -115,6 +116,7 @@ class CucumberStepsDefinitionTest {
         val steps = Steps()
         steps.context.authedUser = AuthedUser(id = "user-1", memberOf = "org-1", roles = arrayOf("admin"))
         val reactorContext = steps.authed()
+        // The context holds the Mono<SecurityContext> Spring Security's ReactiveSecurityContextHolder reads.
         @Suppress("UNCHECKED_CAST")
         val securityContext =
             reactorContext.context.get<Mono<SecurityContext>>(SecurityContext::class.java)

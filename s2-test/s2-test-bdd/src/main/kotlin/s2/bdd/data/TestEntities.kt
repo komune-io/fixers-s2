@@ -45,13 +45,7 @@ class TestEntities<KEY: Any, ITEM>(
     }
 
     inline fun register(key: KEY, block: () -> ITEM?) {
-        try {
-            val item = block()
-            set(key, item)
-        } catch (e: Exception) {
-            set(key, null)
-            throw e
-        }
+        set(key, runCatching(block).onFailure { set(key, null) }.getOrThrow())
     }
 
     fun putAll(vararg entries: Pair<KEY, ITEM>) {

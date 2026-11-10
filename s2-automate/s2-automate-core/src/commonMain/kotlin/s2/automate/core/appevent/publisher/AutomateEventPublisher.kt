@@ -17,6 +17,8 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
+// One publication per automate event, as AutomateListener declares them.
+@Suppress("TooManyFunctions")
 class AutomateEventPublisher<STATE, ID : Any, ENTITY, AUTOMATE>(
 	private val publisher: AppEventPublisher
 ): AutomateListener<STATE, ID, ENTITY, AUTOMATE>

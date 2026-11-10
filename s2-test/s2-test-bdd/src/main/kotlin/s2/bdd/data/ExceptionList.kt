@@ -12,9 +12,8 @@ class ExceptionList {
         exceptions.add(e)
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun <E: Exception> lastOfType(klass: KClass<E>): E? {
-        return exceptions.lastOrNull(klass::isInstance) as E?
+        return exceptions.filterIsInstance(klass.java).lastOrNull()
     }
 
     fun <E: Exception> filterIsInstance(klass: KClass<E>): List<E> {

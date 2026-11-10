@@ -21,7 +21,7 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	suspend fun persistInit(
+	fun persistInit(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
@@ -32,11 +32,11 @@ ENTITY : WithS2Id<ID> {
 	 * order: the engine correlates each emitted event back to its context positionally
 	 * in order to publish the end-of-transition application events.
 	 */
-	suspend fun persist(
+	fun persist(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<EVENT>
 
-	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID>): Flow<ENTITY?>
+	fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID>): Flow<ENTITY?>
 
 	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID): ENTITY? =
 		load(automateContexts, flowOf(id)).firstOrNull()
@@ -58,7 +58,9 @@ ENTITY : WithS2Id<ID> {
 	 * directly — overriding it is the supported way to surface rich failures
 	 * without aborting sibling commands in the same batch.
 	 */
-	suspend fun loadWithOutcomes(
+	// The legacy load may fail with anything: every failure is classified Transient for each id.
+	@Suppress("TooGenericExceptionCaught")
+	fun loadWithOutcomes(
 		automateContexts: AutomateContext<AUTOMATE>,
 		ids: Flow<ID>,
 	): Flow<LoadOutcome<ID, ENTITY>> = flow {
@@ -94,7 +96,7 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	suspend fun persistInitWithOutcomes(
+	fun persistInitWithOutcomes(
 		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = flow {
 		transitionContexts.collect { ctx ->
@@ -104,7 +106,7 @@ ENTITY : WithS2Id<ID> {
 		}
 	}
 
-	suspend fun persistWithOutcomes(
+	fun persistWithOutcomes(
 		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
 	): Flow<PersistOutcome<EVENT>> = flow {
 		transitionContexts.collect { ctx ->

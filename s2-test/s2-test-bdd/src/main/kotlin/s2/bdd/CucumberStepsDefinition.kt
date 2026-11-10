@@ -48,7 +48,9 @@ abstract class CucumberStepsDefinition {
         }, block)
     }
 
-    @Suppress("ThrowsCount")
+    // Each Cucumber wrapper is unwrapped to the step's own failure; any other failure is recorded for the
+    // assertion steps that follow, then rethrown unless the step expects it.
+    @Suppress("ThrowsCount", "TooGenericExceptionCaught")
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     protected open fun step(propagateException: (Exception) -> Boolean = { true }, block: suspend () -> Unit) {
         runBlocking(GlobalScope.newCoroutineContext(authedContext())) {

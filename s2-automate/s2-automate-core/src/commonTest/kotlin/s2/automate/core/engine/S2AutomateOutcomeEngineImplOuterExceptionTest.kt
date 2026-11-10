@@ -80,17 +80,17 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     private class EmptyPersister :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { null }
@@ -105,17 +105,17 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
     private class PassthroughPersister :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { id -> TestEntity(id, TestState.Created) }
@@ -125,7 +125,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
@@ -135,7 +135,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
             )
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
@@ -273,6 +273,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
 
         val results = engine.createWithOutcomes(commands) { _ ->
             throw DecideExplodedException("decide exploded")
+            // The lambda throws before it answers: its result type is still the signature's.
             @Suppress("UNREACHABLE_CODE")
             TestEntity("x", TestState.Created) to
                 CreatedEvt("x").asEnvelopeWithType("Evt")
@@ -304,6 +305,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
 
         val results = engine.doTransitionWithOutcomes(commands) { _, _ ->
             throw ExecExplodedException("exec exploded")
+            // The lambda throws before it answers: its result type is still the signature's.
             @Suppress("UNREACHABLE_CODE")
             TestEntity("cmd-1", TestState.Active) to
                 DoneEvt("cmd-1").asEnvelopeWithType("Evt")
@@ -359,6 +361,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         val thrown = assertFailsWith<CancellationException> {
             engine.createWithOutcomes(commands) { _ ->
                 throw cancel
+                // The lambda throws before it answers: its result type is still the signature's.
                 @Suppress("UNREACHABLE_CODE")
                 TestEntity("x", TestState.Created) to
                     CreatedEvt("x").asEnvelopeWithType("Evt")
@@ -387,6 +390,7 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         val thrown = assertFailsWith<CancellationException> {
             engine.doTransitionWithOutcomes(commands) { _, _ ->
                 throw cancel
+                // The lambda throws before it answers: its result type is still the signature's.
                 @Suppress("UNREACHABLE_CODE")
                 TestEntity("cmd-1", TestState.Active) to
                     DoneEvt("cmd-1").asEnvelopeWithType("Evt")

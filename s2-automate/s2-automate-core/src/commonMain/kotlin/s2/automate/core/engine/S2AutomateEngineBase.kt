@@ -56,6 +56,8 @@ ENTITY : WithS2Id<ID> {
      * routed through [handleException], which publishes the transition and session errors
      * and re-wraps non-[AutomateException] throws.
      */
+    // A decide lambda may fail with anything: every failure is published and wrapped alike.
+    @Suppress("TooGenericExceptionCaught")
     protected suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT>
     prepareCreationContext(
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>,
@@ -89,7 +91,7 @@ ENTITY : WithS2Id<ID> {
         )
     }
 
-    protected suspend fun <COMMAND : S2Command<ID>> loadTransitionContext(
+    protected fun <COMMAND : S2Command<ID>> loadTransitionContext(
         commands: EnvelopedFlow<COMMAND>
     ): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
         return commands.chunk(automateContext.batch.size).map { commandsChunk ->

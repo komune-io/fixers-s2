@@ -20,10 +20,10 @@ class SourcingViewExecutorImplTest {
     }
 
     private class StubEventRepository : EventRepository<TestEvent, String> {
-        override suspend fun load(id: String): Flow<TestEvent> = flowOf(TestEvent(id, 10))
-        override suspend fun loadAll(): Flow<TestEvent> = flowOf()
+        override fun load(id: String): Flow<TestEvent> = flowOf(TestEvent(id, 10))
+        override fun loadAll(): Flow<TestEvent> = flowOf()
         override suspend fun persist(event: TestEvent): TestEvent = event
-        override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
+        override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
         override suspend fun createTable() { /* no-op for the stub */ }
     }
 

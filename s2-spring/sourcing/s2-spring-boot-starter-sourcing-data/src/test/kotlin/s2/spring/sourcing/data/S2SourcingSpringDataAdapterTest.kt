@@ -65,15 +65,16 @@ class S2SourcingSpringDataAdapterTest {
 			calls += "createTable"
 		}
 
-		override suspend fun load(id: String): Flow<TestEvent> = emptyFlow<TestEvent>().also { calls += "load" }
-		override suspend fun loadAll(): Flow<TestEvent> = emptyFlow<TestEvent>().also { calls += "loadAll" }
+		override fun load(id: String): Flow<TestEvent> = emptyFlow<TestEvent>().also { calls += "load" }
+		override fun loadAll(): Flow<TestEvent> = emptyFlow<TestEvent>().also { calls += "loadAll" }
 		override suspend fun persist(event: TestEvent): TestEvent = event.also { calls += "persist" }
-		override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events.also { calls += "persistAll" }
+		override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events.also { calls += "persistAll" }
 	}
 
 	class CountingFactory(private val repository: RecordingRepository) : EventRepositoryFactory {
 		val created = AtomicInteger()
 
+		// A recording repository standing for any event and id types.
 		@Suppress("UNCHECKED_CAST")
 		override fun <EVENT, ID : Any> create(eventType: KClass<EVENT>, json: Json): EventRepository<EVENT, ID>
 				where EVENT : Evt, EVENT : WithS2Id<ID> {

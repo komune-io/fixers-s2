@@ -16,6 +16,8 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
+// One callback per automate event, as AutomateListener declares them.
+@Suppress("TooManyFunctions")
 open class AutomateListenerAdapter<STATE, ID : Any, ENTITY, AUTOMATE> : AutomateListener<STATE, ID, ENTITY, AUTOMATE>
 		where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 

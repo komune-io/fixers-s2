@@ -21,6 +21,7 @@ import kotlin.test.assertEquals
  * methods they replace: an implementation that only overrides the deprecated `evolve*` methods
  * must keep working when callers migrate to `create`/`transition`.
  */
+// Implements the deprecated evolve* to prove the preferred names delegate to them.
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
 class S2AutomateStoringEvolverFlowAliasTest {
 
@@ -46,7 +47,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
 
         val calls = mutableListOf<String>()
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
             commands: Flow<COMMAND>,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
         ): Flow<EVENT_OUT> {
@@ -54,7 +55,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
             commands: EnvelopedFlow<COMMAND>,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
         ): EnvelopedFlow<EVENT_OUT> {
@@ -69,7 +70,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return Decide { emptyFlow() }
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolve(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolve(
             commands: Flow<COMMAND>,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>
         ): Flow<EVENT_OUT> {
@@ -77,7 +78,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveEnvelope(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveEnvelope(
             commands: EnvelopedFlow<COMMAND>,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>
         ): EnvelopedFlow<EVENT_OUT> {
@@ -92,7 +93,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return Decide { emptyFlow() }
         }
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
@@ -101,7 +102,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>

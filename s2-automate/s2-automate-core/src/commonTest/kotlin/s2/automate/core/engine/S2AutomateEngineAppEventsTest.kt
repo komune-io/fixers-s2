@@ -56,7 +56,7 @@ class S2AutomateEngineAppEventsTest {
         private val entities: Map<String, TestEntity> = emptyMap(),
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { entities[it] }
@@ -66,11 +66,11 @@ class S2AutomateEngineAppEventsTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
     }
@@ -79,7 +79,7 @@ class S2AutomateEngineAppEventsTest {
     private class RejectingInitPersister :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> by EchoPersister() {
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts
             .map { ctx -> PersistOutcome.Rejected<TestEvent>(ctx.msgId, s2error("ERR", "rejected")) }

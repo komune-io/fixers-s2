@@ -4,6 +4,8 @@ import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.fnc.operators.mapToEnvelope
 import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -55,16 +57,16 @@ class S2AutomateEngineDuplicateIdsTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
-        ): Flow<TestEntity?> = ids.toList().distinct().mapNotNull { entities[it] }.asFlow()
+        ): Flow<TestEntity?> = flow { emitAll(ids.toList().distinct().mapNotNull { entities[it] }.asFlow()) }
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map {
             persistedIds.add(it.entity.id)

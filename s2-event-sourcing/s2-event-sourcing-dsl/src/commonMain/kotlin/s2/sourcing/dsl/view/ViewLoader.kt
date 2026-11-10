@@ -47,6 +47,7 @@ EVENT: WithS2Id<ID> {
 				{ a, b ->
 					when {
 						a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
+							// Both events are of the same class, so each compares to the other.
 							@Suppress("UNCHECKED_CAST")
 							(a as Comparable<Any>).compareTo(b)
 						}
