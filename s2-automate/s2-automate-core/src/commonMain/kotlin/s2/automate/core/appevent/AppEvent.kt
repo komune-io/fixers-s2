@@ -24,7 +24,9 @@ data class AutomateStateExited(
 /**
  * Notification when command was not accepted.
  */
-data class AutomateTransitionNotAccepted(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateTransitionNotAccepted(
     val from: S2State?,
     val msg: Msg,
 ) : AppEvent
@@ -32,14 +34,18 @@ data class AutomateTransitionNotAccepted(
 /**
  * Notification when init transition started.
  */
-data class AutomateInitTransitionStarted(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateInitTransitionStarted(
     val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when init transition ended.
  */
-data class AutomateInitTransitionEnded<STATE, ENTITY>(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateInitTransitionEnded<STATE, ENTITY>(
     val to: STATE,
     val msg: Msg,
     val entity: ENTITY,
@@ -49,7 +55,9 @@ data class AutomateInitTransitionEnded<STATE, ENTITY>(
 /**
  * Notification when transition started.
  */
-data class AutomateTransitionStarted(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateTransitionStarted(
     val from: S2State,
     val msg: Msg,
 ) : AppEvent
@@ -57,7 +65,9 @@ data class AutomateTransitionStarted(
 /**
  * Notification when transition ended.
  */
-data class AutomateTransitionEnded<STATE, ENTITY>(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateTransitionEnded<STATE, ENTITY>(
     val from: STATE,
     val to: STATE,
     val msg: Msg,
@@ -68,7 +78,9 @@ data class AutomateTransitionEnded<STATE, ENTITY>(
 /**
  * Notification when transition happened.
  */
-data class AutomateTransitionError(
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
+class AutomateTransitionError(
     val msg: Msg,
     val exception: Exception,
 ) : AppEvent

@@ -49,10 +49,10 @@ internal class SubAutomateR2dbcAppTest: SpringTestBase() {
     @Test
     suspend fun `should create order book`() {
         val event = orderBookDeciderImpl.orderBookCreateDecider().invoke(OrderBookCreateCommand("TheNewOrderBook"))
-        orderBookDeciderImpl.orderBookUpdateDecider()
+        val _ = orderBookDeciderImpl.orderBookUpdateDecider()
             .invoke(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
-        orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
-        orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
+        val _ = orderBookDeciderImpl.orderBookPublishDecider().invoke(OrderBookPublishCommand(id = event.id))
+        val _ = orderBookDeciderImpl.orderBookCloseDecider().invoke(OrderBookCloseCommand(id = event.id))
         val events = eventStore.load(event.id).toList()
         Assertions.assertThat(events.toList()).hasSize(4)
     }
@@ -60,9 +60,9 @@ internal class SubAutomateR2dbcAppTest: SpringTestBase() {
     @Test
     suspend fun `should replay event to build entity`() {
         val event = create(OrderBookCreateCommand("TheNewOrderBook"))
-        update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
-        publish(OrderBookPublishCommand(id = event.id))
-        close(OrderBookCloseCommand(id = event.id))
+        val _ = update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
+        val _ = publish(OrderBookPublishCommand(id = event.id))
+        val _ = close(OrderBookCloseCommand(id = event.id))
         val events = eventStore.load(event.id)
         val entity = builder.load(events)
         Assertions.assertThat(entity?.name).isEqualTo("TheNewOrderBook2")
@@ -72,11 +72,11 @@ internal class SubAutomateR2dbcAppTest: SpringTestBase() {
     @Test
     suspend fun `should replay all events to rebuild entities`() {
         val event = create(OrderBookCreateCommand("TheNewOrderBook"))
-        update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
-        publish(OrderBookPublishCommand(id = event.id))
-        close(OrderBookCloseCommand(id = event.id))
+        val _ = update(OrderBookUpdateCommand(id = event.id, name = "TheNewOrderBook2"))
+        val _ = publish(OrderBookPublishCommand(id = event.id))
+        val _ = close(OrderBookCloseCommand(id = event.id))
 
-        create(OrderBookCreateCommand("AndAnotherOrderBook"))
+        val _ = create(OrderBookCreateCommand("AndAnotherOrderBook"))
 
         orderBookDeciderImpl.replayHistory()
     }

@@ -123,7 +123,7 @@ class S2SourcingAutomateBuilderTest {
     }
 
     @Test
-    fun `hasResultAsAction reflects the sourcing defaults`() {
+    fun `withResultAsAction reflects the sourcing defaults`() {
         val sourcingOnly = s2Sourcing {
             name = "Full"
             init<CreateDraft, DraftCreated> {
@@ -135,6 +135,6 @@ class S2SourcingAutomateBuilderTest {
                 role = Issuer
             }
         }
-        assertThat(sourcingOnly.hasResultAsAction).isTrue()
+        assertThat(sourcingOnly.withResultAsAction).isTrue()
     }
 }

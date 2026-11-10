@@ -2,7 +2,6 @@ package s2.dsl.automate
 
 import kotlin.js.JsExport
 import kotlin.js.JsName
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,10 +18,9 @@ class S2Automate(
     val transitions: Array<S2Transition>,
 ):Automate {
 
-    // Payloads and JS callers already read this property as `withResultAsAction`.
-    @SerialName("withResultAsAction")
-    @JsName("withResultAsAction")
-    val hasResultAsAction = this.transitions.all { it.result != null }
+    // The name is the wire contract: the JSON Jackson writes and JS callers read this property by it.
+    @Suppress("BooleanPropertyNaming")
+    val withResultAsAction = this.transitions.all { it.result != null }
 
     init {
         val states = transitions.flatMap { listOfNotNull(it.from, it.to) }

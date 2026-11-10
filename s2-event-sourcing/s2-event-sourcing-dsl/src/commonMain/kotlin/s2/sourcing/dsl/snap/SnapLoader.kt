@@ -24,10 +24,10 @@ ENTITY: WithS2Id<ID> {
     override suspend fun evolve(events: Flow<EVENT>, entity: ENTITY?): ENTITY? =
         viewLoader.evolve(events = events, entity = entity)
 
-    // The rule reads the discarded `val _` as a Boolean property; an unnamed value has no name to prefix.
-    @Suppress("BooleanPropertyNaming")
     override suspend fun reloadHistory(): List<ENTITY> {
         return viewLoader.reloadHistory().map { entity ->
+            // The rule reads the discarded `val _` as a Boolean property; an unnamed value has no name to prefix.
+            @Suppress("BooleanPropertyNaming")
             val _ = snapRepository.remove(entity.s2Id())
             snapRepository.save(entity)
         }

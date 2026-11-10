@@ -68,7 +68,8 @@ abstract class CucumberStepsDefinition {
                 logger.error(STEP_FAILED, actualException)
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
-                val cause = e.cause
+                // Read as a Throwable's: some Cucumber versions leave the cause unset.
+                val cause = (e as Throwable).cause ?: e
                 logger.error(STEP_FAILED, cause)
                 throw cause
             } catch (e: Exception) {

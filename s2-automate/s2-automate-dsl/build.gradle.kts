@@ -11,5 +11,6 @@ dependencies {
     commonTestImplementation(kotlin("test"))
     "jvmTestImplementation"(kotlin("test-junit5"))
     "jvmTestImplementation"(libs.bundles.test.junit)
+    "jvmTestImplementation"(libs.jackson.module.kotlin)
     "jsTestImplementation"(kotlin("test-js"))
 }

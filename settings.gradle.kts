@@ -1,13 +1,19 @@
 pluginManagement {
+    // One fixers version for the build: the catalogue's, which the settings plugin also checks.
+    val fixersVersion = settingsDir.resolve("gradle/libs.versions.toml").readLines()
+        .firstNotNullOf { Regex("^fixers\\s*=\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
     repositories {
         gradlePluginPortal()
         mavenCentral()
         maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
     }
+    plugins {
+        id("io.komune.fixers.gradle.settings") version fixersVersion
+    }
 }
 
 plugins {
-    id("io.komune.fixers.gradle.settings") version "0.47.0-SNAPSHOT"
+    id("io.komune.fixers.gradle.settings")
 }
 
 rootProject.name = "fixers-s2"

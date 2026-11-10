@@ -148,8 +148,8 @@ class S2AutomateBuilderTest {
     }
 
     @Test
-    fun `hasResultAsAction is true only when every transition carries a result`() {
-        assertThat(automate.hasResultAsAction).isFalse()
+    fun `withResultAsAction is true only when every transition carries a result`() {
+        assertThat(automate.withResultAsAction).isFalse()
         val allResults = s2 {
             name = "AllResults"
             init<CreateOrder> {
@@ -158,6 +158,6 @@ class S2AutomateBuilderTest {
                 evt = OrderCreated::class
             }
         }
-        assertThat(allResults.hasResultAsAction).isTrue()
+        assertThat(allResults.withResultAsAction).isTrue()
     }
 }
