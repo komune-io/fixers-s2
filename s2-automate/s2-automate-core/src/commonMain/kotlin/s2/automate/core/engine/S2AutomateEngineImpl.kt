@@ -101,9 +101,7 @@ ENTITY : WithS2Id<ID> {
         // without buffering the whole flow.
         val awaitingPersist = ArrayDeque<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>()
         return contexts.map {
-            guardExecutor.verifyInitTransition(it)
-            awaitingPersist.addLast(it)
-            it
+            guardExecutor.verifyInitTransition(it).also(awaitingPersist::addLast)
         }.let {
             persister.persistInit(it)
         }.map { event ->

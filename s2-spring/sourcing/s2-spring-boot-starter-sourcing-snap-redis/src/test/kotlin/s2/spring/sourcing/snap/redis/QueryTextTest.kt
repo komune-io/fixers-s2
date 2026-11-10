@@ -81,11 +81,11 @@ class QueryTextTest {
 
     @Test
     fun `a tag clause refuses an empty value, no value or an attribute name that is not one`() {
-        assertThatThrownBy { tagClause("status", "") }.isInstanceOf(IllegalArgumentException::class.java)
-        assertThatThrownBy { tagClause("status", emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
-        assertThatThrownBy { tagClause("status", listOf("Open", "")) }.isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause("status", "") }.isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause("status", emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause("status", listOf("Open", "")) }.isInstanceOf(IllegalArgumentException::class.java)
         listOf("", "a b", "a}|@b", "1st", "@status").forEach { field ->
-            assertThatThrownBy { tagClause(field, "x") }
+            assertThatThrownBy { val _ = tagClause(field, "x") }
                 .describedAs("«$field»")
                 .isInstanceOf(IllegalArgumentException::class.java)
         }

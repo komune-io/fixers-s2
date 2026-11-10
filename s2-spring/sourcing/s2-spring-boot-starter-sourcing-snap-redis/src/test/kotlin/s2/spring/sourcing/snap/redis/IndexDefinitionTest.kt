@@ -46,10 +46,10 @@ class IndexDefinitionTest {
     fun `an index names each field once, and at least one`() {
         val twice = fields + RedisIndexField("name", RedisFieldType.TAG)
 
-        assertThatThrownBy { IndexDefinition.of("Probe", twice, IndexSettings(null)) }
+        assertThatThrownBy { val _ = IndexDefinition.of("Probe", twice, IndexSettings(null)) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("names a field twice")
-        assertThatThrownBy { IndexDefinition.of("Probe", emptyList(), IndexSettings(null)) }
+        assertThatThrownBy { val _ = IndexDefinition.of("Probe", emptyList(), IndexSettings(null)) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("at least one field")
     }

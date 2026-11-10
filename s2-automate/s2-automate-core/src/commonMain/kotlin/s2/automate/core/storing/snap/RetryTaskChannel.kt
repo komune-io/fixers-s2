@@ -34,11 +34,13 @@ class RetryTaskChannel(
         launchPersistWorker()
     }
 
-    private fun CoroutineScope.launchPersistWorker() = launch {
+    private fun CoroutineScope.launchPersistWorker() {
         // retry() wraps every attempt in runCatching, so a task completes its deferred instead of
         // throwing: a throw would kill this single worker and suspend every later send forever.
-        for (task in persistChannel) {
-            task()
+        val _ = launch {
+            for (task in persistChannel) {
+                task()
+            }
         }
     }
 

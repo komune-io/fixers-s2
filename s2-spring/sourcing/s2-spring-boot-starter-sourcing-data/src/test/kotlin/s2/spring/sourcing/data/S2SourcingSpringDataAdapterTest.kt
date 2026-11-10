@@ -108,7 +108,7 @@ class S2SourcingSpringDataAdapterTest {
     fun `eventStore does not create the table on the calling thread`() {
         val repository = RecordingRepository()
 
-        adapter(repository).eventStore()
+        val _ = adapter(repository).eventStore()
 
         assertThat(repository.calls).isEmpty()
     }
@@ -127,11 +127,11 @@ class S2SourcingSpringDataAdapterTest {
     suspend fun `startup creates the table once, before any operation`() {
         val repository = RecordingRepository()
         val adapter = adapter(repository)
-        adapter.eventStore()
+        val _ = adapter.eventStore()
 
         adapter.afterSingletonsInstantiated()
         assertThat(repository.calls).containsExactly("createTable")
-        adapter.eventStore().persist(TestEvent("1"))
+        val _ = adapter.eventStore().persist(TestEvent("1"))
 
         assertThat(repository.calls).containsExactly("createTable", "persist")
     }
@@ -160,7 +160,7 @@ class S2SourcingSpringDataAdapterTest {
             override fun eventStore() = own
         }.apply { eventRepositoryFactory = CountingFactory(repository) }
 
-        adapter.eventStore()
+        val _ = adapter.eventStore()
         adapter.afterSingletonsInstantiated()
 
         assertThat((adapter.eventRepositoryFactory as CountingFactory).created.get()).isZero()
@@ -172,8 +172,8 @@ class S2SourcingSpringDataAdapterTest {
         val repository = RecordingRepository()
         val store = adapter(repository).eventStore()
 
-        store.persist(TestEvent("1"))
-        store.persist(TestEvent("2"))
+        val _ = store.persist(TestEvent("1"))
+        val _ = store.persist(TestEvent("2"))
         store.load("1").toList()
 
         assertThat(repository.calls).containsExactly("createTable", "persist", "persist", "load")
@@ -217,7 +217,7 @@ class S2SourcingSpringDataAdapterTest {
 
         val failure = runCatching { store.persist(TestEvent("1")) }.exceptionOrNull()
         assertThat(failure).hasMessage("table not created")
-        store.persist(TestEvent("2"))
+        val _ = store.persist(TestEvent("2"))
 
         assertThat(repository.calls).containsExactly("createTable", "persist")
     }

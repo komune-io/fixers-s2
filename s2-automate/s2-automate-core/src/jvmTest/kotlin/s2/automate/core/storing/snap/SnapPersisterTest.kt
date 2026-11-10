@@ -104,7 +104,7 @@ class SnapPersisterTest {
             retryTaskChannel = null,
         )
         val exception = assertThrows<AutomateException> {
-            persister.persist(TestEvent("4"))
+            val _ = persister.persist(TestEvent("4"))
         }
         assertTrue(exception.errors.single().type == "ERROR_ENTITY_NOT_FOUND")
     }

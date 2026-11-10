@@ -119,9 +119,9 @@ class RoleGuardTest {
             calls++
             emptySet()
         }
-        guard.evaluateTransition(transitionContext(UndeclaredCmd("1")))
+        val _ = guard.evaluateTransition(transitionContext(UndeclaredCmd("1")))
         assertEquals(0, calls)
-        guard.evaluateTransition(transitionContext())
+        val _ = guard.evaluateTransition(transitionContext())
         assertEquals(1, calls)
     }
 

@@ -89,7 +89,7 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
         beanFactory.registerSingleton(store.toString(), store)
         beanFactory.registerSingleton("snapLoader-${UUID.randomUUID()}", snapLoader)
 
-        aggregate(snapLoader, store)
+        val _ = aggregate(snapLoader, store)
     }
 
 

@@ -59,12 +59,12 @@ class RedisSnapViewIndexTest {
 
     private suspend fun tidy() {
         view.dropIndex()
-        view.deleteAll()
+        val _ = view.deleteAll()
     }
 
     private fun messages() = logged.list.filter { it.formattedMessage.startsWith("Index[IndexProbeSnap]") }
 
-    private suspend fun storeMany() = (1..STORED).forEach { view.save(IndexProbeSnap("index-probe-${UUID.randomUUID()}")) }
+    private suspend fun storeMany() = (1..STORED).forEach { val _ = view.save(IndexProbeSnap("index-probe-${UUID.randomUUID()}")) }
 
     @Test
     suspend fun `an index whose definition matches is kept, not dropped`() {
@@ -85,7 +85,7 @@ class RedisSnapViewIndexTest {
 
     @Test
     suspend fun `an index of another definition is made again, its documents kept`() {
-        view.save(IndexProbeSnap("kept", name = "Saint-Égrève"))
+        val _ = view.save(IndexProbeSnap("kept", name = "Saint-Égrève"))
         view.initIndex()
 
         val wider = probeView(ID, NAME)
@@ -151,7 +151,7 @@ class RedisSnapViewIndexTest {
             IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
         )
 
-        assertThatThrownBy { runBlocking { view.index.awaitIndexed(1.milliseconds) } }
+        assertThatThrownBy { runBlocking { val _ = view.index.awaitIndexed(1.milliseconds) } }
             .isInstanceOf(IllegalStateException::class.java)
             .hasMessage("Index[IndexProbeSnap] still indexing after 1ms")
     }
@@ -170,8 +170,8 @@ class RedisSnapViewIndexTest {
     suspend fun `a kept index that once failed a document is made again, and passes once the document is gone`() {
         val weighted = probeView(ID, WEIGHT)
         weighted.initIndex()
-        weighted.save(IndexProbeSnap("unreadable", weight = "not a number"))
-        weighted.remove("unreadable")
+        val _ = weighted.save(IndexProbeSnap("unreadable", weight = "not a number"))
+        val _ = weighted.remove("unreadable")
         logged.list.clear()
 
         weighted.initIndex()

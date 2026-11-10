@@ -24,7 +24,7 @@ class ParserExtensionTest {
     @Test
     fun `safeExtract should return parsed value or throw`() {
         assertThat(entry.safeExtract<Int>("count")).isEqualTo(3)
-        assertThatThrownBy { entry.safeExtract<Int>("missing") }
+        assertThatThrownBy { val _ = entry.safeExtract<Int>("missing") }
             .isInstanceOf(NullDataTableParamException::class.java)
     }
 
@@ -37,7 +37,7 @@ class ParserExtensionTest {
     @Test
     fun `safeExtractList should return parsed list or throw`() {
         assertThat(entry.safeExtractList<Int>("ids")).containsExactly(1, 2, 3)
-        assertThatThrownBy { entry.safeExtractList<Int>("missing") }
+        assertThatThrownBy { val _ = entry.safeExtractList<Int>("missing") }
             .isInstanceOf(NullDataTableParamException::class.java)
     }
 }

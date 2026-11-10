@@ -54,6 +54,6 @@ class AssertionApiEntityTest {
 
     @Test
     suspend fun `assertThatId returns the entity asserter`() {
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 }

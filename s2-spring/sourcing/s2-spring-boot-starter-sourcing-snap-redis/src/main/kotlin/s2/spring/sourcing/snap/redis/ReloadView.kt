@@ -71,7 +71,7 @@ class ReloadView<MODEL : Any>(
     @Suppress("TooGenericExceptionCaught")
     private suspend fun empty(failure: Exception) {
         try {
-            view.deleteAll()
+            val _ = view.deleteAll()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

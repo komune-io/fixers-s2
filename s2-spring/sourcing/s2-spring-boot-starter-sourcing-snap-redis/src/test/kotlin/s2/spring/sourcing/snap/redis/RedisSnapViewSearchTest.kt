@@ -34,18 +34,18 @@ class RedisSnapViewSearchTest {
 
     @BeforeEach
     fun prepare() = runBlocking {
-        view.deleteAll()
+        val _ = view.deleteAll()
         view.initIndex()
     }
 
     @AfterEach
     fun tidy() = runBlocking {
-        view.deleteAll()
+        val _ = view.deleteAll()
         view.dropIndex()
     }
 
     private suspend fun store(names: List<String>): List<String> =
-        names.map { name -> "search-probe-${UUID.randomUUID()}".also { view.save(SearchProbeSnap(id = it, name = name)) } }
+        names.map { name -> "search-probe-${UUID.randomUUID()}".also { val _ = view.save(SearchProbeSnap(id = it, name = name)) } }
 
     private suspend fun found(term: String) = view.search(term.addWildcard(), null, null).items.map { it.id }
 
@@ -55,7 +55,7 @@ class RedisSnapViewSearchTest {
     @Test
     fun `a search Redis refuses leaves the connection serving`() {
         repeat(3) {
-            assertThatThrownBy { runBlocking { view.search("Thônes* (74280)*", null, null) } }
+            assertThatThrownBy { runBlocking { val _ = view.search("Thônes* (74280)*", null, null) } }
                 .describedAs("failure ${it + 1}")
                 .isInstanceOf(RedisCommandExecutionException::class.java)
         }
@@ -88,7 +88,7 @@ class RedisSnapViewSearchTest {
 
     @Test
     suspend fun `a page is sorted and bounded, its total the whole match`() {
-        store(listOf("Charlie", "Alpha", "Bravo"))
+        val _ = store(listOf("Charlie", "Alpha", "Bravo"))
 
         val page = view.search(null, OffsetPagination(offset = 0, limit = 2), "name", descending = true)
 
@@ -111,7 +111,7 @@ class RedisSnapViewSearchTest {
     /** Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut. */
     @Test
     suspend fun `a prefix expanding past MAXEXPANSIONS is refused, never cut`() {
-        store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
+        val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
 
         val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
 

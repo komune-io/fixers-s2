@@ -81,7 +81,7 @@ class RedisIndexesTest {
 
     @Test
     fun `two views of models sharing a name are refused`() {
-        assertThatThrownBy { RedisIndexes(listOf(Index("Model"), Index("Other"), Index("Model"))) }
+        assertThatThrownBy { val _ = RedisIndexes(listOf(Index("Model"), Index("Other"), Index("Model"))) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("[Model]")
     }

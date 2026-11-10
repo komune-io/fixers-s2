@@ -57,11 +57,11 @@ class R2dbcEventRepositoryTest @Autowired constructor(
         val event2 = TestEvent(id = objId, name = "Event 2", timestamp = 200)
 
         // When - persist events in random order with delays to ensure different created_date values
-        eventRepository.persist(event1)
+        val _ = eventRepository.persist(event1)
         delay(100) // Add delay to ensure different created_date values
-        eventRepository.persist(event2)
+        val _ = eventRepository.persist(event2)
         delay(100) // Add delay to ensure different created_date values
-        eventRepository.persist(event3)
+        val _ = eventRepository.persist(event3)
 
         // Then - events should be loaded in ascending order by created_date
         val loadedEvents = eventRepository.load(objId).toList()
@@ -87,11 +87,11 @@ class R2dbcEventRepositoryTest @Autowired constructor(
         val event3 = TestEvent(id = objId2, name = "Event 3", timestamp = 150)
 
         // When - persist events in random order with delays to ensure different created_date values
-        eventRepository.persist(event1)
+        val _ = eventRepository.persist(event1)
         delay(100) // Add delay to ensure different created_date values
-        eventRepository.persist(event3)
+        val _ = eventRepository.persist(event3)
         delay(100) // Add delay to ensure different created_date values
-        eventRepository.persist(event2)
+        val _ = eventRepository.persist(event2)
 
         // Then - all events should be loaded in ascending order by created_date
         val loadedEvents = eventRepository.loadAll().toList()

@@ -85,7 +85,7 @@ ENTITY : WithS2State<STATE> {
     }
 
     override suspend fun replayHistory() {
-        projectionLoader.reloadHistory()
+        val _ = projectionLoader.reloadHistory()
     }
 
     //////////////////////////////////////////

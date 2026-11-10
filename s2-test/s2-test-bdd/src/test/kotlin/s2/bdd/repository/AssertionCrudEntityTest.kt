@@ -85,7 +85,7 @@ class AssertionCrudEntityTest {
         val assertion = ReactiveAssertion(InMemoryReactiveRepository(store))
         assertion.exists("1")
         assertion.notExists("missing")
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 
     @Test
@@ -105,7 +105,7 @@ class AssertionCrudEntityTest {
         val assertion = BlockingAssertion(InMemoryBlockingRepository(store))
         assertion.exists("1")
         assertion.notExists("missing")
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 
     @Test

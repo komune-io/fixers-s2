@@ -30,35 +30,35 @@ class PrimitiveParsersTest {
     @Test
     fun `int parser should parse valid value and reject invalid`() {
         assertThat(entry.extract<Int>("int")).isEqualTo(42)
-        assertThatThrownBy { entry.extract<Int>("name") }
+        assertThatThrownBy { val _ = entry.extract<Int>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
     @Test
     fun `long parser should parse valid value and reject invalid`() {
         assertThat(entry.extract<Long>("long")).isEqualTo(9_000_000_000L)
-        assertThatThrownBy { entry.extract<Long>("name") }
+        assertThatThrownBy { val _ = entry.extract<Long>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
     @Test
     fun `float parser should parse valid value and reject invalid`() {
         assertThat(entry.extract<Float>("float")).isEqualTo(1.5f)
-        assertThatThrownBy { entry.extract<Float>("name") }
+        assertThatThrownBy { val _ = entry.extract<Float>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
     @Test
     fun `double parser should parse valid value and reject invalid`() {
         assertThat(entry.extract<Double>("double")).isEqualTo(2.25)
-        assertThatThrownBy { entry.extract<Double>("name") }
+        assertThatThrownBy { val _ = entry.extract<Double>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
     @Test
     fun `boolean parser should parse strict boolean and reject invalid`() {
         assertThat(entry.extract<Boolean>("bool")).isTrue()
-        assertThatThrownBy { entry.extract<Boolean>("name") }
+        assertThatThrownBy { val _ = entry.extract<Boolean>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 }

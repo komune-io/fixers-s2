@@ -73,7 +73,7 @@ class RedisSnapViewReadTest {
 
     @Test
     fun `a whole read answered fewer hits than its total is refused`() {
-        assertThatThrownBy { whole(3, hit("Model-1", """{"id":"1"}"""), hit("Model-2")) }
+        assertThatThrownBy { val _ = whole(3, hit("Model-1", """{"id":"1"}"""), hit("Model-2")) }
             .isInstanceOfSatisfying(F2Exception::class.java) {
                 assertThat(it.error.refusal).isEqualTo(SearchRefusal.SHORT_READ)
                 assertThat(it.error.code).isEqualTo(409)
@@ -85,7 +85,7 @@ class RedisSnapViewReadTest {
 
     @Test
     fun `a whole read past the window is refused, missing documents or not`() {
-        assertThatThrownBy { whole(SEARCH_WINDOW + 1L, hit("Model-1")) }
+        assertThatThrownBy { val _ = whole(SEARCH_WINDOW + 1L, hit("Model-1")) }
             .isInstanceOfSatisfying(F2Exception::class.java) {
                 assertThat(it.error.refusal).isEqualTo(SearchRefusal.TOO_MANY_ENTRIES)
                 assertThat(it.error.code).isEqualTo(422)

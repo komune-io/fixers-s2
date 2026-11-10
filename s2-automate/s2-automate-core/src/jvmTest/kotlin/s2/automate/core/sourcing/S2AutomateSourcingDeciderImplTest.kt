@@ -126,7 +126,7 @@ class S2AutomateSourcingDeciderImplTest {
         val publisher = RecordingPublisher()
         val decider = decider(publisher, loader = StubLoader(nullProjection = true))
         val exception = assertThrows<IllegalStateException> {
-            decider.init(CreateCmd("1")) { CreatedEvt("1") }
+            val _ = decider.init(CreateCmd("1")) { CreatedEvt("1") }
         }
         assertEquals("The projection of an init event is null", exception.message)
         assertTrue(publisher.published.isEmpty())
@@ -137,7 +137,7 @@ class S2AutomateSourcingDeciderImplTest {
         val publisher = RecordingPublisher()
         val decider = decider(publisher, loader = StubLoader(nullProjection = true))
         val exception = assertThrows<IllegalStateException> {
-            decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
+            val _ = decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
         }
         assertEquals("The projection of an event is null", exception.message)
         assertTrue(publisher.published.isEmpty())

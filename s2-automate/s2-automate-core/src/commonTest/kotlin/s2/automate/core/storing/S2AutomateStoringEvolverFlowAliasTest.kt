@@ -134,7 +134,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
     @Test
     fun `decideCreate delegates to the deprecated init evolve decider`() = runTest {
         val evolver = RecordingEvolverFlow()
-        evolver.decideCreate(initBuild)
+        val _ = evolver.decideCreate(initBuild)
         assertEquals(listOf("evolve(init-decide)"), evolver.calls)
     }
 
@@ -155,7 +155,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
     @Test
     fun `decideTransition delegates to the deprecated transition evolve decider`() = runTest {
         val evolver = RecordingEvolverFlow()
-        evolver.decideTransition(transitionExec)
+        val _ = evolver.decideTransition(transitionExec)
         assertEquals(listOf("evolve(transition-decide)"), evolver.calls)
     }
 

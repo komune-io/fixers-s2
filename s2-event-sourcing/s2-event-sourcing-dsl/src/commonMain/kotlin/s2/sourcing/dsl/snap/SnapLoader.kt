@@ -33,8 +33,8 @@ ENTITY: WithS2Id<ID> {
     }
 
     override suspend fun reloadHistory(): List<ENTITY> {
-        return viewLoader.reloadHistory().onEach { entity ->
-            snapRepository.remove(entity.s2Id())
+        return viewLoader.reloadHistory().map { entity ->
+            val _ = snapRepository.remove(entity.s2Id())
             snapRepository.save(entity)
         }
     }

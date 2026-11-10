@@ -188,10 +188,7 @@ ENTITY : WithS2Id<ID> {
     private fun persistInitWithOutcomes(
         contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): EnvelopedFlow<PersistOutcome<EVENT>> {
-        return contexts.map {
-            guardExecutor.verifyInitTransition(it)
-            it
-        }.let {
+        return contexts.map { guardExecutor.verifyInitTransition(it) }.let {
             persister.persistInitWithOutcomes(it).mapToEnvelopeWithRandomId(type = "PersistOutcome")
         }
     }

@@ -110,8 +110,8 @@ class RedisSnapViewStoredTest {
 
     @Test
     suspend fun `many ids are read in one batch, an unknown or repeated id answered once or not at all`() {
-        view.save(WindowProbeSnap("a"))
-        view.save(WindowProbeSnap("b"))
+        val _ = view.save(WindowProbeSnap("a"))
+        val _ = view.save(WindowProbeSnap("b"))
 
         val read = view.getAll(listOf("a", "b", "a", "unknown"))
 
@@ -134,7 +134,7 @@ class RedisSnapViewStoredTest {
     @Test
     suspend fun `an index reads its own model's keys only, not a model whose name starts the same`() {
         sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
-        view.save(WindowProbeSnap("own"))
+        val _ = view.save(WindowProbeSnap("own"))
 
         view.initIndex()
 

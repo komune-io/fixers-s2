@@ -62,7 +62,7 @@ class SnapLoaderTest {
     @Test
     suspend fun `load by id prefers the snapshot`() {
         val snapRepository = InMemorySnapRepository()
-        snapRepository.save(TestEntity("1", 999))
+        val _ = snapRepository.save(TestEntity("1", 999))
         val loader = snapLoader(snapRepository)
         assertThat(loader.load("1")).isEqualTo(TestEntity("1", 999))
     }

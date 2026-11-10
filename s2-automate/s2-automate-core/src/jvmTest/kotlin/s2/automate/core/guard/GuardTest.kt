@@ -250,7 +250,7 @@ class GuardTest {
             automateContext, "msg", TestState.Created, DoCmd("1"), "EVT", entity
         )
         val exception = assertThrows<AutomateException> {
-            verifier(publisher, listOf(failingGuard)).verifyTransition(context)
+            val _ = verifier(publisher, listOf(failingGuard)).verifyTransition(context)
         }
         assertEquals(listOf("E1", "E2"), exception.errors.map { it.type })
         assertEquals(1, publisher.published.size)
