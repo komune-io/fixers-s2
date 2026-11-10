@@ -3,8 +3,8 @@ package s2.bdd.step.exceptions
 import f2.dsl.cqrs.error.HttpRefusal
 import f2.spring.exception.ConflictException
 import f2.spring.exception.ForbiddenAccessException
-import f2.spring.exception.MessageConverterException
 import f2.spring.exception.NotFoundException
+import f2.spring.exception.UnreadableBodyException
 import io.cucumber.java8.En
 import s2.bdd.S2CucumberStepsDefinition
 import s2.bdd.assertion.AssertionBdd
@@ -34,7 +34,7 @@ class ExceptionAssertionSteps: En, S2CucumberStepsDefinition()  {
     }
 
     private fun Int.toExceptionClass() = when (this) {
-        HttpRefusal.INVALID_PAYLOAD.status -> MessageConverterException::class
+        HttpRefusal.INVALID_PAYLOAD.status -> UnreadableBodyException::class
         HttpRefusal.FORBIDDEN.status -> ForbiddenAccessException::class
         HttpRefusal.NOT_FOUND.status -> NotFoundException::class
         HttpRefusal.CONFLICT.status -> ConflictException::class

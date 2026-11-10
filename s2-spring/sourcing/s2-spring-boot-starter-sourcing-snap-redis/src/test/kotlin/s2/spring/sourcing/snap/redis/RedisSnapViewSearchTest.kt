@@ -101,9 +101,9 @@ class RedisSnapViewSearchTest {
     fun `a page larger than one read answers is refused`() {
         val error = refusal { view.search(null, OffsetPagination(offset = 0, limit = SEARCH_WINDOW + 1), null) }
 
-        assertThat(error.refusal).isEqualTo(SearchRefusal.PAGE_TOO_LARGE)
+        assertThat(error.refusal?.code).isEqualTo(SearchRefusal.PAGE_TOO_LARGE)
         assertThat(error.code).isEqualTo(422)
-        assertThat(error.parameters).containsExactlyInAnyOrderEntriesOf(
+        assertThat(error.refusal?.parameters).containsExactlyInAnyOrderEntriesOf(
             mapOf("index" to "SearchProbeSnap", "limit" to "${SEARCH_WINDOW + 1}", "bound" to "$SEARCH_WINDOW"),
         )
     }
@@ -115,8 +115,8 @@ class RedisSnapViewSearchTest {
 
         val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
 
-        assertThat(error.refusal).isEqualTo(SearchRefusal.TOO_BROAD)
-        assertThat(error.parameters).containsEntry("warning", "Max prefix expansions limit was reached")
+        assertThat(error.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
+        assertThat(error.refusal?.parameters).containsEntry("warning", "Max prefix expansions limit was reached")
         assertThat(found("ab0")).hasSize(100)
     }
 

@@ -1,6 +1,7 @@
 package s2.spring.sourcing.snap.redis
 
 import f2.dsl.cqrs.error.F2Error
+import f2.dsl.cqrs.error.F2Refusal
 import f2.dsl.cqrs.error.HttpRefusal
 import f2.dsl.cqrs.exception.F2Exception
 
@@ -57,5 +58,5 @@ object SearchRefusal {
     )
 
     private fun refusal(code: String, status: HttpRefusal, message: String, parameters: Map<String, String>) =
-        F2Exception(F2Error(message = message, code = status.status, refusal = code, parameters = parameters))
+        F2Exception(F2Error(message = message, code = status.status, refusal = F2Refusal(code, parameters)))
 }
