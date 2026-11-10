@@ -21,7 +21,7 @@ class AutomateErrorTest {
 
     @Test
     fun `invalidTransitionError carries state and command in payload`() {
-        val error = invalidTransitionError("Created", "DoCmd")
+        val error = invalidTransitionError(state = "Created", command = "DoCmd")
         assertEquals("ERROR_INVALID_TRANSITION", error.type)
         assertEquals("Created", error.payload["from"])
         assertEquals("DoCmd", error.payload["command"])
@@ -59,7 +59,7 @@ class AutomateErrorTest {
     @Test
     fun `asException builds an AutomateException carrying the error`() {
         val cause = IllegalStateException("boom")
-        val exception = s2error("CODE", "desc", cause = cause).asException()
+        val exception = s2error(code = "CODE", description = "desc", cause = cause).asException()
         assertEquals(1, exception.errors.size)
         assertEquals("CODE", exception.errors.first().type)
         assertSame(cause, exception.cause)
@@ -68,7 +68,7 @@ class AutomateErrorTest {
     @Test
     fun `throwException throws an AutomateException`() {
         val exception = assertThrows<AutomateException> {
-            s2error("CODE", "desc").throwException()
+            s2error(code = "CODE", description = "desc").throwException()
         }
         assertEquals("CODE", exception.errors.single().type)
         assertNull(exception.cause)

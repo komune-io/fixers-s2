@@ -22,31 +22,30 @@ class GuardVerifierImpl<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>(
     ENTITY : WithS2Id<ID> {
 
     override suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>) {
-        runGuards(context.msg) { it.evaluateInit(context) }
+        rejectUnlessAllGuardsPass(context.msg) { it.evaluateInit(context) }
     }
 
     override suspend fun <COMMAND: Cmd> evaluateTransition(
         context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
     ) {
-        runGuards(context.command.data, context.from) { it.evaluateTransition(context) }
+        rejectUnlessAllGuardsPass(context.command.data, context.from) { it.evaluateTransition(context) }
     }
 
     override suspend fun verifyInitTransition(
         context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
     ): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
-        runGuards(context.msg) { it.verifyInitTransition(context) }
+        rejectUnlessAllGuardsPass(context.msg) { it.verifyInitTransition(context) }
         return context
     }
 
     override suspend fun verifyTransition(
         context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
     ): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE> {
-        runGuards(context.msg, context.from) { it.verifyTransition(context) }
+        rejectUnlessAllGuardsPass(context.msg, context.from) { it.verifyTransition(context) }
         return context
     }
 
-    /** Runs [check] against every guard, merges the results and rejects the transition on any error. */
-    private suspend fun runGuards(
+    private suspend fun rejectUnlessAllGuardsPass(
         msg: Msg,
         from: S2State? = null,
         check: suspend (Guard<STATE, ID, ENTITY, EVENT, AUTOMATE>) -> GuardResult,

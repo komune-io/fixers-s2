@@ -24,37 +24,34 @@ class RedisSnapViewIndexTest {
 
     data class IndexProbeSnap(val id: String, val name: String = "", val weight: Any? = 0)
 
-    private companion object {
-        const val ALIAS = "IndexProbeSnapAlias"
-        const val STORED = 5_000
-        val ID = RedisIndexField(IndexProbeSnap::id.name, RedisFieldType.TAG)
-        val NAME = RedisIndexField(IndexProbeSnap::name.name, RedisFieldType.TEXT)
-        val WEIGHT = RedisIndexField(IndexProbeSnap::weight.name, RedisFieldType.NUMERIC)
-    }
-
-    private fun probeView(
-        vararg fields: RedisIndexField,
-        settings: IndexSettings = RedisStack.settings,
-    ): RedisSnapView<IndexProbeSnap> =
-        RedisStack.view(IndexProbeSnap::class, fields.toList(), IndexProbeSnap::id, settings = settings)
-
     private val view = probeView(ID)
     private val sync = RedisStack.connection.sync()
     private val logged = ListAppender<ILoggingEvent>()
     private val logger = LoggerFactory.getLogger(RedisSnapView::class.java) as Logger
 
+    private fun probeView(
+        vararg fields: RedisIndexField,
+        settings: IndexSettings = RedisStack.settings,
+    ): RedisSnapView<IndexProbeSnap> =
+        RedisStack.view(
+            model = IndexProbeSnap::class,
+            fields = fields.toList(),
+            idOf = IndexProbeSnap::id,
+            settings = settings,
+        )
+
     @BeforeEach
-    fun prepare() = runBlocking {
-        tidy()
+    fun prepare() {
+        runBlocking { tidy() }
         logged.start()
         logger.level = Level.DEBUG
         logger.addAppender(logged)
     }
 
     @AfterEach
-    fun detach() = runBlocking {
+    fun detach() {
         logger.detachAppender(logged)
-        tidy()
+        runBlocking { tidy() }
     }
 
     private suspend fun tidy() {
@@ -64,7 +61,9 @@ class RedisSnapViewIndexTest {
 
     private fun messages() = logged.list.filter { it.formattedMessage.startsWith("Index[IndexProbeSnap]") }
 
-    private suspend fun storeMany() = (1..STORED).forEach { val _ = view.save(IndexProbeSnap("index-probe-${UUID.randomUUID()}")) }
+    private suspend fun storeMany() {
+        repeat(STORED) { val _ = view.save(IndexProbeSnap("index-probe-${UUID.randomUUID()}")) }
+    }
 
     @Test
     suspend fun `an index whose definition matches is kept, not dropped`() {
@@ -103,7 +102,7 @@ class RedisSnapViewIndexTest {
         probeView(ID, NAME, settings = IndexSettings(PhoneticMatcher.FRENCH)).initIndex()
 
         assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
-        assertThat(sync.get("IndexProbeSnap:definition")).contains("PHONETIC dm:fr")
+        assertThat(sync["IndexProbeSnap:definition"]).contains("PHONETIC dm:fr")
     }
 
     @Test
@@ -111,7 +110,7 @@ class RedisSnapViewIndexTest {
         sync.dispatch(
             SearchCommand.FT_CREATE,
             StatusOutput(StringCodec.UTF8),
-            IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
+            IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
         )
 
         view.initIndex()
@@ -132,8 +131,8 @@ class RedisSnapViewIndexTest {
     suspend fun `an index kept as it is has also read the stored documents when creation returns`() {
         storeMany()
         // Created behind the view's back with its definition written, so the view keeps it while it still reads.
-        val definition = IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings)
-        sync.set("IndexProbeSnap:definition", definition.fingerprint)
+        val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
+        sync["IndexProbeSnap:definition"] = definition.fingerprint
         sync.dispatch(SearchCommand.FT_CREATE, StatusOutput(StringCodec.UTF8), definition.createArgs("IndexProbeSnap"))
 
         view.initIndex()
@@ -148,7 +147,7 @@ class RedisSnapViewIndexTest {
         sync.dispatch(
             SearchCommand.FT_CREATE,
             StatusOutput(StringCodec.UTF8),
-            IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
+            IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
         )
 
         assertThatThrownBy { runBlocking { val _ = view.index.awaitIndexed(1.milliseconds) } }
@@ -171,7 +170,7 @@ class RedisSnapViewIndexTest {
         val weighted = probeView(ID, WEIGHT)
         weighted.initIndex()
         val _ = weighted.save(IndexProbeSnap("unreadable", weight = "not a number"))
-        val _ = weighted.remove("unreadable")
+        assertThat(weighted.remove("unreadable")).isTrue()
         logged.list.clear()
 
         weighted.initIndex()
@@ -186,11 +185,16 @@ class RedisSnapViewIndexTest {
     fun `a store that cannot answer fails the start`() {
         val closed = RedisClient.create(RedisStack.uri)
         try {
-            val lost = closed.connect().also { it.close() }
+            val lost = closed.connect().apply { close() }
 
             assertThatThrownBy {
                 runBlocking {
-                    RedisStack.view(IndexProbeSnap::class, listOf(ID), IndexProbeSnap::id, connection = lost).initIndex()
+                    RedisStack.view(
+                        model = IndexProbeSnap::class,
+                        fields = listOf(ID),
+                        idOf = IndexProbeSnap::id,
+                        connection = lost,
+                    ).initIndex()
                 }
             }.isInstanceOf(RedisException::class.java)
         } finally {
@@ -211,5 +215,13 @@ class RedisSnapViewIndexTest {
         assertThat(RedisCommandExecutionException("Index already exists").isIndexAlreadyPresent()).isTrue()
         assertThat(RedisCommandExecutionException("Duplicate field in schema - id").isIndexAlreadyPresent()).isFalse()
         assertThat(IllegalStateException("Index already exists").isIndexAlreadyPresent()).isFalse()
+    }
+
+    private companion object {
+        const val ALIAS = "IndexProbeSnapAlias"
+        const val STORED = 5_000
+        val ID = RedisIndexField(IndexProbeSnap::id.name, RedisFieldType.TAG)
+        val NAME = RedisIndexField(IndexProbeSnap::name.name, RedisFieldType.TEXT)
+        val WEIGHT = RedisIndexField(IndexProbeSnap::weight.name, RedisFieldType.NUMERIC)
     }
 }

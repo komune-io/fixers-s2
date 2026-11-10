@@ -65,33 +65,29 @@ ENTITY : WithS2Id<ID> {
         ids: Flow<ID>,
     ): Flow<LoadOutcome<ID, ENTITY>> = flow {
         val idList = ids.toList()
-        if (idList.isEmpty()) return@flow
-        val loaded = mutableMapOf<ID, ENTITY>()
-        val failure: Throwable? = try {
-            load(automateContexts, idList.asFlow()).collect { entity ->
-                entity?.let { loaded[it.s2Id()] = it }
+        if (idList.isNotEmpty()) {
+            val loaded = mutableMapOf<ID, ENTITY>()
+            val failure: Throwable? = try {
+                load(automateContexts, idList.asFlow()).collect { entity ->
+                    entity?.let { loaded[it.s2Id()] = it }
+                }
+                null
+            } catch (e: CancellationException) {
+                // Cooperative cancellation must propagate up the coroutine tree — do
+                // NOT convert it into a Transient outcome, otherwise structured
+                // concurrency unwinding stalls and the parent never sees the cancel.
+                throw e
+            } catch (e: Throwable) {
+                e
             }
-            null
-        } catch (e: CancellationException) {
-            // Cooperative cancellation must propagate up the coroutine tree — do
-            // NOT convert it into a Transient outcome, otherwise structured
-            // concurrency unwinding stalls and the parent never sees the cancel.
-            throw e
-        } catch (e: Throwable) {
-            e
-        }
-        if (failure != null) {
             idList.forEach { id ->
-                emit(LoadOutcome.Transient<ID, ENTITY>(id, persistLambdaThrowError(failure)))
-            }
-            return@flow
-        }
-        idList.forEach { id ->
-            val entity = loaded[id]
-            if (entity != null) {
-                emit(LoadOutcome.Loaded(id, entity))
-            } else {
-                emit(LoadOutcome.Rejected(id, entityNotFoundError(id.toString())))
+                val entity = loaded[id]
+                val outcome: LoadOutcome<ID, ENTITY> = when {
+                    failure != null -> LoadOutcome.Transient(id, persistLambdaThrowError(failure))
+                    entity != null -> LoadOutcome.Loaded(id, entity)
+                    else -> LoadOutcome.Rejected(id, entityNotFoundError(id.toString()))
+                }
+                emit(outcome)
             }
         }
     }

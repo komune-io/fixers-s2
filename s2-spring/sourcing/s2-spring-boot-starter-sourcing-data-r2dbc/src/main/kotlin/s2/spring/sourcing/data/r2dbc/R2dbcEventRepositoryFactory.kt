@@ -17,7 +17,11 @@ class R2dbcEventRepositoryFactory(
     override fun <EVENT, ID : Any> create(
         eventType: KClass<EVENT>,
         json: Json
-    ): EventRepository<EVENT, ID> where EVENT : WithS2Id<ID>, EVENT : Evt {
-        return R2dbcEventRepository(json, databaseClient, r2dbcEntityTemplate, eventType)
-    }
+    ): EventRepository<EVENT, ID> where EVENT : WithS2Id<ID>, EVENT : Evt =
+        R2dbcEventRepository(
+            json = json,
+            databaseClient = databaseClient,
+            r2dbcEntityTemplate = r2dbcEntityTemplate,
+            eventType = eventType,
+        )
 }

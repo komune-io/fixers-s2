@@ -25,8 +25,11 @@ class EndableLoopS2Aggregate
 
 @Service
 class EndableLoopS2View : View<EndableLoopEvent, EndableLoopEntity> {
-    override suspend fun evolve(event: EndableLoopEvent, model: EndableLoopEntity?): EndableLoopEntity? {
-        TODO("Not yet implemented")
-    }
-
+    override suspend fun evolve(event: EndableLoopEvent, model: EndableLoopEntity?): EndableLoopEntity? =
+        when (event) {
+            is EndableCreatedEvent -> EndableLoopEntity(id = event.id, step = 0, state = event.type.position)
+            is EndableStepEvent -> model?.copy(step = model.step + 1)
+            is EndableEndedEvent -> model?.copy(step = model.step + 1, state = EndableLoopState.Ended.position)
+            else -> model
+        }
 }

@@ -40,7 +40,6 @@ EVENT: WithS2Id<ID> {
         transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> = transitionContexts.map { it.event }.persistAndSnap()
 
-    /** Appends the events to the event store, then refreshes the snapshot of each touched entity. */
     private fun Flow<EVENT>.persistAndSnap(): Flow<EVENT> {
         return eventStore
             .persist(this)

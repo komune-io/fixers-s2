@@ -29,33 +29,33 @@ class AutomatePersisterDefaultsTest {
         // One event per context; StubLegacyPersister emits the single-element list per call.
         val persister = StubLegacyPersister(eventsToEmit = listOf("singleton"))
 
-        val ctx1 = makeTransitionCtx("m1", "e1")
-        val ctx2 = makeTransitionCtx("m2", "e2")
-        val ctx3 = makeTransitionCtx("m3", "e3")
+        val ctx1 = makeTransitionCtx(msgId = "m1", entityId = "e1")
+        val ctx2 = makeTransitionCtx(msgId = "m2", entityId = "e2")
+        val ctx3 = makeTransitionCtx(msgId = "m3", entityId = "e3")
 
         val outcomes: List<PersistOutcome<String>> = persister
             .persistWithOutcomes(flowOf(ctx1, ctx2, ctx3))
             .toList()
 
-        assertEquals(3, outcomes.size)
+        assertEquals(expected = 3, actual = outcomes.size)
         assertTrue(outcomes.all { it is PersistOutcome.Success<String> })
-        assertEquals(listOf("m1", "m2", "m3"), outcomes.map { it.msgId })
+        assertEquals(expected = listOf("m1", "m2", "m3"), actual = outcomes.map { it.msgId })
     }
 
     @Test
     fun `default persistInitWithOutcomes wraps each event in Success with msgId from context`() = runTest {
         val persister = StubLegacyPersister(eventsToEmit = listOf("singleton"))
 
-        val ctx1 = makeInitCtx("m1", "init1")
-        val ctx2 = makeInitCtx("m2", "init2")
+        val ctx1 = makeInitCtx(msgId = "m1", entityId = "init1")
+        val ctx2 = makeInitCtx(msgId = "m2", entityId = "init2")
 
         val outcomes: List<PersistOutcome<String>> = persister
             .persistInitWithOutcomes(flowOf(ctx1, ctx2))
             .toList()
 
-        assertEquals(2, outcomes.size)
+        assertEquals(expected = 2, actual = outcomes.size)
         assertTrue(outcomes.all { it is PersistOutcome.Success<String> })
-        assertEquals(listOf("m1", "m2"), outcomes.map { it.msgId })
+        assertEquals(expected = listOf("m1", "m2"), actual = outcomes.map { it.msgId })
     }
 
     // ---- fixtures ----

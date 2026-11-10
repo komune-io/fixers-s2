@@ -13,6 +13,8 @@ interface S2Error {
     val cause: Throwable?
 }
 
+// A data class would export copy and componentN to JS, and print the cause this toString leaves out.
+@Suppress("UseDataClass")
 @JsExport
 @JsName("S2ErrorBase")
 class S2ErrorBase(
@@ -23,9 +25,8 @@ class S2ErrorBase(
     override val cause: Throwable? = null
 ) : S2Error {
 
-    override fun toString(): String {
-        return "S2ErrorBase(type='$type', description='$description', date='$date', payload=$payload)"
-    }
+    override fun toString(): String =
+        "S2ErrorBase(type='$type', description='$description', date='$date', payload=$payload)"
 }
 
 fun s2error(

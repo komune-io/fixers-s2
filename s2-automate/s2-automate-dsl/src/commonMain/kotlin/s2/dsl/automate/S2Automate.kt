@@ -2,6 +2,7 @@ package s2.dsl.automate
 
 import kotlin.js.JsExport
 import kotlin.js.JsName
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -18,46 +19,39 @@ class S2Automate(
     val transitions: Array<S2Transition>,
 ):Automate {
 
-    val withResultAsAction = this.transitions.all { it.result != null }
+    // Payloads and JS callers already read this property as `withResultAsAction`.
+    @SerialName("withResultAsAction")
+    @JsName("withResultAsAction")
+    val hasResultAsAction = this.transitions.all { it.result != null }
 
     init {
         val states = transitions.flatMap { listOfNotNull(it.from, it.to) }
-        requireOneToOne(states, { it.name }, { it.position }, "name")
-        requireOneToOne(states, { it.position }, { it.name }, "position")
+        requireOneToOne(states = states, key = { it.name }, value = { it.position }, label = "name")
+        requireOneToOne(states = states, key = { it.position }, value = { it.name }, label = "position")
     }
 
-    override fun getAvailableTransitions(state: S2State): Array<S2Transition> {
-        return transitions.filter { it.from.isSame(state) }.toTypedArray()
-    }
+    override fun getAvailableTransitions(state: S2State): Array<S2Transition> =
+        transitions.filter { it.from.isSame(state) }.toTypedArray()
 
-    override fun isAvailableTransition(currentState: S2State, msg: Msg): Boolean {
-        return getAvailableTransitions(currentState).any { it.action.isInstance(msg) }
-    }
+    override fun isAvailableTransition(currentState: S2State, msg: Msg): Boolean =
+        getAvailableTransitions(currentState).any { it.action.isInstance(msg) }
 
-    override fun isAvailableInitTransition(command: Msg): Boolean {
-        return transitions.any { it.from == null && it.action.isInstance(command) }
-    }
+    override fun isAvailableInitTransition(command: Msg): Boolean =
+        transitions.any { it.from == null && it.action.isInstance(command) }
 
+    override fun isFinalState(state: S2State): Boolean = getAvailableTransitions(state).isEmpty()
 
+    override fun isSameState(from: S2State?, to: S2State): Boolean = from?.position == to.position
 
-    override fun isFinalState(state: S2State): Boolean {
-        return getAvailableTransitions(state).isEmpty()
-    }
-
-    override fun isSameState(from: S2State?, to: S2State): Boolean {
-        return from?.position == to.position
-    }
     private fun S2TransitionValue.isInstance(msg: Msg): Boolean {
         val msgAction = msg::class.toValue()
         return msgAction.name == name
     }
 
-    private fun S2StateValue?.isSame(to: S2State): Boolean {
-        return this?.position == to.position
-    }
+    private fun S2StateValue?.isSame(to: S2State): Boolean = this?.position == to.position
 }
 
-private fun <K, V> requireOneToOne(
+private fun <K : Any, V : Any> requireOneToOne(
     states: List<S2StateValue>, key: (S2StateValue) -> K, value: (S2StateValue) -> V, label: String,
 ) {
     states.groupBy(key).forEach { (k, sharing) ->

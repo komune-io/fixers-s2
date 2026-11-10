@@ -21,13 +21,9 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
 
-    override fun load(id: ID): Flow<EVENT> {
-        return eventRepository.findAllByObjId(id).toEvents()
-    }
+    override fun load(id: ID): Flow<EVENT> = eventRepository.findAllByObjId(id).toEvents()
 
-    override fun loadAll(): Flow<EVENT> {
-        return eventRepository.findAll().toEvents()
-    }
+    override fun loadAll(): Flow<EVENT> = eventRepository.findAll().toEvents()
 
     @OptIn(InternalSerializationApi::class)
     override fun persist(events: Flow<EVENT>): Flow<EVENT> {

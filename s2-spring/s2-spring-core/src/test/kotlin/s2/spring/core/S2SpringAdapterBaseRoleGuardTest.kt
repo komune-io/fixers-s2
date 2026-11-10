@@ -10,9 +10,13 @@ import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextImpl
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
+import s2.automate.core.config.S2BatchProperties
+import s2.automate.core.context.AutomateContext
+import s2.automate.core.context.InitTransitionContext
 import s2.automate.core.guard.Guard
 import s2.automate.core.guard.RoleGuard
 import s2.automate.core.guard.TransitionStateGuard
+import s2.automate.core.guard.isValid
 import s2.dsl.automate.Evt
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2InitCommand
@@ -41,7 +45,7 @@ class S2SpringAdapterBaseRoleGuardTest {
     class TestEvent : Evt
 
     private open class TestAdapter(
-        private val validate: Boolean,
+        private val isRoleValidated: Boolean,
     ) : S2SpringAdapterBase<TestEntity, TestState, TestEvent, String>() {
         override fun automate(): S2Automate = s2 {
             name = "RoleGuardAdapterTest"
@@ -51,21 +55,21 @@ class S2SpringAdapterBaseRoleGuardTest {
             }
         }
 
-        override fun validateRoles(): Boolean = validate
+        override fun validateRoles(): Boolean = isRoleValidated
 
         fun exposedGuards(): List<Guard<TestState, String, TestEntity, TestEvent, S2Automate>> = guards()
     }
 
     @Test
     fun `roles are not validated by default`() {
-        val guards = TestAdapter(validate = false).exposedGuards()
+        val guards = TestAdapter(isRoleValidated = false).exposedGuards()
         assertThat(guards).hasSize(1)
         assertThat(guards.single()).isInstanceOf(TransitionStateGuard::class.java)
     }
 
     @Test
     fun `the role guard is registered when the check is opted in`() {
-        val guards = TestAdapter(validate = true).exposedGuards()
+        val guards = TestAdapter(isRoleValidated = true).exposedGuards()
         assertThat(guards).hasSize(2)
         assertThat(guards[0]).isInstanceOf(TransitionStateGuard::class.java)
         assertThat(guards[1]).isInstanceOf(RoleGuard::class.java)
@@ -73,12 +77,8 @@ class S2SpringAdapterBaseRoleGuardTest {
 
     // ---- default roles provider ----
 
-    /**
-     * Same shape as the JWT `s2-test-bdd`'s `CucumberStepsDefinition.authedContext()` injects:
-     * a reactive [SecurityContext] carried by the coroutine's Reactor context, with roles
-     * exposed as `ROLE_`-prefixed authorities.
-     */
-    private suspend fun <T> withRoles(vararg roles: String, block: suspend () -> T): T {
+    // Same shape as `s2-test-bdd`'s `CucumberStepsDefinition.authedContext()` injects.
+    private suspend fun <T> withReactorSecurityRoles(vararg roles: String, block: suspend () -> T): T {
         val authentication = UsernamePasswordAuthenticationToken(
             "user",
             "pwd",
@@ -92,7 +92,7 @@ class S2SpringAdapterBaseRoleGuardTest {
 
     @Test
     suspend fun `default roles provider reads the reactive security context and strips the ROLE prefix`() {
-        val roles = withRoles("Admin", "Owner") { springSecurityRoles() }
+        val roles = withReactorSecurityRoles("Admin", "Owner") { springSecurityRoles() }
         // S2RoleValue has no structural equality, compare by name
         assertThat(roles.map { it.name }).containsExactlyInAnyOrder("Admin", "Owner")
     }
@@ -104,15 +104,15 @@ class S2SpringAdapterBaseRoleGuardTest {
 
     @Test
     suspend fun `the registered guard accepts a caller holding the declared role`() {
-        val guard = TestAdapter(validate = true).exposedGuards()[1]
-        val context = s2.automate.core.context.InitTransitionContext(
-            s2.automate.core.context.AutomateContext(
-                TestAdapter(validate = true).automate(),
-                s2.automate.core.config.S2BatchProperties(),
+        val guard = TestAdapter(isRoleValidated = true).exposedGuards()[1]
+        val context = InitTransitionContext(
+            automateContext = AutomateContext(
+                automate = TestAdapter(isRoleValidated = true).automate(),
+                batch = S2BatchProperties(),
             ),
-            CreateCmd("1"),
+            msg = CreateCmd("1"),
         )
-        assertThat(withRoles("Admin") { guard.evaluateInit(context) }.isValid()).isTrue()
-        assertThat(withRoles("Nope") { guard.evaluateInit(context) }.isValid()).isFalse()
+        assertThat(withReactorSecurityRoles("Admin") { guard.evaluateInit(context) }.isValid()).isTrue()
+        assertThat(withReactorSecurityRoles("Nope") { guard.evaluateInit(context) }.isValid()).isFalse()
     }
 }

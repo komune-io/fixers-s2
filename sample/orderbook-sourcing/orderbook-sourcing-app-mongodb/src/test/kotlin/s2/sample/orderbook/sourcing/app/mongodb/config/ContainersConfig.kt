@@ -9,13 +9,11 @@ import org.testcontainers.utility.DockerImageName
 @TestConfiguration(proxyBeanMethods = false)
 class ContainersConfig {
 
-    companion object {
-        const val MONGO_IMAGE: String = "mongo:7.0"
-    }
-
     @Bean
     @ServiceConnection
-    fun mongodb(): MongoDBContainer {
-        return MongoDBContainer(DockerImageName.parse(MONGO_IMAGE))
+    fun mongodb(): MongoDBContainer = MongoDBContainer(DockerImageName.parse(MONGO_IMAGE))
+
+    companion object {
+        const val MONGO_IMAGE: String = "mongo:7.0"
     }
 }

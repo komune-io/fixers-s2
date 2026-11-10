@@ -4,23 +4,32 @@ import s2.dsl.automate.S2Error
 import s2.dsl.automate.s2error
 
 fun unknownError(e: Exception) =
-    s2error("ERROR_UNKNOWN",
-        "An unknown error has occurred.",
-            cause = e
-        )
+    s2error(
+        code = "ERROR_UNKNOWN",
+        description = "An unknown error has occurred.",
+        cause = e,
+    )
 
 fun invalidTransitionError(state: String, command: String) =
-    s2error("ERROR_INVALID_TRANSITION",
-        "Not available transition from $state with command $command",
-        mapOf("from" to state, "command" to command))
+    s2error(
+        code = "ERROR_INVALID_TRANSITION",
+        description = "Not available transition from $state with command $command",
+        payload = mapOf("from" to state, "command" to command),
+    )
 
 fun invalidInitTransitionError(command: String) =
-    s2error("ERROR_INVALID_INIT_TRANSITION",
-        "Not available init transition with command $command",
-        mapOf("command" to command))
+    s2error(
+        code = "ERROR_INVALID_INIT_TRANSITION",
+        description = "Not available init transition with command $command",
+        payload = mapOf("command" to command),
+    )
 
 fun entityNotFoundError(id: String) =
-    s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
+    s2error(
+        code = "ERROR_ENTITY_NOT_FOUND",
+        description = "Entity with id[$id] not found",
+        payload = mapOf("id" to id),
+    )
 
 /**
  * Several commands within the same batch target the same entity id. The engine loads each

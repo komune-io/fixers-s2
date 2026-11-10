@@ -3,7 +3,6 @@ package s2.automate.core.storing
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -46,18 +45,10 @@ class S2AutomateStoringEvolverImplOutcomesTest {
 
     enum class OutcomeKind { COMMITTED, REJECTED, TRANSIENT, INDETERMINATE, CONFLICT }
 
-    private fun toOutcome(kind: OutcomeKind, event: Evt): PersistOutcome<Evt> = when (kind) {
-        OutcomeKind.COMMITTED -> PersistOutcome.Success(msgId = "cmd", event = event)
-        OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", s2error("ERR", "rejected"))
-        OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", s2error("TRANSIENT", "transient"))
-        OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate("cmd", s2error("INDET", "indeterminate"))
-        OutcomeKind.CONFLICT -> PersistOutcome.Conflict("cmd", s2error("CONFLICT", "conflict"))
-    }
-
     // ---- stub engines ----
 
     /** Legacy engine stub (create / doTransition only — no outcome methods). */
-    private inner class LegacyStubEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
+    private class LegacyStubEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
         override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
@@ -134,6 +125,17 @@ class S2AutomateStoringEvolverImplOutcomesTest {
         OutcomeKind.CONFLICT,
     )
 
+    private fun toOutcome(kind: OutcomeKind, event: Evt): PersistOutcome<Evt> = when (kind) {
+        OutcomeKind.COMMITTED -> PersistOutcome.Success(msgId = "cmd", event = event)
+        OutcomeKind.REJECTED -> PersistOutcome.Rejected("cmd", s2error(code = "ERR", description = "rejected"))
+        OutcomeKind.TRANSIENT -> PersistOutcome.Transient("cmd", s2error(code = "TRANSIENT", description = "transient"))
+        OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate(
+            "cmd",
+            s2error(code = "INDET", description = "indeterminate"),
+        )
+        OutcomeKind.CONFLICT -> PersistOutcome.Conflict("cmd", s2error(code = "CONFLICT", description = "conflict"))
+    }
+
     private fun makeEvolver(
         initPattern: List<OutcomeKind>,
         transitionPattern: List<OutcomeKind>,
@@ -164,7 +166,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(4, results.size, "N in → N out for init path")
+        assertEquals(expected = 4, actual = results.size, message = "N in → N out for init path")
     }
 
     @Test
@@ -184,7 +186,7 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(4, results.size, "N in → N out for transition path")
+        assertEquals(expected = 4, actual = results.size, message = "N in → N out for transition path")
     }
 
     @Test
@@ -204,9 +206,15 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(3, pub.successEvents.size, "publisher must fire exactly 3 success events for 3 Committed outcomes")
         assertEquals(
-            2, pub.failureEvents.size, "publisher must fire exactly 2 failure events for 2 non-Committed outcomes"
+            expected = 3,
+            actual = pub.successEvents.size,
+            message = "publisher must fire exactly 3 success events for 3 Committed outcomes",
+        )
+        assertEquals(
+            expected = 2,
+            actual = pub.failureEvents.size,
+            message = "publisher must fire exactly 2 failure events for 2 non-Committed outcomes"
         )
     }
 
@@ -228,7 +236,9 @@ class S2AutomateStoringEvolverImplOutcomesTest {
         ).toList()
 
         assertEquals(
-            4, pub.failureEvents.size, "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes"
+            expected = 4,
+            actual = pub.failureEvents.size,
+            message = "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes"
         )
         assertTrue(
             pub.successEvents.isEmpty(),
@@ -253,9 +263,15 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(3, pub.successEvents.size, "publisher must fire exactly 3 success events for 3 Committed outcomes")
         assertEquals(
-            2, pub.failureEvents.size, "publisher must fire exactly 2 failure events for 2 non-Committed outcomes"
+            expected = 3,
+            actual = pub.successEvents.size,
+            message = "publisher must fire exactly 3 success events for 3 Committed outcomes",
+        )
+        assertEquals(
+            expected = 2,
+            actual = pub.failureEvents.size,
+            message = "publisher must fire exactly 2 failure events for 2 non-Committed outcomes"
         )
     }
 
@@ -277,7 +293,9 @@ class S2AutomateStoringEvolverImplOutcomesTest {
         ).toList()
 
         assertEquals(
-            4, pub.failureEvents.size, "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes"
+            expected = 4,
+            actual = pub.failureEvents.size,
+            message = "publisher must fire 4 AutomatePersistFailure events for 4 failure outcomes"
         )
         assertTrue(
             pub.successEvents.isEmpty(),
@@ -302,15 +320,15 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(1, pub.published.size, "exactly one publish for one Committed")
+        assertEquals(expected = 1, actual = pub.published.size, message = "exactly one publish for one Committed")
         val published = pub.published.first()
         assertFalse(
             published is Envelope<*>,
-            "init path must publish the bare event (not an Envelope); got: ${published::class.simpleName}"
+            "init path must publish the bare event (not an Envelope); got: ${published::class.simpleName.orEmpty()}"
         )
         assertTrue(
             published is Evt,
-            "init path must publish the event directly; got: ${published::class.simpleName}"
+            "init path must publish the event directly; got: ${published::class.simpleName.orEmpty()}"
         )
     }
 
@@ -331,16 +349,17 @@ class S2AutomateStoringEvolverImplOutcomesTest {
             }
         ).toList()
 
-        assertEquals(1, pub.published.size, "exactly one publish for one Committed")
+        assertEquals(expected = 1, actual = pub.published.size, message = "exactly one publish for one Committed")
         val published = pub.published.first()
         // transition path: publisher.publish(outcome.event as Any)
         assertFalse(
             published is Envelope<*>,
-            "transition path must publish the bare event (not an Envelope); got: ${published::class.simpleName}"
+            "transition path must publish the bare event (not an Envelope); " +
+                "got: ${published::class.simpleName.orEmpty()}"
         )
         assertTrue(
             published is Evt,
-            "transition path must publish the event directly; got: ${published::class.simpleName}"
+            "transition path must publish the event directly; got: ${published::class.simpleName.orEmpty()}"
         )
     }
 }

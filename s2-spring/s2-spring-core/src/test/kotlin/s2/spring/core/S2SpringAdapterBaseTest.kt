@@ -32,7 +32,7 @@ class S2SpringAdapterBaseTest {
     class TestEvent : Evt
 
     private open class TestAdapter(
-        private val validateInit: Boolean,
+        private val isInitValidated: Boolean,
     ) : S2SpringAdapterBase<TestEntity, TestState, TestEvent, String>() {
         override fun automate(): S2Automate = s2 {
             name = "AdapterTest"
@@ -42,21 +42,21 @@ class S2SpringAdapterBaseTest {
             }
         }
 
-        override fun validateInitTransitions(): Boolean = validateInit
+        override fun validateInitTransitions(): Boolean = isInitValidated
 
         fun exposedGuards(): List<Guard<TestState, String, TestEntity, TestEvent, S2Automate>> = guards()
     }
 
     @Test
     fun `init transitions are not validated by default`() {
-        val guards = TestAdapter(validateInit = false).exposedGuards()
+        val guards = TestAdapter(isInitValidated = false).exposedGuards()
         assertThat(guards).hasSize(1)
         assertThat(guards.single()).isInstanceOf(TransitionStateGuard::class.java)
     }
 
     @Test
     fun `init transitions are validated when the check is opted in`() {
-        val guards = TestAdapter(validateInit = true).exposedGuards()
+        val guards = TestAdapter(isInitValidated = true).exposedGuards()
         assertThat(guards).hasSize(2)
         assertThat(guards[0]).isInstanceOf(TransitionStateGuard::class.java)
         assertThat(guards[1]).isInstanceOf(InitTransitionStateGuard::class.java)

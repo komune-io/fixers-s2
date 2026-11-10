@@ -24,7 +24,8 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-    @Suppress("VarCouldBeVal") // assigned by Spring field injection; a constructor parameter would break subclasses
+    // Assigned by Spring field injection; a constructor parameter would break subclasses.
+    @Suppress("VarCouldBeVal", "LateinitUsage")
     @Autowired
     private lateinit var eventPublisher: SpringEventPublisher
 
@@ -34,7 +35,6 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
     open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> =
         buildEngine(::S2AutomateOutcomeEngineImpl)
 
-    /** Assembles the engine parts (context, guards, persister, publisher) and hands them to [createEngine]. */
     private fun <ENGINE> buildEngine(
         createEngine: (
             AutomateContext<S2Automate>,
@@ -55,7 +55,12 @@ EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
         val outcomeExecutor = outcomeAggregate()
         val listener = automateAppEventPublisher(eventPublisher)
         val agg = executor()
-        agg.withContext(automateExecutor, outcomeExecutor, eventPublisher, listener)
+        agg.withContext(
+            automateExecutorFlow = automateExecutor,
+            outcomeExecutorFlow = outcomeExecutor,
+            publisher = eventPublisher,
+            listener = listener,
+        )
     }
 
     abstract override fun automate(): S2Automate

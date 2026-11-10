@@ -37,11 +37,17 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
+    // Handed over by Spring through ApplicationContextAware, after construction.
+    @Suppress("LateinitUsage")
     private lateinit var applicationContext: ApplicationContext
 
+    // Field-injected: consumers subclass this adapter with their own constructors.
+    @Suppress("LateinitUsage")
     @Autowired
     lateinit var eventPublisher: SpringEventPublisher
 
+    // Field-injected: consumers subclass this adapter with their own constructors.
+    @Suppress("LateinitUsage")
     @Autowired
     lateinit var retryTaskChannel: RetryTaskChannel
 
@@ -56,9 +62,9 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
         val automateContext = automateContext()
         val publisher = automateAppEventPublisher(eventPublisher)
         val snapPersister = SnapPersister(
-            projectionBuilder,
-            snapRepository,
-            retryTaskChannel.takeIf { preventOptimisticLocking() }
+            projectionLoader = projectionBuilder,
+            snapRepository = snapRepository,
+            retryTaskChannel = retryTaskChannel.takeIf { preventOptimisticLocking() },
         )
         val guardExecutor = guardExecutor(publisher)
         return S2AutomateEngineImpl(
@@ -70,8 +76,13 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
                 snapPersister = snapPersister,
             ),
             publisher = publisher
-        ).also {
-            executor.withContext(it, eventPublisher, projectionBuilder, eventStore)
+        ).also { engine ->
+            executor.withContext(
+                automateExecutor = engine,
+                publisher = eventPublisher,
+                projectionLoader = projectionBuilder,
+                eventStore = eventStore,
+            )
         }
     }
 
@@ -99,7 +110,6 @@ EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
         } ?: viewLoader
     }
 
-    protected open fun viewLoader(eventStore: EventRepository<EVENT, ID>): ViewLoader<EVENT, ENTITY, ID> {
-        return ViewLoader(eventStore, view)
-    }
+    protected open fun viewLoader(eventStore: EventRepository<EVENT, ID>): ViewLoader<EVENT, ENTITY, ID> =
+        ViewLoader(eventStore, view)
 }

@@ -32,9 +32,7 @@ fun endableLoopS2(): S2Automate = s2 {
 sealed class EndableLoopRole : S2Role {
     class User : EndableLoopRole()
 
-    override fun toString(): String {
-        return this::class.simpleName ?: super.toString()
-    }
+    override fun toString(): String = this::class.simpleName ?: super.toString()
 }
 
 open class EndableLoopState(
@@ -43,9 +41,7 @@ open class EndableLoopState(
     object Running : EndableLoopState(0)
     object Ended : EndableLoopState(1)
 
-    override fun toString(): String {
-        return this::class.simpleName ?: super.toString()
-    }
+    override fun toString(): String = this::class.simpleName ?: super.toString()
 }
 
 interface EndableLoopInitCommand : S2InitCommand
@@ -54,25 +50,24 @@ interface EndableLoopEvent : S2Event<EndableLoopState, EndableLoopId>, WithS2Id<
     override fun s2Id() = id
 }
 
-class EndableCreateCommand(
+data class EndableCreateCommand(
     val tt: String,
 ) : EndableLoopInitCommand
 
-class EndableCreatedEvent(
+data class EndableCreatedEvent(
     override val id: EndableLoopId,
     override val type: EndableLoopState,
     val tt: String,
 ) : EndableLoopEvent
 
-class EndableStepCommand(override val id: EndableLoopId) : EndableLoopCommand
+data class EndableStepCommand(override val id: EndableLoopId) : EndableLoopCommand
 data class EndableStepEvent(
     override val id: EndableLoopId,
     override val type: EndableLoopState,
 ) : EndableLoopEvent
 
-
-class EndableEndCommand(override val id: EndableLoopId) : EndableLoopCommand
-class EndableEndedEvent(
+data class EndableEndCommand(override val id: EndableLoopId) : EndableLoopCommand
+data class EndableEndedEvent(
     override val id: EndableLoopId,
     override val type: EndableLoopState,
 ) : EndableLoopEvent

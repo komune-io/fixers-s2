@@ -1,5 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
+import f2.dsl.cqrs.error.F2ErrorDTO
 import f2.dsl.cqrs.exception.F2Exception
 import f2.dsl.cqrs.page.OffsetPagination
 import io.lettuce.core.RedisCommandExecutionException
@@ -18,45 +19,52 @@ class RedisSnapViewSearchTest {
 
     data class SearchProbeSnap(val id: String, val name: String)
 
-    private companion object {
-        /** RediSearch's default `MAXEXPANSIONS`, past which a prefix stops expanding. */
-        const val MAX_EXPANSIONS = 200
-    }
-
     private val view = RedisStack.view(
-        SearchProbeSnap::class,
-        listOf(
+        model = SearchProbeSnap::class,
+        fields = listOf(
             RedisIndexField(SearchProbeSnap::id.name, RedisFieldType.TAG),
             RedisIndexField(SearchProbeSnap::name.name, RedisFieldType.TEXT),
         ),
-        SearchProbeSnap::id,
+        idOf = SearchProbeSnap::id,
     )
 
     @BeforeEach
-    fun prepare() = runBlocking {
-        val _ = view.deleteAll()
-        view.initIndex()
+    fun prepare() {
+        runBlocking {
+            val _ = view.deleteAll()
+            view.initIndex()
+        }
     }
 
     @AfterEach
-    fun tidy() = runBlocking {
-        val _ = view.deleteAll()
-        view.dropIndex()
+    fun tidy() {
+        runBlocking {
+            val _ = view.deleteAll()
+            view.dropIndex()
+        }
     }
 
     private suspend fun store(names: List<String>): List<String> =
-        names.map { name -> "search-probe-${UUID.randomUUID()}".also { val _ = view.save(SearchProbeSnap(id = it, name = name)) } }
+        names.map { name ->
+            "search-probe-${UUID.randomUUID()}".also { id -> val _ = view.save(SearchProbeSnap(id = id, name = name)) }
+        }
 
     private suspend fun found(term: String) = view.search(term.addWildcard(), null, null).items.map { it.id }
 
-    private fun refusal(search: suspend () -> Any?) =
-        runCatching { runBlocking { search() } }.exceptionOrNull().let { it as F2Exception }.error
+    private fun refusal(search: suspend () -> Any?): F2ErrorDTO {
+        try {
+            val _ = runBlocking { search() }
+        } catch (refused: F2Exception) {
+            return refused.error
+        }
+        error("The search was not refused")
+    }
 
     @Test
     fun `a search Redis refuses leaves the connection serving`() {
-        repeat(3) {
+        repeat(3) { attempt ->
             assertThatThrownBy { runBlocking { val _ = view.search("Thônes* (74280)*", null, null) } }
-                .describedAs("failure ${it + 1}")
+                .describedAs("failure ${attempt + 1}")
                 .isInstanceOf(RedisCommandExecutionException::class.java)
         }
         assertThat(runBlocking { view.get("absent-${UUID.randomUUID()}") }).isNull()
@@ -90,7 +98,12 @@ class RedisSnapViewSearchTest {
     suspend fun `a page is sorted and bounded, its total the whole match`() {
         val _ = store(listOf("Charlie", "Alpha", "Bravo"))
 
-        val page = view.search(null, OffsetPagination(offset = 0, limit = 2), "name", descending = true)
+        val page = view.search(
+            query = null,
+            pagination = OffsetPagination(offset = 0, limit = 2),
+            sortBy = "name",
+            descending = true,
+        )
 
         assertThat(page.items.map { it.name }).containsExactly("Charlie", "Bravo")
         assertThat(page.total).isEqualTo(3)
@@ -108,7 +121,7 @@ class RedisSnapViewSearchTest {
         )
     }
 
-    /** Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut. */
+    // Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut.
     @Test
     suspend fun `a prefix expanding past MAXEXPANSIONS is refused, never cut`() {
         val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
@@ -131,5 +144,10 @@ class RedisSnapViewSearchTest {
         assertThat(view.get(id)?.name).isEqualTo(text)
         assertThat(view.getAll(listOf(id)).getValue(id).name).isEqualTo(text)
         assertThat(view.search(null, null, null).items.single().name).isEqualTo(text)
+    }
+
+    private companion object {
+        /** RediSearch's default `MAXEXPANSIONS`, past which a prefix stops expanding. */
+        const val MAX_EXPANSIONS = 200
     }
 }

@@ -9,7 +9,6 @@ import s2.spring.core.publisher.SpringEventPublisher
 open class EventPublisherConfiguration {
 
     @Bean
-    open fun eventPublisher(publisher: ApplicationEventPublisher): SpringEventPublisher {
-        return SpringEventPublisher(publisher)
-    }
+    open fun eventPublisher(publisher: ApplicationEventPublisher): SpringEventPublisher =
+        SpringEventPublisher(publisher)
 }

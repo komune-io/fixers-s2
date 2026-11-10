@@ -47,9 +47,9 @@ ENTITY : WithS2Id<ID> {
             // Contexts are invariant: built for ENTITY_OUT and EVENT_OUT, they are widened to ENTITY and EVENT.
             @Suppress("UNCHECKED_CAST")
             persistInit(persistContext as Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>)
-        }.map {
+        }.map { event ->
             @Suppress("UNCHECKED_CAST") // persistInit returns EVENT; decide built this one as EVENT_OUT
-            it as Envelope<EVENT_OUT>
+            event as Envelope<EVENT_OUT>
         }
     }
 
@@ -78,14 +78,25 @@ ENTITY : WithS2Id<ID> {
             var persistedCount = 0
             persist(transitionContextsFlow).withIndex().map { (index, event) ->
                 val context = transitionContexts.getOrNull(index)
-                    ?: throw persisterEventCountError(transitionContexts.size, index + 1).asException()
-                sendEndDoTransitionEvent(context.entity.s2State(), context.from, context.msg, context.entity)
+                    ?: throw persisterEventCountError(
+                        expected = transitionContexts.size,
+                        actual = index + 1,
+                    ).asException()
+                sendEndDoTransitionEvent(
+                    to = context.entity.s2State(),
+                    fromState = context.from,
+                    command = context.msg,
+                    entity = context.entity,
+                )
                 persistedCount = index + 1
                 @Suppress("UNCHECKED_CAST") // persist returns EVENT; exec decided this one as EVENT_OUT
                 event as EVENT_OUT
             }.onCompletion { cause ->
                 if (cause == null && persistedCount < transitionContexts.size) {
-                    throw persisterEventCountError(transitionContexts.size, persistedCount).asException()
+                    throw persisterEventCountError(
+                        expected = transitionContexts.size,
+                        actual = persistedCount,
+                    ).asException()
                 }
             }
         }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "Evt")

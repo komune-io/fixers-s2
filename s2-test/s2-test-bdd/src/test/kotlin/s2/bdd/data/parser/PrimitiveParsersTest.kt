@@ -7,12 +7,6 @@ import s2.bdd.exception.IllegalDataTableParamException
 
 class PrimitiveParsersTest {
 
-    companion object {
-        init {
-            registerPrimitiveParsers()
-        }
-    }
-
     private val entry = mapOf(
         "name" to "alice",
         "int" to "42",
@@ -55,10 +49,18 @@ class PrimitiveParsersTest {
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
+    // The discarded `val _` holds a Boolean but is no property to name.
+    @Suppress("BooleanPropertyNaming")
     @Test
     fun `boolean parser should parse strict boolean and reject invalid`() {
         assertThat(entry.extract<Boolean>("bool")).isTrue()
         assertThatThrownBy { val _ = entry.extract<Boolean>("name") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
+    }
+
+    companion object {
+        init {
+            registerPrimitiveParsers()
+        }
     }
 }

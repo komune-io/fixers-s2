@@ -25,7 +25,7 @@ AUTOMATE : Automate {
             GuardResult.valid()
         } else {
             GuardResult.error(
-                invalidTransitionError(state.toString(), "$cmd")
+                invalidTransitionError(state = state.toString(), command = "$cmd")
             )
         }
     }

@@ -12,29 +12,29 @@ class QueryTextTest {
 
     @Test
     fun `a plain value is written as it is`() {
-        assertThat(tagClause("status", "Deleted")).isEqualTo("@status:{Deleted}")
+        assertThat(tagClause(field = "status", value = "Deleted")).isEqualTo("@status:{Deleted}")
     }
 
     @Test
     fun `a value carrying query syntax stays inside its braces`() {
-        assertThat(tagClause("code", "38} | @status:{Deleted"))
+        assertThat(tagClause(field = "code", value = "38} | @status:{Deleted"))
             .isEqualTo("""@code:{38\}\ \|\ \@status\:\{Deleted}""")
     }
 
     @Test
     fun `every punctuation mark of a value is escaped`() {
-        assertThat(tagClause("f", "a-b.c(d)*e,f'g\"h\\i"))
+        assertThat(tagClause(field = "f", value = "a-b.c(d)*e,f'g\"h\\i"))
             .isEqualTo("""@f:{a\-b\.c\(d\)\*e\,f\'g\"h\\i}""")
     }
 
     @Test
     fun `letters of any alphabet, digits and underscores are not escaped`() {
-        assertThat(tagClause("city", "Saint_Égrève2")).isEqualTo("@city:{Saint_Égrève2}")
+        assertThat(tagClause(field = "city", value = "Saint_Égrève2")).isEqualTo("@city:{Saint_Égrève2}")
     }
 
     @Test
     fun `a union keeps its separators and escapes each member`() {
-        assertThat(tagClause("id", listOf("a-1", "b|c"))).isEqualTo("""@id:{a\-1|b\|c}""")
+        assertThat(tagClause(field = "id", values = listOf("a-1", "b|c"))).isEqualTo("""@id:{a\-1|b\|c}""")
     }
 
     @Test
@@ -81,11 +81,14 @@ class QueryTextTest {
 
     @Test
     fun `a tag clause refuses an empty value, no value or an attribute name that is not one`() {
-        assertThatThrownBy { val _ = tagClause("status", "") }.isInstanceOf(IllegalArgumentException::class.java)
-        assertThatThrownBy { val _ = tagClause("status", emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
-        assertThatThrownBy { val _ = tagClause("status", listOf("Open", "")) }.isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause(field = "status", value = "") }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause(field = "status", values = emptyList()) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = tagClause(field = "status", values = listOf("Open", "")) }
+            .isInstanceOf(IllegalArgumentException::class.java)
         listOf("", "a b", "a}|@b", "1st", "@status").forEach { field ->
-            assertThatThrownBy { val _ = tagClause(field, "x") }
+            assertThatThrownBy { val _ = tagClause(field = field, value = "x") }
                 .describedAs("«$field»")
                 .isInstanceOf(IllegalArgumentException::class.java)
         }

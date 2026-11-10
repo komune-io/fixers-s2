@@ -84,7 +84,7 @@ class S2AutomateStoringEvolverImplIdOfTest {
             TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
         }.toList()
 
-        assertEquals(listOf("msg-1", "msg-2", "msg-3"), outcomes.map { it.msgId })
+        assertEquals(expected = listOf("msg-1", "msg-2", "msg-3"), actual = outcomes.map { it.msgId })
     }
 
     @Test
@@ -99,7 +99,7 @@ class S2AutomateStoringEvolverImplIdOfTest {
             TestEntity(cmd.id, TestState.Active) to DoneEvt(cmd.id)
         }.toList()
 
-        assertEquals(listOf("msg-1", "msg-2", "msg-3"), outcomes.map { it.msgId })
+        assertEquals(expected = listOf("msg-1", "msg-2", "msg-3"), actual = outcomes.map { it.msgId })
     }
 
     @Test
@@ -116,6 +116,6 @@ class S2AutomateStoringEvolverImplIdOfTest {
             TestEntity(cmd.id, TestState.Created) to CreatedEvt(cmd.id)
         }.toList()
 
-        assertEquals(listOf("FORCED"), outcomes.map { it.msgId })
+        assertEquals(expected = listOf("FORCED"), actual = outcomes.map { it.msgId })
     }
 }

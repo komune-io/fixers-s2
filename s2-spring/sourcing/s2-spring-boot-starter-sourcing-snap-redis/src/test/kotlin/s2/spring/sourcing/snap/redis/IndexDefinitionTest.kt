@@ -15,7 +15,7 @@ class IndexDefinitionTest {
 
     @Test
     fun `an index reads its model's keys, keeps every word unstemmed and sets each type's flags`() {
-        val definition = IndexDefinition.of("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
+        val definition = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
 
         assertThat(definition.fingerprint).isEqualTo(
             "ON JSON PREFIX 1 Probe- STOPWORDS 0 SCHEMA " +
@@ -29,14 +29,14 @@ class IndexDefinitionTest {
 
     @Test
     fun `no language is sent, words being never stemmed`() {
-        assertThat(IndexDefinition.of("Probe", fields, IndexSettings(null)).fingerprint).doesNotContain("LANGUAGE")
+        assertThat(IndexDefinition.from("Probe", fields, IndexSettings(null)).fingerprint).doesNotContain("LANGUAGE")
     }
 
     @Test
     fun `a change of phonetic matcher changes the definition`() {
-        val french = IndexDefinition.of("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
-        val english = IndexDefinition.of("Probe", fields, IndexSettings(PhoneticMatcher.ENGLISH))
-        val none = IndexDefinition.of("Probe", fields, IndexSettings(null))
+        val french = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
+        val english = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.ENGLISH))
+        val none = IndexDefinition.from("Probe", fields, IndexSettings(null))
 
         assertThat(setOf(french.fingerprint, english.fingerprint, none.fingerprint)).hasSize(3)
         assertThat(none.fingerprint).doesNotContain("PHONETIC")
@@ -46,10 +46,10 @@ class IndexDefinitionTest {
     fun `an index names each field once, and at least one`() {
         val twice = fields + RedisIndexField("name", RedisFieldType.TAG)
 
-        assertThatThrownBy { val _ = IndexDefinition.of("Probe", twice, IndexSettings(null)) }
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", twice, IndexSettings(null)) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("names a field twice")
-        assertThatThrownBy { val _ = IndexDefinition.of("Probe", emptyList(), IndexSettings(null)) }
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", emptyList(), IndexSettings(null)) }
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("at least one field")
     }

@@ -20,7 +20,7 @@ internal class LazyTableEventRepository<EVENT, ID : Any>(
     private val mutex = Mutex()
 
     @Volatile
-    private var tableCreated = false
+    private var isTableCreated = false
 
     override fun load(id: ID): Flow<EVENT> = flow { emitAll(withTable { delegate.load(id) }) }
 
@@ -31,11 +31,11 @@ internal class LazyTableEventRepository<EVENT, ID : Any>(
     override fun persist(events: Flow<EVENT>): Flow<EVENT> = flow { emitAll(withTable { delegate.persist(events) }) }
 
     override suspend fun createTable() {
-        if (tableCreated) return
+        if (isTableCreated) return
         mutex.withLock {
-            if (!tableCreated) {
+            if (!isTableCreated) {
                 delegate.createTable()
-                tableCreated = true
+                isTableCreated = true
             }
         }
     }

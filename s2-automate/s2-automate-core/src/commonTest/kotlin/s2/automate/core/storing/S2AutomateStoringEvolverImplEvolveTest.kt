@@ -73,8 +73,11 @@ class S2AutomateStoringEvolverImplEvolveTest {
             entity.copy(state = TestState.Active) to DoneEvt(cmd.id)
         }.toList()
 
-        assertEquals(listOf(DoneEvt("1"), DoneEvt("2")), events)
-        assertEquals(listOf(TestEntity("1", TestState.Active), TestEntity("2", TestState.Active)), engine.evolved)
-        assertEquals(listOf<Any>(DoneEvt("1"), DoneEvt("2")), publisher.published)
+        assertEquals(expected = listOf(DoneEvt("1"), DoneEvt("2")), actual = events)
+        assertEquals(
+            expected = listOf(TestEntity("1", TestState.Active), TestEntity("2", TestState.Active)),
+            actual = engine.evolved,
+        )
+        assertEquals(expected = listOf<Any>(DoneEvt("1"), DoneEvt("2")), actual = publisher.published)
     }
 }

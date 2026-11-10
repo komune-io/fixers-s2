@@ -14,7 +14,7 @@ class AssertionExceptions(
         exceptions = context.errors.filterIsInstance(exceptionClass)
     )
 
-    inner class ExceptionAssert<E: Exception>(
+    class ExceptionAssert<E: Exception>(
         private val exceptions: Collection<E>
     ) {
         fun hasNotBeenThrown(matcher: (E) -> Boolean = { true }) {

@@ -30,7 +30,7 @@ typealias S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT> = suspend (COMMAND, ENTITY) ->
  * are deprecated and will be removed in a future major release.
  */
 // Each deprecated evolve* has its preferred name, delegating to it until it is removed: sixteen functions.
-@Suppress("DEPRECATION", "TooManyFunctions")
+@Suppress("DEPRECATION", "TooManyFunctions", "ComplexInterface")
 interface S2AutomateStoringEvolverFlow<STATE : S2State, ID : Any, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
     @Deprecated(

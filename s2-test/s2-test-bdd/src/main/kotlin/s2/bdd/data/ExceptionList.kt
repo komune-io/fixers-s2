@@ -12,13 +12,9 @@ class ExceptionList {
         exceptions.add(e)
     }
 
-    fun <E: Exception> lastOfType(klass: KClass<E>): E? {
-        return exceptions.filterIsInstance(klass.java).lastOrNull()
-    }
+    fun <E: Exception> lastOfType(klass: KClass<E>): E? = exceptions.filterIsInstance(klass.java).lastOrNull()
 
-    fun <E: Exception> filterIsInstance(klass: KClass<E>): List<E> {
-        return list.filterIsInstance(klass.java)
-    }
+    fun <E: Exception> filterIsInstance(klass: KClass<E>): List<E> = list.filterIsInstance(klass.java)
 
     fun reset() {
         exceptions.clear()

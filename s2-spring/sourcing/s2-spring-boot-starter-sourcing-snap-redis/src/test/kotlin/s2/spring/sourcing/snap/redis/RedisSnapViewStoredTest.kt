@@ -1,5 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
+import io.lettuce.core.LettuceFutures
 import io.lettuce.core.ScanArgs
 import io.lettuce.core.ScanIterator
 import io.lettuce.core.json.JsonPath
@@ -18,28 +19,27 @@ class RedisSnapViewStoredTest {
 
     data class WindowProbeSnap(val id: String)
 
-    private companion object {
-        const val BEYOND_WINDOW = SEARCH_WINDOW + 1
-        const val SCAN_BATCH = 1_000L
-    }
-
     private val view = RedisStack.view(
-        WindowProbeSnap::class,
-        listOf(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG)),
-        WindowProbeSnap::id,
+        model = WindowProbeSnap::class,
+        fields = listOf(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG)),
+        idOf = WindowProbeSnap::id,
     )
     private val sync = RedisStack.connection.sync()
 
     @BeforeEach
-    fun clean() = dropAll()
+    fun clean() {
+        dropAll()
+    }
 
     @AfterEach
-    fun tidy() = dropAll()
+    fun tidy() {
+        dropAll()
+    }
 
     private fun storeRaw(ids: List<String>) {
         val async = RedisStack.connection.async()
-        ids.map { async.jsonSet(view.key(it), JsonPath.ROOT_PATH, """{"id":"$it"}""") }
-            .forEach { it.get(1, TimeUnit.MINUTES) }
+        val writes = ids.map { id -> async.jsonSet(view.key(id), JsonPath.ROOT_PATH, """{"id":"$id"}""") }
+        check(LettuceFutures.awaitAll(1, TimeUnit.MINUTES, *writes.toTypedArray())) { "Raw writes still running" }
     }
 
     @Test
@@ -115,7 +115,8 @@ class RedisSnapViewStoredTest {
 
         val read = view.getAll(listOf("a", "b", "a", "unknown"))
 
-        assertThat(read).containsExactlyInAnyOrderEntriesOf(mapOf("a" to WindowProbeSnap("a"), "b" to WindowProbeSnap("b")))
+        assertThat(read)
+            .containsExactlyInAnyOrderEntriesOf(mapOf("a" to WindowProbeSnap("a"), "b" to WindowProbeSnap("b")))
         assertThat(view.getAll(emptyList())).isEmpty()
     }
 
@@ -157,5 +158,10 @@ class RedisSnapViewStoredTest {
             ScanIterator.scan(sync, ScanArgs.Builder.matches(pattern).limit(SCAN_BATCH)).forEach { keys += it }
             keys.chunked(SCAN_BATCH.toInt()).forEach { sync.unlink(*it.toTypedArray()) }
         }
+    }
+
+    private companion object {
+        const val BEYOND_WINDOW = SEARCH_WINDOW + 1
+        const val SCAN_BATCH = 1_000L
     }
 }

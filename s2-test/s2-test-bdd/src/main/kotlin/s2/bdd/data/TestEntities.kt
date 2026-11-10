@@ -16,13 +16,13 @@ class TestEntities<KEY: Any, ITEM>(
     private var lastUsedPair: Pair<KEY, ITEM?>? = null
 
     val lastUsedKey: KEY
-        get() = lastUsedPair?.first ?: throw EntityNotInitializedException("lastUsed", name)
+        get() = lastUsedPair?.first ?: throw EntityNotInitializedException(id = "lastUsed", type = name)
 
     val lastUsedOrNull: ITEM?
         get() = lastUsedPair?.second
 
     val lastUsed: ITEM
-        get() = lastUsedOrNull ?: throw EntityNotInitializedException("lastUsed", name)
+        get() = lastUsedOrNull ?: throw EntityNotInitializedException(id = "lastUsed", type = name)
 
     val size
         get() = items.size
@@ -30,7 +30,7 @@ class TestEntities<KEY: Any, ITEM>(
     operator fun get(key: KEY): ITEM? = mutableEntities[key]
         .also { lastUsedPair = key to it }
 
-    fun safeGet(key: KEY): ITEM = get(key) ?: throw EntityNotInitializedException(key.toString(), name)
+    fun safeGet(key: KEY): ITEM = get(key) ?: throw EntityNotInitializedException(id = key.toString(), type = name)
 
     fun containsKey(key: KEY): Boolean = mutableEntities.containsKey(key)
 
@@ -56,7 +56,5 @@ class TestEntities<KEY: Any, ITEM>(
         from.forEach { (id, entity) -> set(id, entity) }
     }
 
-    override fun iterator(): Iterator<Map.Entry<KEY, ITEM?>> {
-        return mutableEntities.iterator()
-    }
+    override fun iterator(): Iterator<Map.Entry<KEY, ITEM?>> = mutableEntities.iterator()
 }

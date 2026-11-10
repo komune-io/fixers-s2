@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRep
 @SpringBootApplication(scanBasePackages = ["s2"])
 class SubAutomateMongodbApp
 
+// The context must outlive main: closing it would stop the application it just started.
+@Suppress("MissingUseCall")
 fun main(vararg args: String) {
     runApplication<SubAutomateMongodbApp>(*args)
 }

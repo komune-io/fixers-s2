@@ -68,9 +68,9 @@ class RoleGuardTest {
     fun `init transition rejected when the caller holds another role`() = runTest {
         val result = guard("Owner").evaluateInit(initContext())
         assertFalse(result.isValid())
-        assertEquals("ERROR_MISSING_ROLE", result.errors.single().type)
-        assertEquals("Admin", result.errors.single().payload["requiredRoles"])
-        assertEquals("Owner", result.errors.single().payload["actualRoles"])
+        assertEquals(expected = "ERROR_MISSING_ROLE", actual = result.errors.single().type)
+        assertEquals(expected = "Admin", actual = result.errors.single().payload["requiredRoles"])
+        assertEquals(expected = "Owner", actual = result.errors.single().payload["actualRoles"])
     }
 
     @Test
@@ -89,7 +89,7 @@ class RoleGuardTest {
     fun `transition rejected when the caller only holds the init role`() = runTest {
         val result = guard("Admin").evaluateTransition(transitionContext())
         assertFalse(result.isValid())
-        assertEquals("ERROR_MISSING_ROLE", result.errors.single().type)
+        assertEquals(expected = "ERROR_MISSING_ROLE", actual = result.errors.single().type)
     }
 
     @Test
@@ -120,9 +120,9 @@ class RoleGuardTest {
             emptySet()
         }
         val _ = guard.evaluateTransition(transitionContext(UndeclaredCmd("1")))
-        assertEquals(0, calls)
+        assertEquals(expected = 0, actual = calls)
         val _ = guard.evaluateTransition(transitionContext())
-        assertEquals(1, calls)
+        assertEquals(expected = 1, actual = calls)
     }
 
     @Test

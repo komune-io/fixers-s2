@@ -25,6 +25,7 @@ ENTITY : WithS2Id<ID> {
     /**
      * Evaluate a guard condition for transition.
      *
+     * @param COMMAND the command carried by the transition
      * @param context the state context transaction
      * @return true, if guard evaluation is successful, false otherwise.
      */

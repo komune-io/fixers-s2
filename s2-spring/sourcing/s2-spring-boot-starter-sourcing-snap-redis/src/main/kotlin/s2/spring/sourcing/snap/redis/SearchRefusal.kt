@@ -30,31 +30,31 @@ object SearchRefusal {
     const val WARNING = "warning"
 
     fun tooManyEntries(index: String, total: Int, bound: Int) = refusal(
-        TOO_MANY_ENTRIES,
-        HttpRefusal.UNPROCESSABLE,
-        "Index[$index]: $total entries, past the $bound one read answers at once",
-        mapOf(INDEX to index, TOTAL to "$total", BOUND to "$bound"),
+        code = TOO_MANY_ENTRIES,
+        status = HttpRefusal.UNPROCESSABLE,
+        message = "Index[$index]: $total entries, past the $bound one read answers at once",
+        parameters = mapOf(INDEX to index, TOTAL to "$total", BOUND to "$bound"),
     )
 
     fun shortRead(index: String, total: Int, read: Int) = refusal(
-        SHORT_READ,
-        HttpRefusal.CONFLICT,
-        "Index[$index]: $total entries announced, $read answered",
-        mapOf(INDEX to index, TOTAL to "$total", READ to "$read"),
+        code = SHORT_READ,
+        status = HttpRefusal.CONFLICT,
+        message = "Index[$index]: $total entries announced, $read answered",
+        parameters = mapOf(INDEX to index, TOTAL to "$total", READ to "$read"),
     )
 
     fun tooBroad(index: String, warning: String) = refusal(
-        TOO_BROAD,
-        HttpRefusal.UNPROCESSABLE,
-        "Index[$index]: the search answered with a warning, its rows are not all there: $warning",
-        mapOf(INDEX to index, WARNING to warning),
+        code = TOO_BROAD,
+        status = HttpRefusal.UNPROCESSABLE,
+        message = "Index[$index]: the search answered with a warning, its rows are not all there: $warning",
+        parameters = mapOf(INDEX to index, WARNING to warning),
     )
 
     fun pageTooLarge(index: String, limit: Int, bound: Int) = refusal(
-        PAGE_TOO_LARGE,
-        HttpRefusal.UNPROCESSABLE,
-        "Index[$index]: a page of $limit rows, past the $bound one read answers at once",
-        mapOf(INDEX to index, LIMIT to "$limit", BOUND to "$bound"),
+        code = PAGE_TOO_LARGE,
+        status = HttpRefusal.UNPROCESSABLE,
+        message = "Index[$index]: a page of $limit rows, past the $bound one read answers at once",
+        parameters = mapOf(INDEX to index, LIMIT to "$limit", BOUND to "$bound"),
     )
 
     private fun refusal(code: String, status: HttpRefusal, message: String, parameters: Map<String, String>) =

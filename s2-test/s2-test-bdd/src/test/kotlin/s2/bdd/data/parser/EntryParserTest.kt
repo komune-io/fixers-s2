@@ -9,12 +9,6 @@ import s2.bdd.exception.NullDataTableParamException
 
 class EntryParserTest {
 
-    companion object {
-        init {
-            registerPrimitiveParsers()
-        }
-    }
-
     private val intParser = EntryParserDirectory.select(Int::class)
 
     @Test
@@ -89,6 +83,12 @@ class EntryParserTest {
         val parser = EntryParser(Custom::class, "invalid custom") { Custom(it) }
         assertThat(EntryParserDirectory.select(Custom::class)).isSameAs(parser)
         assertThat(parser.single(mapOf("c" to "v"), "c")).isEqualTo(Custom("v"))
+    }
+
+    companion object {
+        init {
+            registerPrimitiveParsers()
+        }
     }
 }
 

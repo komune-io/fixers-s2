@@ -3,6 +3,7 @@ package s2.automate.core.persist
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -17,6 +18,7 @@ import s2.automate.core.fixtures.TestRole
 import s2.automate.core.fixtures.TestState
 import s2.dsl.automate.ErrorCategory
 import s2.dsl.automate.S2Automate
+import s2.dsl.automate.S2InitCommand
 import s2.dsl.automate.builder.s2
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,7 +43,7 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
 
     private val testAutomate: S2Automate = s2 {
         name = "TestAutomate"
-        init<s2.dsl.automate.S2InitCommand> {
+        init<S2InitCommand> {
             to = TestState.Created
             role = TestRole
         }
@@ -123,7 +125,7 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
         override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
-        ): Flow<TestEntity?> = kotlinx.coroutines.flow.flow { throw cause }
+        ): Flow<TestEntity?> = flow { throw cause }
 
         override suspend fun load(
             automateContexts: AutomateContext<S2Automate>,
@@ -140,12 +142,12 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
 
         val outcomes = persister.loadWithOutcomes(automateContext, ids.asFlow()).toList()
 
-        assertEquals(ids.size, outcomes.size)
+        assertEquals(expected = ids.size, actual = outcomes.size)
         outcomes.forEachIndexed { i, outcome ->
             assertIs<LoadOutcome.Loaded<String, TestEntity>>(outcome,
-                "Expected Loaded for id=${ids[i]} but got ${outcome::class.simpleName}")
-            assertEquals(ids[i], outcome.id, "Loaded.id must match input id")
-            assertEquals(ids[i], outcome.entity.id, "Loaded.entity.id must match")
+                "Expected Loaded for id=${ids[i]} but got ${outcome::class.simpleName.orEmpty()}")
+            assertEquals(expected = ids[i], actual = outcome.id, message = "Loaded.id must match input id")
+            assertEquals(expected = ids[i], actual = outcome.entity.id, message = "Loaded.entity.id must match")
         }
     }
 
@@ -156,17 +158,17 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
 
         val outcomes = persister.loadWithOutcomes(automateContext, ids.asFlow()).toList()
 
-        assertEquals(3, outcomes.size, "must emit one outcome per requested id")
+        assertEquals(expected = 3, actual = outcomes.size, message = "must emit one outcome per requested id")
         val byId = outcomes.associateBy { it.id }
 
         assertIs<LoadOutcome.Loaded<String, TestEntity>>(byId.getValue("a"))
         assertIs<LoadOutcome.Loaded<String, TestEntity>>(byId.getValue("c"))
 
         val b = assertIs<LoadOutcome.Rejected<String, TestEntity>>(byId.getValue("b"),
-            "Missing id must be Rejected, got ${byId.getValue("b")::class.simpleName}")
-        assertEquals("ERROR_ENTITY_NOT_FOUND", b.error.type)
-        assertEquals(ErrorCategory.Rejected, b.category,
-            "Rejected variant must carry ErrorCategory.Rejected for retry-policy consumers")
+            "Missing id must be Rejected, got ${byId.getValue("b")::class.simpleName.orEmpty()}")
+        assertEquals(expected = "ERROR_ENTITY_NOT_FOUND", actual = b.error.type)
+        assertEquals(expected = ErrorCategory.Rejected, actual = b.category,
+            message = "Rejected variant must carry ErrorCategory.Rejected for retry-policy consumers")
         assertTrue("b" in b.error.description, "Rejected description should name the offender")
     }
 
@@ -180,17 +182,21 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
 
         // When the legacy load throws, we can't classify per id — every id becomes Transient
         // so the consumer can retry the whole batch (typical for network/timeout failures).
-        assertEquals(ids.size, outcomes.size, "every id must surface as a Transient on legacy-load throw")
+        assertEquals(
+            expected = ids.size,
+            actual = outcomes.size,
+            message = "every id must surface as a Transient on legacy-load throw",
+        )
         outcomes.forEach { outcome ->
             val transient = assertIs<LoadOutcome.Transient<String, TestEntity>>(outcome,
-                "Expected Transient but got ${outcome::class.simpleName}")
-            assertEquals("ERROR_PERSIST_LAMBDA_THROW", transient.error.type)
-            assertEquals(ErrorCategory.Transient, transient.category)
+                "Expected Transient but got ${outcome::class.simpleName.orEmpty()}")
+            assertEquals(expected = "ERROR_PERSIST_LAMBDA_THROW", actual = transient.error.type)
+            assertEquals(expected = ErrorCategory.Transient, actual = transient.category)
             assertNotNull(transient.error.cause, "Transient should preserve the underlying throwable")
-            assertEquals(cause, transient.error.cause)
+            assertEquals(expected = cause, actual = transient.error.cause)
         }
-        assertEquals(ids.toSet(), outcomes.map { it.id }.toSet(),
-            "every input id must be represented in the Transient outcomes")
+        assertEquals(expected = ids.toSet(), actual = outcomes.map { it.id }.toSet(),
+            message = "every input id must be represented in the Transient outcomes")
     }
 
     @Test
@@ -200,8 +206,8 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
 
         val outcomes = persister.loadWithOutcomes(automateContext, ids.asFlow()).toList()
 
-        assertEquals(ids, outcomes.map { it.id },
-            "default impl must emit outcomes in input order to keep correlation predictable")
+        assertEquals(expected = ids, actual = outcomes.map { it.id },
+            message = "default impl must emit outcomes in input order to keep correlation predictable")
     }
 
     @Test
@@ -226,8 +232,8 @@ class AutomatePersisterLoadOutcomeDefaultsTest {
         assertFailsWith<CancellationException> {
             persister.loadWithOutcomes(automateContext, listOf("a").asFlow()).toList()
         }.also { thrown ->
-            assertSame(cancel, thrown,
-                "the exact CancellationException must propagate — no wrapping, no swallow")
+            assertSame(expected = cancel, actual = thrown,
+                message = "the exact CancellationException must propagate — no wrapping, no swallow")
         }
     }
 }

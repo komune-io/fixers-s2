@@ -14,24 +14,18 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 ENTITY: WithS2Id<ID> {
 
-    override suspend fun load(id: ID): ENTITY? {
-        return snapRepository.get(id) ?: viewLoader.load(id)
-    }
+    override suspend fun load(id: ID): ENTITY? = snapRepository.get(id) ?: viewLoader.load(id)
 
-    override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
-        return load(id).let { entity ->
-            viewLoader.evolve(news, entity)
-        }
-    }
+    override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? =
+        viewLoader.evolve(events = news, entity = load(id))
 
-    override suspend fun load(events: Flow<EVENT>): ENTITY? {
-        return viewLoader.load(events)
-    }
+    override suspend fun load(events: Flow<EVENT>): ENTITY? = viewLoader.load(events)
 
-    override suspend fun evolve(events: Flow<EVENT>, entity: ENTITY?): ENTITY? {
-        return viewLoader.evolve(events, entity)
-    }
+    override suspend fun evolve(events: Flow<EVENT>, entity: ENTITY?): ENTITY? =
+        viewLoader.evolve(events = events, entity = entity)
 
+    // The rule reads the discarded `val _` as a Boolean property; an unnamed value has no name to prefix.
+    @Suppress("BooleanPropertyNaming")
     override suspend fun reloadHistory(): List<ENTITY> {
         return viewLoader.reloadHistory().map { entity ->
             val _ = snapRepository.remove(entity.s2Id())

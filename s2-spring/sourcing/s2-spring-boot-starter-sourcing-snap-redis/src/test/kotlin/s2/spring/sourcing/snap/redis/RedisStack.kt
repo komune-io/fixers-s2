@@ -17,7 +17,7 @@ object RedisStack {
         "redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7"
 
     private val container: GenericContainer<*> by lazy {
-        GenericContainer(DockerImageName.parse(IMAGE)).withExposedPorts(PORT).also { it.start() }
+        GenericContainer(DockerImageName.parse(IMAGE)).withExposedPorts(PORT).apply { start() }
     }
 
     val uri: RedisURI by lazy {
@@ -36,7 +36,13 @@ object RedisStack {
         idOf: (MODEL) -> String,
         connection: StatefulRedisConnection<String, String> = this.connection,
         settings: IndexSettings = this.settings,
-    ) = RedisSnapView(connection, settings, model, fields, idOf)
+    ) = RedisSnapView(
+        connection = connection,
+        settings = settings,
+        model = model,
+        fields = fields,
+        idOf = idOf,
+    )
 }
 
 /** Drops a probe index and the definition written next to it, never its documents; an absent index is no error. */

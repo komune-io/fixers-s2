@@ -17,21 +17,17 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
 // One callback per automate event, twelve events: splitting the listener would split its implementations.
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "ComplexInterface")
 interface AutomateListener<STATE, ID : Any, ENTITY, AUTOMATE>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
     /**
      * Notified when state is entered.
-     *
-     * @param state the state
      */
     fun automateStateEntered(event: AutomateStateEntered)
 
     /**
      * Notified when state is exited.
-     *
-     * @param state the state
      */
     fun automateStateExited(event: AutomateStateExited)
 
@@ -44,58 +40,41 @@ interface AutomateListener<STATE, ID : Any, ENTITY, AUTOMATE>
 
     /**
      * Notified when init transition started.
-     *
-     * @param transition the transition
      */
     fun automateInitTransitionStarted(event: AutomateInitTransitionStarted)
 
     /**
      * Notified when transition ended.
-     *
-     * @param transition the transition
      */
     fun automateInitTransitionEnded(event: AutomateInitTransitionEnded<STATE, ENTITY>)
 
     /**
      * Notified when transition started.
-     *
-     * @param transition the transition
      */
     fun automateTransitionStarted(event: AutomateTransitionStarted)
 
     /**
      * Notified when transition ended.
-     *
-     * @param transition the transition
      */
     fun automateTransitionEnded(event: AutomateTransitionEnded<STATE, ENTITY>)
 
     /**
      * Notified when transition happened.
-     *
-     * @param transition the transition
      */
     fun automateTransitionError(event: AutomateTransitionError)
 
     /**
-     * Notified when statemachine starts
-     *
-     * @param stateMachine the statemachine
+     * Notified when statemachine starts.
      */
     fun automateSessionStarted(event: AutomateSessionStarted<AUTOMATE>)
 
     /**
-     * Notified when statemachine stops
-     *
-     * @param stateMachine the statemachine
+     * Notified when statemachine stops.
      */
     fun automateSessionStopped(event: AutomateSessionStopped<AUTOMATE>)
 
     /**
      * Notified when statemachine enters error it can't recover from.
-     *
-     * @param stateMachine the state machine
-     * @param exception the exception
      */
     fun automateSessionError(event: AutomateSessionError)
 

@@ -24,6 +24,8 @@ EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
+    // Set by withContext once the adapter has built the engine; consumers subclass with their own constructors.
+    @Suppress("LateinitUsage")
     private lateinit var engine: S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID, EVENT>
 
     internal fun withContext(
@@ -32,18 +34,23 @@ ENTITY : WithS2State<STATE> {
         projectionLoader: Loader<EVENT, ENTITY, ID>,
         eventStore: EventRepository<EVENT, ID>
     ) {
-        this.engine = S2AutomateSourcingDeciderImpl(automateExecutor, publisher, projectionLoader, eventStore)
+        this.engine = S2AutomateSourcingDeciderImpl(
+            automateExecutor = automateExecutor,
+            publisher = publisher,
+            projectionLoader = projectionLoader,
+            eventStore = eventStore,
+        )
     }
 
-    override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
-        return engine.init(command, buildEvent)
-    }
+    override suspend fun <EVENT_OUT : EVENT> init(
+        command: S2InitCommand,
+        buildEvent: suspend () -> EVENT_OUT,
+    ): EVENT_OUT = engine.init(command, buildEvent)
 
     override suspend fun <EVENT_OUT : EVENT> transition(
-        command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
-    ): EVENT_OUT {
-        return engine.transition(command, exec)
-    }
+        command: S2Command<ID>,
+        exec: suspend (ENTITY) -> EVENT_OUT,
+    ): EVENT_OUT = engine.transition(command, exec)
 
     fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> init(
         fnc: suspend (t: COMMAND) -> EVENT_OUT
@@ -60,5 +67,7 @@ ENTITY : WithS2State<STATE> {
     fun loadAll() = engine.loadAll()
     fun load(id: ID) = engine.load(id)
 
-    override suspend fun replayHistory() = engine.replayHistory()
+    override suspend fun replayHistory() {
+        engine.replayHistory()
+    }
 }

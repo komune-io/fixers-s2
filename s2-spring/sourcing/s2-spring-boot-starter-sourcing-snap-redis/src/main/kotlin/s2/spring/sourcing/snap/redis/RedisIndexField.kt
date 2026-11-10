@@ -5,7 +5,7 @@ enum class RedisFieldType {
 }
 
 /** One attribute of a view's index: the JSON [field] it reads, its [type], and the [name] queries use. */
-class RedisIndexField(
+data class RedisIndexField(
     val field: String,
     val type: RedisFieldType,
     val name: String? = null,

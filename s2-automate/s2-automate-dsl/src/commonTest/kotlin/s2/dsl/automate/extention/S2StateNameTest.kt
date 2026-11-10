@@ -61,31 +61,31 @@ class S2StateNameTest {
 
     @Test
     fun automateRecordsTheNameOfEachEnumState() {
-        assertEquals("Open", TicketState.Open.toValue().name)
-        assertEquals(listOf("Open", "Closed"), automate.transitions.map { it.to.name })
+        assertEquals(expected = "Open", actual = TicketState.Open.toValue().name)
+        assertEquals(expected = listOf("Open", "Closed"), actual = automate.transitions.map { it.to.name })
     }
 
     @Test
     fun automateRecordsTheNameOfEachObjectState() {
-        assertEquals("Ajar", DoorState.Ajar.toValue().name)
+        assertEquals(expected = "Ajar", actual = DoorState.Ajar.toValue().name)
     }
 
     @Test
     fun stateNameReadsTheWireStringAndTheState() {
-        assertEquals("Open", s2StateName("Open"))
-        assertEquals("Closed", s2StateName(TicketState.Closed))
-        assertEquals("Shut", s2StateName(DoorState.Shut))
+        assertEquals(expected = "Open", actual = s2StateName("Open"))
+        assertEquals(expected = "Closed", actual = s2StateName(TicketState.Closed))
+        assertEquals(expected = "Shut", actual = s2StateName(DoorState.Shut))
         assertNull(s2StateName(null))
         assertNull(s2StateName(42))
     }
 
     @Test
     fun transitionIsAvailableFromTheStateName() {
-        assertTrue(automate.isAvailableTransitionByName("Open", CloseTicket::class.simpleName!!))
-        assertTrue(automate.isAvailableTransitionByName("Open", TicketClosed::class.simpleName!!))
-        assertFalse(automate.isAvailableTransitionByName("Closed", CloseTicket::class.simpleName!!))
-        assertFalse(automate.isAvailableTransitionByName("Unknown", CloseTicket::class.simpleName!!))
-        assertFalse(automate.isAvailableTransitionByName(null, CloseTicket::class.simpleName!!))
+        assertTrue(automate.isAvailableTransitionByName(stateName = "Open", type = CloseTicket::class.simpleName!!))
+        assertTrue(automate.isAvailableTransitionByName(stateName = "Open", type = TicketClosed::class.simpleName!!))
+        assertFalse(automate.isAvailableTransitionByName(stateName = "Closed", type = CloseTicket::class.simpleName!!))
+        assertFalse(automate.isAvailableTransitionByName(stateName = "Unknown", type = CloseTicket::class.simpleName!!))
+        assertFalse(automate.isAvailableTransitionByName(stateName = null, type = CloseTicket::class.simpleName!!))
     }
 
     @Test
@@ -97,8 +97,8 @@ class S2StateNameTest {
 
     @Test
     fun automateRecordsTheNameOfEachEnumRole() {
-        assertEquals("Reception", DeskRole.Reception.toValue().name)
-        assertEquals("Manager", DeskRole.Manager.toValue().name)
+        assertEquals(expected = "Reception", actual = DeskRole.Reception.toValue().name)
+        assertEquals(expected = "Manager", actual = DeskRole.Manager.toValue().name)
     }
 
     @Test
@@ -110,7 +110,13 @@ class S2StateNameTest {
                 name = "Ticket",
                 version = null,
                 transitions = arrayOf(
-                    S2Transition(S2StateValue("TicketState", 0), S2StateValue("TicketState", 1), role, close, null),
+                    S2Transition(
+                        from = S2StateValue("TicketState", 0),
+                        to = S2StateValue("TicketState", 1),
+                        role = role,
+                        action = close,
+                        result = null,
+                    ),
                 ),
             )
         }
@@ -125,7 +131,13 @@ class S2StateNameTest {
                 name = "Ticket",
                 version = null,
                 transitions = arrayOf(
-                    S2Transition(S2StateValue("Open", 0), S2StateValue("Closed", 0), role, close, null),
+                    S2Transition(
+                        from = S2StateValue("Open", 0),
+                        to = S2StateValue("Closed", 0),
+                        role = role,
+                        action = close,
+                        result = null,
+                    ),
                 ),
             )
         }

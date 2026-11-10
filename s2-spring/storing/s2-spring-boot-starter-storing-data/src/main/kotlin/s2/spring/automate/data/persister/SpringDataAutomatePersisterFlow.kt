@@ -30,9 +30,9 @@ ENTITY : WithS2Id<ID> {
     override fun persistInit(
         transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): Flow<EVENT> {
-        return transitionContexts.map {
-            repository.save(it.entity)
-            it.event
+        return transitionContexts.map { context ->
+            repository.save(context.entity)
+            context.event
         }
     }
 

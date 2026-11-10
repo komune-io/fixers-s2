@@ -70,7 +70,7 @@ class S2AutomateStoringEvolverImplMissingEntityTest {
             }
         }
         val error = exception.errors.single()
-        assertEquals("ERROR_ENTITY_NOT_FOUND", error.type)
-        assertEquals("missing", error.payload["id"])
+        assertEquals(expected = "ERROR_ENTITY_NOT_FOUND", actual = error.type)
+        assertEquals(expected = "missing", actual = error.payload["id"])
     }
 }

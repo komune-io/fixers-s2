@@ -26,8 +26,8 @@ fun tagClause(field: String, values: Collection<String>): String {
 
 private val FIELD = Regex("[A-Za-z_][A-Za-z0-9_]*")
 
-/** Inside a tag's braces RediSearch reads every punctuation mark and space as syntax unless escaped. */
-private val TAG_SYNTAX = Regex("[^\\p{L}\\p{M}\\p{N}_]")
+// Inside a tag's braces RediSearch reads every punctuation mark and space as syntax unless escaped.
+private val TAG_SYNTAX = Regex("""[^\p{L}\p{M}\p{N}_]""")
 
 /**
  * The words of a typed text, each one a prefix from [MIN_PREFIX] letters on: whatever query syntax the text
@@ -40,4 +40,4 @@ fun String?.addWildcard(): String =
         .filter { it.isNotEmpty() }
         .joinToString(" ") { if (it.length < MIN_PREFIX) it else "$it*" }
 
-private val QUERY_WORD_SEPARATOR = Regex("[^\\p{L}\\p{M}\\p{N}_]+")
+private val QUERY_WORD_SEPARATOR = Regex("""[^\p{L}\p{M}\p{N}_]+""")

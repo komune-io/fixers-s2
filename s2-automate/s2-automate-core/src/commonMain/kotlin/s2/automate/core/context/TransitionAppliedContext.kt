@@ -5,7 +5,7 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
-class TransitionAppliedContext<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>(
+data class TransitionAppliedContext<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>(
     val automateContext: AutomateContext<AUTOMATE>,
     val msgId: String,
     val from: STATE,

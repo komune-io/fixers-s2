@@ -15,10 +15,14 @@ class RedisIndexes(private val indexes: List<RedisIndexInitializer>) : SmartInit
         require(shared.isEmpty()) { "Two views make the same index, their models sharing a name: $shared" }
     }
 
-    override fun afterSingletonsInstantiated() = runBlocking { create() }
+    override fun afterSingletonsInstantiated() {
+        runBlocking { create() }
+    }
 
     /** Makes every index at once and waits for them all; the first failure cancels the others and is thrown. */
-    suspend fun create() = coroutineScope {
-        indexes.forEach { launch { it.initIndex() } }
+    suspend fun create() {
+        coroutineScope {
+            indexes.forEach { index -> launch { index.initIndex() } }
+        }
     }
 }

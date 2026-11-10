@@ -28,6 +28,8 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
+    // Field-injected: consumers subclass this adapter with their own constructors.
+    @Suppress("LateinitUsage")
     @Autowired
     lateinit var eventRepositoryFactory: EventRepositoryFactory
 

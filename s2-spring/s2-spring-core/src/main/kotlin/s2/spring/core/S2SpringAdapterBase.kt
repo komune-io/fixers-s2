@@ -25,7 +25,12 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EVENT: Evt{
 
-    protected open fun automateContext() = AutomateContext(automate(), batchParams)
+    // Field-injected: consumers subclass this adapter with their own constructors.
+    @Suppress("LateinitUsage")
+    @Autowired
+    lateinit var batchParams: S2BatchProperties
+
+    protected open fun automateContext() = AutomateContext(automate = automate(), batch = batchParams)
 
     protected open fun guardExecutor(
         automateAppEventPublisher: AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
@@ -37,9 +42,7 @@ EVENT: Evt{
     }
 
     protected open fun automateAppEventPublisher(eventPublisher: SpringEventPublisher)
-            : AutomateEventPublisher<STATE, ID, ENTITY, S2Automate> {
-        return AutomateEventPublisher(eventPublisher)
-    }
+            : AutomateEventPublisher<STATE, ID, ENTITY, S2Automate> = AutomateEventPublisher(eventPublisher)
 
     /**
      * Whether init commands are checked against the init transitions declared by the automate.
@@ -54,7 +57,7 @@ EVENT: Evt{
      */
     protected open fun validateInitTransitions(): Boolean = false
 
-/**
+    /**
      * Whether the `role` declared on each transition is enforced.
      *
      * Disabled by default, and it must stay that way: until now roles were declared and
@@ -89,9 +92,6 @@ EVENT: Evt{
         RoleGuard<STATE, ID, ENTITY, EVENT> { currentRoles() }
             .takeIf { validateRoles() },
     )
-
-    @Autowired
-    lateinit var batchParams: S2BatchProperties
 
     abstract fun automate(): S2Automate
 

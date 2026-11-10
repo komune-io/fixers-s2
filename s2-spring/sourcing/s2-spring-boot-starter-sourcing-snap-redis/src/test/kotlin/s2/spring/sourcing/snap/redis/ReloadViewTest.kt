@@ -44,8 +44,10 @@ class ReloadViewTest {
         override suspend fun <EVENT_OUT : Any> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT) =
             error("not a command test")
 
-        override suspend fun <EVENT_OUT : Any> transition(command: S2Command<String>, exec: suspend Entity.() -> EVENT_OUT) =
-            error("not a command test")
+        override suspend fun <EVENT_OUT : Any> transition(
+            command: S2Command<String>,
+            exec: suspend Entity.() -> EVENT_OUT,
+        ) = error("not a command test")
 
         override suspend fun replayHistory() {
             replayed++
@@ -90,7 +92,7 @@ class ReloadViewTest {
         val failure = IllegalStateException("Redis refused a save")
         decider.failure = failure
 
-        val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = thrownBy { reload.reload() }
 
         assertThat(thrown).isSameAs(failure)
         assertThat(checkNotNull(thrown).suppressed).isEmpty()
@@ -102,7 +104,7 @@ class ReloadViewTest {
         view.count = 3
         decider.failure = IllegalStateException("Redis refused a save")
 
-        val thrown = runCatching { reload.reload(forceReload = true) }.exceptionOrNull()
+        val thrown = thrownBy { reload.reload(forceReload = true) }
 
         assertThat(thrown).hasMessage("Redis refused a save")
         assertThat(view.deleted).isEqualTo(2)
@@ -113,7 +115,7 @@ class ReloadViewTest {
         decider.failure = IllegalStateException("Redis refused a save")
         view.deleteFailure = CancellationException("shutting down")
 
-        val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = thrownBy { reload.reload() }
 
         assertThat(thrown).isInstanceOf(CancellationException::class.java)
     }
@@ -125,7 +127,7 @@ class ReloadViewTest {
         decider.failure = failure
         view.deleteFailure = emptying
 
-        val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = thrownBy { reload.reload() }
 
         assertThat(thrown).isSameAs(failure)
         assertThat(checkNotNull(thrown).suppressed).containsExactly(emptying)
@@ -135,7 +137,7 @@ class ReloadViewTest {
     suspend fun `a cancelled replay is not taken for a failure`() {
         decider.failure = CancellationException("shutting down")
 
-        val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = thrownBy { reload.reload() }
 
         assertThat(thrown).isInstanceOf(CancellationException::class.java).hasMessage("shutting down")
         assertThat(view.deleted).isZero()
@@ -148,7 +150,7 @@ class ReloadViewTest {
         val deciders = listOf(Decider(first), Decider(), Decider(third))
         val reloads = deciders.mapIndexed { i, decider -> ReloadView(View(indexName = "Model$i"), decider) }
 
-        val thrown = runCatching { ReloadView.reloadAll(reloads) }.exceptionOrNull()
+        val thrown = thrownBy { ReloadView.reloadAll(reloads) }
 
         assertThat(deciders.map { it.replayed }).containsExactly(1, 1, 1)
         assertThat(thrown).isSameAs(first)
@@ -160,7 +162,10 @@ class ReloadViewTest {
         val views = listOf(View(count = 2), View(count = 1))
         val deciders = listOf(Decider(), Decider())
 
-        ReloadView.reloadAll(views.zip(deciders).map { (view, decider) -> ReloadView(view, decider) }, forceReload = true)
+        ReloadView.reloadAll(
+            reloads = views.zip(deciders).map { (view, decider) -> ReloadView(view, decider) },
+            forceReload = true,
+        )
 
         assertThat(deciders.map { it.replayed }).containsExactly(1, 1)
         assertThat(views.map { it.deleted }).containsExactly(1, 1)
@@ -170,9 +175,19 @@ class ReloadViewTest {
     suspend fun `a cancelled reload stops the others`() {
         val deciders = listOf(Decider(CancellationException("shutting down")), Decider())
 
-        val thrown = runCatching { ReloadView.reloadAll(deciders.map { ReloadView(View(), it) }) }.exceptionOrNull()
+        val thrown = thrownBy { ReloadView.reloadAll(deciders.map { ReloadView(View(), it) }) }
 
         assertThat(thrown).isInstanceOf(CancellationException::class.java)
         assertThat(deciders[1].replayed).isZero()
     }
+
+    // The tests assert on whatever the reload throws, a cancellation included.
+    @Suppress("TooGenericExceptionCaught", "SuspendFunSwallowedCancellation")
+    private suspend fun thrownBy(block: suspend () -> Unit): Throwable? =
+        try {
+            block()
+            null
+        } catch (thrown: Throwable) {
+            thrown
+        }
 }

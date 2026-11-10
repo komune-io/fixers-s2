@@ -1,7 +1,6 @@
 {
   "name": "fixers-s2-s2-automate-s2-automate-dsl",
   "version": "0.0.0",
-  "main": "kotlin/fixers-s2-s2-automate-s2-automate-dsl.mjs",
   "types": "kotlin/fixers-s2-s2-automate-s2-automate-dsl.d.mts",
   "devDependencies": {},
   "dependencies": {},

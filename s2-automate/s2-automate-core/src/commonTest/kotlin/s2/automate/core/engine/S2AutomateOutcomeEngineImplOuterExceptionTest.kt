@@ -1,6 +1,5 @@
 package s2.automate.core.engine
 
-import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.CancellationException
@@ -58,13 +57,13 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
         GuardVerifier<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>) {
-            throw invalidTransitionError("any", "guard-reject").asException()
+            throw invalidTransitionError(state = "any", command = "guard-reject").asException()
         }
 
         override suspend fun <COMMAND : Cmd> evaluateTransition(
             context: TransitionContext<TestState, String, TestEntity, S2Automate, COMMAND>
         ) {
-            throw invalidTransitionError("any", "guard-reject").asException()
+            throw invalidTransitionError(state = "any", command = "guard-reject").asException()
         }
 
         override suspend fun verifyInitTransition(
@@ -174,17 +173,21 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(2, results.size, "Expected one outcome per command, not a thrown exception")
+        assertEquals(
+            expected = 2,
+            actual = results.size,
+            message = "Expected one outcome per command, not a thrown exception",
+        )
         results.forEach { envelope ->
             val outcome = envelope.data
             assertIs<PersistOutcome.Rejected<*>>(
                 outcome,
-                "Expected Rejected but got ${outcome::class.simpleName} for msgId=${outcome.msgId}"
+                "Expected Rejected but got ${outcome::class.simpleName.orEmpty()} for msgId=${outcome.msgId}"
             )
             assertEquals(
-                "ERROR_INVALID_TRANSITION",
-                outcome.error.type,
-                "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
+                expected = "ERROR_INVALID_TRANSITION",
+                actual = outcome.error.type,
+                message = "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
             )
         }
         val msgIds = results.map { it.data.msgId }.toSet()
@@ -211,17 +214,21 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(3, results.size, "Expected one outcome per command, not a thrown exception")
+        assertEquals(
+            expected = 3,
+            actual = results.size,
+            message = "Expected one outcome per command, not a thrown exception",
+        )
         results.forEach { envelope ->
             val outcome = envelope.data
             assertIs<PersistOutcome.Rejected<*>>(
                 outcome,
-                "Expected Rejected but got ${outcome::class.simpleName} for msgId=${outcome.msgId}"
+                "Expected Rejected but got ${outcome::class.simpleName.orEmpty()} for msgId=${outcome.msgId}"
             )
             assertEquals(
-                "ERROR_INVALID_TRANSITION",
-                outcome.error.type,
-                "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
+                expected = "ERROR_INVALID_TRANSITION",
+                actual = outcome.error.type,
+                message = "Guard-rejection error.type must be ERROR_INVALID_TRANSITION"
             )
         }
         val msgIds = results.map { it.data.msgId }.toSet()
@@ -247,16 +254,16 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size, "Expected one outcome, not a thrown exception")
+        assertEquals(expected = 1, actual = results.size, message = "Expected one outcome, not a thrown exception")
         val outcome = results.single().data
         assertIs<PersistOutcome.Rejected<*>>(
             outcome,
-            "entity-not-found must surface as Rejected, got ${outcome::class.simpleName}"
+            "entity-not-found must surface as Rejected, got ${outcome::class.simpleName.orEmpty()}"
         )
         assertEquals(
-            "ERROR_ENTITY_NOT_FOUND",
-            outcome.error.type,
-            "error.type must be ERROR_ENTITY_NOT_FOUND"
+            expected = "ERROR_ENTITY_NOT_FOUND",
+            actual = outcome.error.type,
+            message = "error.type must be ERROR_ENTITY_NOT_FOUND"
         )
     }
 
@@ -279,16 +286,16 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 CreatedEvt("x").asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size, "Expected one outcome, not a thrown exception")
+        assertEquals(expected = 1, actual = results.size, message = "Expected one outcome, not a thrown exception")
         val outcome = results.single().data
         assertIs<PersistOutcome.Indeterminate<*>>(
             outcome,
-            "lambda throw must surface as Indeterminate, got ${outcome::class.simpleName}"
+            "lambda throw must surface as Indeterminate, got ${outcome::class.simpleName.orEmpty()}"
         )
         assertEquals(
-            "ERROR_PERSIST_LAMBDA_THROW",
-            outcome.error.type,
-            "error.type must be ERROR_PERSIST_LAMBDA_THROW"
+            expected = "ERROR_PERSIST_LAMBDA_THROW",
+            actual = outcome.error.type,
+            message = "error.type must be ERROR_PERSIST_LAMBDA_THROW"
         )
     }
 
@@ -311,21 +318,21 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                 DoneEvt("cmd-1").asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size, "Expected one outcome, not a thrown exception")
+        assertEquals(expected = 1, actual = results.size, message = "Expected one outcome, not a thrown exception")
         val outcome = results.single().data
         assertIs<PersistOutcome.Indeterminate<*>>(
             outcome,
-            "exec lambda throw must surface as Indeterminate, got ${outcome::class.simpleName}"
+            "exec lambda throw must surface as Indeterminate, got ${outcome::class.simpleName.orEmpty()}"
         )
         assertEquals(
-            "ERROR_PERSIST_LAMBDA_THROW",
-            outcome.error.type,
-            "error.type must be ERROR_PERSIST_LAMBDA_THROW"
+            expected = "ERROR_PERSIST_LAMBDA_THROW",
+            actual = outcome.error.type,
+            message = "error.type must be ERROR_PERSIST_LAMBDA_THROW"
         )
         assertEquals(
-            "cmd-1",
-            outcome.msgId,
-            "msgId must match the input command"
+            expected = "cmd-1",
+            actual = outcome.msgId,
+            message = "msgId must match the input command"
         )
         assertTrue(
             "exec exploded" in outcome.error.description,
@@ -367,8 +374,12 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                     CreatedEvt("x").asEnvelopeWithType("Evt")
             }.toList()
         }
-        assertEquals(cancel.message, thrown.message,
-            "original cancellation message must survive — confirms our cancel reached the unwind, not a different one")
+        assertEquals(
+            expected = cancel.message,
+            actual = thrown.message,
+            message = "original cancellation message must survive — " +
+                "confirms our cancel reached the unwind, not a different one",
+        )
     }
 
     @Test
@@ -396,7 +407,11 @@ class S2AutomateOutcomeEngineImplOuterExceptionTest {
                     DoneEvt("cmd-1").asEnvelopeWithType("Evt")
             }.toList()
         }
-        assertEquals(cancel.message, thrown.message,
-            "original cancellation message must survive — confirms our cancel reached the unwind, not a different one")
+        assertEquals(
+            expected = cancel.message,
+            actual = thrown.message,
+            message = "original cancellation message must survive — " +
+                "confirms our cancel reached the unwind, not a different one",
+        )
     }
 }

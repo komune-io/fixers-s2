@@ -29,6 +29,8 @@ import s2.dsl.automate.S2State
 import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
+private const val PERSIST_OUTCOME_TYPE = "PersistOutcome"
+
 open class S2AutomateOutcomeEngineImpl<STATE, ID : Any, ENTITY, EVENT>(
     automateContext: AutomateContext<S2Automate>,
     guardExecutor: GuardVerifier<STATE, ID, ENTITY, EVENT, S2Automate>,
@@ -50,7 +52,7 @@ ENTITY : WithS2Id<ID> {
             val (successCtxs, failures) = partitionCreations(chunk, decide)
             val persisted = persistCreationsToList(successCtxs)
             (failures + persisted).castedAsFlow<EVENT_OUT>()
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "PersistOutcome")
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = PERSIST_OUTCOME_TYPE)
     }
 
     // B.2: batched load per chunk; B.3: msgId-keyed correlation
@@ -66,7 +68,7 @@ ENTITY : WithS2Id<ID> {
             val (successCtxs, failures) = partitionTransitions(loaded, exec)
             val persisted = persistTransitionsAndEmitEnded(successCtxs)
             (failures + persisted).castedAsFlow<EVENT_OUT>()
-        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = "PersistOutcome")
+        }.flattenConcurrently(automateContext.batch.concurrency).mapToEnvelopeWithRandomId(type = PERSIST_OUTCOME_TYPE)
     }
 
     // A decide lambda may fail with anything: each failure becomes its command's outcome, never the batch's.
@@ -79,7 +81,7 @@ ENTITY : WithS2Id<ID> {
         val failures = mutableListOf<PersistOutcome<EVENT>>()
         chunk.forEach { command ->
             try {
-                val ctx = prepareCreationContextForOutcomes(decide, command)
+                val ctx = prepareInitContextForOutcomes(decide, command)
                 // Contexts are invariant: built for ENTITY_OUT and EVENT_OUT, they are widened to ENTITY and EVENT.
                 @Suppress("UNCHECKED_CAST")
                 successCtxs.add(
@@ -101,13 +103,13 @@ ENTITY : WithS2Id<ID> {
     ): List<PersistOutcome<EVENT>> {
         if (successCtxs.isEmpty()) return emptyList()
         val ctxByMsgId = successCtxs.associateBy { it.msgId }
-        return persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }.also { outcomes ->
-            outcomes.forEach { outcome ->
-                if (outcome is PersistOutcome.Success) {
-                    ctxByMsgId[outcome.msgId]?.let(::sendEndInitTransitionEvent)
-                }
+        val outcomes = persistInitWithOutcomes(successCtxs.asFlow()).toList().map { it.data }
+        outcomes.forEach { outcome ->
+            if (outcome is PersistOutcome.Success) {
+                ctxByMsgId[outcome.msgId]?.let(::sendEndInitTransitionEvent)
             }
         }
+        return outcomes
     }
 
     // An exec lambda may fail with anything: each failure becomes its command's outcome, never the batch's.
@@ -174,22 +176,27 @@ ENTITY : WithS2Id<ID> {
     ): List<PersistOutcome<EVENT>> {
         if (successCtxs.isEmpty()) return emptyList()
         val ctxByMsgId = successCtxs.associateBy { it.msgId }
-        return persistWithOutcomes(successCtxs.asFlow()).toList().also { outcomes ->
-            outcomes.forEach { outcome ->
-                if (outcome is PersistOutcome.Success) {
-                    ctxByMsgId[outcome.msgId]?.let { ctx ->
-                        sendEndDoTransitionEvent(ctx.entity.s2State(), ctx.from, ctx.msg, ctx.entity)
-                    }
+        val outcomes = persistWithOutcomes(successCtxs.asFlow()).toList()
+        outcomes.forEach { outcome ->
+            if (outcome is PersistOutcome.Success) {
+                ctxByMsgId[outcome.msgId]?.let { ctx ->
+                    sendEndDoTransitionEvent(
+                        to = ctx.entity.s2State(),
+                        fromState = ctx.from,
+                        command = ctx.msg,
+                        entity = ctx.entity,
+                    )
                 }
             }
         }
+        return outcomes
     }
 
     private fun persistInitWithOutcomes(
         contexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
     ): EnvelopedFlow<PersistOutcome<EVENT>> {
         return contexts.map { guardExecutor.verifyInitTransition(it) }.let {
-            persister.persistInitWithOutcomes(it).mapToEnvelopeWithRandomId(type = "PersistOutcome")
+            persister.persistInitWithOutcomes(it).mapToEnvelopeWithRandomId(type = PERSIST_OUTCOME_TYPE)
         }
     }
 
@@ -204,12 +211,13 @@ ENTITY : WithS2Id<ID> {
     }
 
     private fun Throwable.toPersistOutcome(msgId: String): PersistOutcome<EVENT> =
-        when (this) {
-            is AutomateException -> PersistOutcome.Rejected(
+        if (this is AutomateException) {
+            PersistOutcome.Rejected(
                 msgId = msgId,
                 error = errors.firstOrNull() ?: unknownError(this),
             )
-            else -> PersistOutcome.Indeterminate(
+        } else {
+            PersistOutcome.Indeterminate(
                 msgId = msgId,
                 error = persistLambdaThrowError(this),
             )

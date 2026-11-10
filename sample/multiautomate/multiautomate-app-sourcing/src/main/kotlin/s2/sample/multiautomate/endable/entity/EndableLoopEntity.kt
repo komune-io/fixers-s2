@@ -11,8 +11,8 @@ import s2.spring.utils.data.S2Entity
 data class EndableLoopEntity(
     @Id
     val id: EndableLoopId = UUID.randomUUID().toString(),
-    var step: Int,
-    var state: Int,
+    val step: Int,
+    val state: Int,
 ) : S2Entity<EndableLoopId, EndableLoopState>() {
     override fun s2Id() = id
     override fun s2State() = EndableLoopState(state)

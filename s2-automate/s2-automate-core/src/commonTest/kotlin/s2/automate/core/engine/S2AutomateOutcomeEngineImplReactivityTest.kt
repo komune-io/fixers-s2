@@ -2,14 +2,12 @@ package s2.automate.core.engine
 
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
-import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.config.S2BatchProperties
@@ -115,9 +113,9 @@ class S2AutomateOutcomeEngineImplReactivityTest {
         }.toList()
 
         assertEquals(
-            2,
-            persister.loadCallCount,
-            "Expected exactly 2 batched load(ids) calls (one per chunk of 5), " +
+            expected = 2,
+            actual = persister.loadCallCount,
+            message = "Expected exactly 2 batched load(ids) calls (one per chunk of 5), " +
                 "got ${persister.loadCallCount} — likely regressed to per-command load"
         )
     }

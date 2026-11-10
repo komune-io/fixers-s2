@@ -75,13 +75,14 @@ class ViewLoaderTest {
 
         override suspend fun persist(event: TestEvent): TestEvent = event
         override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
-        override suspend fun createTable() {}
+        override suspend fun createTable() {
+            // In-memory events: there is no table to create.
+        }
     }
 
     class TestView : View<TestEvent, String> {
-        override suspend fun evolve(event: TestEvent, model: String?): String {
-            return model ?: "Entity-${event.s2Id()}"
-        }
+        override suspend fun evolve(event: TestEvent, model: String?): String =
+            model ?: "Entity-${event.s2Id()}"
     }
 
     // Non-comparable event class
@@ -113,12 +114,13 @@ class ViewLoaderTest {
 
         override suspend fun persist(event: TestEventNonComparable): TestEventNonComparable = event
         override fun persist(events: Flow<TestEventNonComparable>): Flow<TestEventNonComparable> = events
-        override suspend fun createTable() {}
+        override suspend fun createTable() {
+            // In-memory events: there is no table to create.
+        }
     }
 
     class TestNonComparableView : View<TestEventNonComparable, String> {
-        override suspend fun evolve(event: TestEventNonComparable, model: String?): String {
-            return model ?: "Entity-${event.s2Id()}"
-        }
+        override suspend fun evolve(event: TestEventNonComparable, model: String?): String =
+            model ?: "Entity-${event.s2Id()}"
     }
 }

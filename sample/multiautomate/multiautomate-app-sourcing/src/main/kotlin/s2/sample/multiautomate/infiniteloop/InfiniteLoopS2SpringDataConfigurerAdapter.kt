@@ -25,8 +25,12 @@ class InfiniteLoopS2Aggregate
 
 @Service
 class InfiniteLoopS2View : View<InfiniteLoopEvent, InfiniteLoopEntity> {
-    override suspend fun evolve(event: InfiniteLoopEvent, model: InfiniteLoopEntity?): InfiniteLoopEntity? {
-        TODO("Not yet implemented")
-    }
-
+    override suspend fun evolve(event: InfiniteLoopEvent, model: InfiniteLoopEntity?): InfiniteLoopEntity? =
+        when (event) {
+            is InfiniteCreatedEvent -> InfiniteLoopEntity(id = event.id, step = 0, state = event.type.position)
+            is InfiniteStepEvent -> model?.let {
+                InfiniteLoopEntity(id = it.id, step = it.step + 1, state = it.state)
+            }
+            else -> model
+        }
 }

@@ -12,6 +12,8 @@ const val PACKAGE = "s2.sample.multiautomate"
 @SpringBootApplication(scanBasePackages = [PACKAGE])
 class MultiAutomateSourcingApp
 
+// The context must outlive main: closing it would stop the application it just started.
+@Suppress("MissingUseCall")
 fun main(vararg args: String) {
     runApplication<MultiAutomateSourcingApp>(*args)
 }

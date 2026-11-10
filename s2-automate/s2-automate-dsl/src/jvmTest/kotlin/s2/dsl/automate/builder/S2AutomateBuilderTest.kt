@@ -142,14 +142,14 @@ class S2AutomateBuilderTest {
 
     @Test
     fun `isSameState compares positions and handles null`() {
-        assertThat(automate.isSameState(OrderState.Created, OrderState.Created)).isTrue()
-        assertThat(automate.isSameState(OrderState.Created, OrderState.Approved)).isFalse()
-        assertThat(automate.isSameState(null, OrderState.Created)).isFalse()
+        assertThat(automate.isSameState(from = OrderState.Created, to = OrderState.Created)).isTrue()
+        assertThat(automate.isSameState(from = OrderState.Created, to = OrderState.Approved)).isFalse()
+        assertThat(automate.isSameState(from = null, to = OrderState.Created)).isFalse()
     }
 
     @Test
-    fun `withResultAsAction is true only when every transition carries a result`() {
-        assertThat(automate.withResultAsAction).isFalse()
+    fun `hasResultAsAction is true only when every transition carries a result`() {
+        assertThat(automate.hasResultAsAction).isFalse()
         val allResults = s2 {
             name = "AllResults"
             init<CreateOrder> {
@@ -158,6 +158,6 @@ class S2AutomateBuilderTest {
                 evt = OrderCreated::class
             }
         }
-        assertThat(allResults.withResultAsAction).isTrue()
+        assertThat(allResults.hasResultAsAction).isTrue()
     }
 }

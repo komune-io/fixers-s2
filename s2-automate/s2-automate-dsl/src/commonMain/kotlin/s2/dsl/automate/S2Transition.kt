@@ -24,16 +24,24 @@ open class S2Transition(
     open val result: S2TransitionValue?,
 )
 
+// A data class would add copy and componentN to the exported JS surface.
+@Suppress("UseDataClass")
 @JsExport
 @Serializable
 class S2TransitionValue(
     val name: String,
 )
+
+// A data class would add copy and componentN to the exported JS surface.
+@Suppress("UseDataClass")
 @JsExport
 @Serializable
 class S2RoleValue(
     val name: String,
 )
+
+// A data class would add copy and componentN to the exported JS surface.
+@Suppress("UseDataClass")
 @JsExport
 @Serializable
 class S2StateValue(

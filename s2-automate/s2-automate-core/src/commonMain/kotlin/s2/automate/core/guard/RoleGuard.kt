@@ -33,6 +33,10 @@ import s2.dsl.automate.toValue
  * A command matching no declared transition is left alone: deciding whether that command is
  * legal at all is [TransitionStateGuard]'s job, and this guard has no role to check against.
  *
+ * @param STATE the automate state type
+ * @param ID the entity id type
+ * @param ENTITY the entity type
+ * @param EVENT the event type
  * @param rolesProvider the roles held by the current caller, resolved per command — on Spring
  * this reads the current `SecurityContext`.
  */

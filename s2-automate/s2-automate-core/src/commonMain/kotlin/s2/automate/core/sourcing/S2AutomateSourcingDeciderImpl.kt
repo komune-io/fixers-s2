@@ -51,7 +51,9 @@ ENTITY : WithS2State<STATE> {
         return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
             val event = buildEvent(cmd.data)
             val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
-            val entity = checkNotNull(projectionLoader.evolve(flowOf(event))) { "The projection of an init event is null" }
+            val entity = checkNotNull(projectionLoader.evolve(flowOf(event))) {
+                "The projection of an init event is null"
+            }
             entity to evl
         }.mapAndPublishData()
     }
@@ -100,9 +102,6 @@ ENTITY : WithS2State<STATE> {
         }.first()
     }
 
-    /**
-     * S2AutomateSourcingDecider
-     */
     override suspend fun <EVENT_OUT : EVENT> transition(
         command: S2Command<ID>,
         exec: suspend ENTITY.() -> EVENT_OUT

@@ -28,9 +28,7 @@ fun infiniteLoopS2(): S2Automate {
 sealed class InfiniteLoopRole : S2Role {
     class User : InfiniteLoopRole()
 
-    override fun toString(): String {
-        return this::class.simpleName ?: super.toString()
-    }
+    override fun toString(): String = this::class.simpleName ?: super.toString()
 }
 
 open class InfiniteLoopState(
@@ -39,9 +37,7 @@ open class InfiniteLoopState(
 
     object Running : InfiniteLoopState(0)
 
-    override fun toString(): String {
-        return this::class.simpleName ?: super.toString()
-    }
+    override fun toString(): String = this::class.simpleName ?: super.toString()
 }
 
 interface InfiniteLoopInitCommand : S2InitCommand
@@ -49,12 +45,12 @@ interface InfiniteLoopCommand : S2Command<InfiniteLoopId>
 interface InfiniteLoopEvent : S2Event<InfiniteLoopState, InfiniteLoopId>
 
 class InfiniteCreateCommand : InfiniteLoopInitCommand
-class InfiniteCreatedEvent(
+data class InfiniteCreatedEvent(
     override val id: InfiniteLoopId,
     override val type: InfiniteLoopState
 ) : InfiniteLoopEvent
-class InfiniteStepCommand(override val id: InfiniteLoopId) : InfiniteLoopCommand
-class InfiniteStepEvent(
+data class InfiniteStepCommand(override val id: InfiniteLoopId) : InfiniteLoopCommand
+data class InfiniteStepEvent(
     override val id: InfiniteLoopId,
     override val type: InfiniteLoopState
 ) : InfiniteLoopEvent

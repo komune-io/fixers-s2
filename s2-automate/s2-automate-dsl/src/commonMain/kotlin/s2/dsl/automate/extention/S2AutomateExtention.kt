@@ -8,12 +8,9 @@ import s2.dsl.automate.isNamed
 import s2.dsl.automate.s2SimpleName
 import s2.dsl.automate.model.WithS2State
 
-
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionAnd(
     model: WithS2State<out S2State>, hasAccess: () -> Boolean
-): Boolean {
-    return isAvailableTransition(model, C::class.s2SimpleName()) && hasAccess()
-}
+): Boolean = isAvailableTransition(state = model, type = C::class.s2SimpleName()) && hasAccess()
 
 fun S2Automate.isAvailableTransition(state: WithS2State<out S2State>?, type: String): Boolean {
     return state != null && isAvailableTransition(
@@ -22,9 +19,8 @@ fun S2Automate.isAvailableTransition(state: WithS2State<out S2State>?, type: Str
     )
 }
 
-fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boolean {
-    return getAvailableTransitions(currentState).any { it.isNamed(type) }
-}
+fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boolean =
+    getAvailableTransitions(currentState).any { it.isNamed(type) }
 
 /**
  * Compares by name, so the state may be the string a JSON payload carries: in Kotlin/JS a
@@ -45,6 +41,4 @@ fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Bo
  */
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionByNameAnd(
     stateName: String?, hasAccess: () -> Boolean
-): Boolean {
-    return isAvailableTransitionByName(stateName, C::class.s2SimpleName()) && hasAccess()
-}
+): Boolean = isAvailableTransitionByName(stateName = stateName, type = C::class.s2SimpleName()) && hasAccess()

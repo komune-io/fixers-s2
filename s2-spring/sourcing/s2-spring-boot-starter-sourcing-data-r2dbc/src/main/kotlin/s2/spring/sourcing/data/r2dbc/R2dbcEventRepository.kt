@@ -71,7 +71,8 @@ EVENT: WithS2Id<ID>
         """.trimIndent()
 
         databaseClient.sql(createScript)
-            .then().awaitFirstOrNull()
+            .then()
+            .awaitFirstOrNull()
     }
 
     override suspend fun persist(event: EVENT): EVENT = insert(event)
@@ -80,7 +81,8 @@ EVENT: WithS2Id<ID>
         return r2dbcEntityTemplate.select(EventSourcing::class.java)
             .from(tableName)
             .matching(query)
-            .flow().toEvents()
+            .flow()
+            .toEvents()
     }
 
     @OptIn(InternalSerializationApi::class)
@@ -92,7 +94,9 @@ EVENT: WithS2Id<ID>
                 id = UUID.randomUUID().toString(),
                 objId = event.s2Id(),
                 event = encoded
-            )).toEvent().awaitSingle()
+            ))
+            .toEvent()
+            .awaitSingle()
     }
 
     @OptIn(InternalSerializationApi::class)

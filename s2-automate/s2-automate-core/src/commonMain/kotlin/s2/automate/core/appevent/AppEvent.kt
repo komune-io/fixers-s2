@@ -9,47 +9,37 @@ interface AppEvent
 
 /**
  * Notification when state is entered.
- *
- * @param state the state
  */
-class AutomateStateEntered(
+data class AutomateStateEntered(
     val state: S2State,
 ) : AppEvent
 
 /**
  * Notification when state is exited.
- *
- * @param state the state
  */
-class AutomateStateExited(
+data class AutomateStateExited(
     val state: S2State,
 ) : AppEvent
 
 /**
  * Notification when command was not accepted.
- *
- * @param event the event
  */
-class AutomateTransitionNotAccepted(
+data class AutomateTransitionNotAccepted(
     val from: S2State?,
     val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when init transition started.
- *
- * @param transition the transition
  */
-class AutomateInitTransitionStarted(
+data class AutomateInitTransitionStarted(
     val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when init transition ended.
- *
- * @param transition the transition
  */
-class AutomateInitTransitionEnded<STATE, ENTITY>(
+data class AutomateInitTransitionEnded<STATE, ENTITY>(
     val to: STATE,
     val msg: Msg,
     val entity: ENTITY,
@@ -58,20 +48,16 @@ class AutomateInitTransitionEnded<STATE, ENTITY>(
 
 /**
  * Notification when transition started.
- *
- * @param transition the transition
  */
-class AutomateTransitionStarted(
+data class AutomateTransitionStarted(
     val from: S2State,
     val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when transition ended.
- *
- * @param transition the transition
  */
-class AutomateTransitionEnded<STATE, ENTITY>(
+data class AutomateTransitionEnded<STATE, ENTITY>(
     val from: STATE,
     val to: STATE,
     val msg: Msg,
@@ -81,39 +67,30 @@ class AutomateTransitionEnded<STATE, ENTITY>(
 
 /**
  * Notification when transition happened.
- *
- * @param transition the transition
  */
-class AutomateTransitionError(
+data class AutomateTransitionError(
     val msg: Msg,
     val exception: Exception,
 ) : AppEvent
 
 /**
- * Notification when automate starts
- *
- * @param automate the automate
+ * Notification when automate starts.
  */
-class AutomateSessionStarted<AUTOMATE>(
+data class AutomateSessionStarted<AUTOMATE>(
     val automate: AUTOMATE,
 ) : AppEvent
 
 /**
- * Notification when automate stops
- *
- * @param automate the automate
+ * Notification when automate stops.
  */
-class AutomateSessionStopped<AUTOMATE>(
+data class AutomateSessionStopped<AUTOMATE>(
     val automate: AUTOMATE,
 ) : AppEvent
 
 /**
  * Notification when automate enters error.
- *
- * @param automate the automate
- * @param exception the exception
  */
-class AutomateSessionError(
+data class AutomateSessionError(
     val automate: S2Automate,
     val exception: Exception,
 ) : AppEvent

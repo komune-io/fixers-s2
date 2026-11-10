@@ -1,5 +1,7 @@
 package s2.spring.sourcing.data
 
+import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -115,12 +117,13 @@ class S2SourcingSpringDataAdapterTest {
 
     @Test
     fun `eventStore called from a single-threaded event loop does not deadlock`() {
-        val dispatcher = loop.asCoroutineDispatcher()
-        val adapter = adapter(RecordingRepository(tableDispatcher = dispatcher))
+        val created = loop.asCoroutineDispatcher().use { dispatcher ->
+            val adapter = adapter(RecordingRepository(tableDispatcher = dispatcher))
+            val store = CompletableFuture.supplyAsync({ adapter.eventStore() }, loop)
+            store.get(5, TimeUnit.SECONDS)
+        }
 
-        val store = CompletableFuture.supplyAsync({ adapter.eventStore() }, loop)
-
-        assertThat(store.get(5, TimeUnit.SECONDS)).isNotNull
+        assertThat(created).isNotNull
     }
 
     @Test
@@ -189,7 +192,8 @@ class S2SourcingSpringDataAdapterTest {
 
         assertThat(firstCall { it.load("1").collect() }).containsExactly("createTable", "load")
         assertThat(firstCall { it.loadAll().collect() }).containsExactly("createTable", "loadAll")
-        assertThat(firstCall { it.persist(flowOf(TestEvent("1"))).collect() }).containsExactly("createTable", "persistAll")
+        assertThat(firstCall { it.persist(flowOf(TestEvent("1"))).collect() })
+            .containsExactly("createTable", "persistAll")
         assertThat(firstCall { it.createTable() }).containsExactly("createTable")
     }
 
@@ -215,8 +219,9 @@ class S2SourcingSpringDataAdapterTest {
         val repository = RecordingRepository(failingCreates = 1)
         val store = adapter(repository).eventStore()
 
-        val failure = runCatching { store.persist(TestEvent("1")) }.exceptionOrNull()
-        assertThat(failure).hasMessage("table not created")
+        assertThatThrownBy { runBlocking { val _ = store.persist(TestEvent("1")) } }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("table not created")
         val _ = store.persist(TestEvent("2"))
 
         assertThat(repository.calls).containsExactly("createTable", "persist")

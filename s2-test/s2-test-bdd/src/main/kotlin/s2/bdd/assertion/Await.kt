@@ -23,7 +23,7 @@ suspend fun awaitUntil(
     description: String = "condition",
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     condition: suspend () -> Boolean,
-) = withContext(dispatcher) {
+): Unit = withContext(dispatcher) {
     val deadline = TimeSource.Monotonic.markNow() + timeout
     while (!condition()) {
         if (deadline.hasPassedNow()) {

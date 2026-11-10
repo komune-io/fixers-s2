@@ -12,6 +12,8 @@ import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.Version
 
 /** One persisted event: its row [id], the [objId] of the object it is about, and the [event] as encoded. */
+// A JPA entity: identity is its row, and data-class equality over mutable audit columns would break it.
+@Suppress("UseDataClass")
 @Entity
 @MappedSuperclass
 @EntityListeners

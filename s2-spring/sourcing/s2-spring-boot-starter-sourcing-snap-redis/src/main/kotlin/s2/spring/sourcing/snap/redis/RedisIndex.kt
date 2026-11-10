@@ -28,15 +28,6 @@ internal class RedisIndex(
     val name: String,
     private val definition: IndexDefinition,
 ) {
-    companion object {
-        /** How long a view waits, at most, for its index to read the stored documents. */
-        val INDEXING_CEILING: Duration = 60.seconds
-
-        private val INDEXING_POLL = 100.milliseconds
-
-        private val logger = LoggerFactory.getLogger(RedisSnapView::class.java)
-    }
-
     private val definitionKey = "$name:definition"
 
     private val commands: RedisReactiveCommands<String, String>
@@ -48,10 +39,10 @@ internal class RedisIndex(
      * kept with documents it could not read is made again once; any failure left fails.
      */
     suspend fun init() {
-        val made = make()
+        val isMadeNow = make()
         val failures = awaitIndexed().failures()
         if (failures == 0L) return
-        check(!made) { "Index[$name]: ${unindexed(failures)}" }
+        check(!isMadeNow) { "Index[$name]: ${unindexed(failures)}" }
         logger.info("Index[{}] made again: {}", name, unindexed(failures))
         remake()
         val left = awaitIndexed().failures()
@@ -60,10 +51,9 @@ internal class RedisIndex(
 
     private fun unindexed(count: Long) = "$count stored documents could not be indexed"
 
-    /** Makes the index match its definition; whether it was made now. */
     private suspend fun make(): Boolean {
         val current = info()
-        val written = commands.get(definitionKey).awaitSingleOrNull()
+        val written = commands[definitionKey].awaitSingleOrNull()
         return when {
             current == null -> true.also { create() }
             written == definition.fingerprint -> false.also { logger.debug("Index[{}] already exists", name) }
@@ -100,7 +90,7 @@ internal class RedisIndex(
     suspend fun awaitIndexed(ceiling: Duration = INDEXING_CEILING): Map<String, Any?> =
         withTimeoutOrNull(ceiling) {
             var info = checkNotNull(info()) { "Index[$name] absent once made" }
-            while (!info.indexed()) {
+            while (!info.hasReadStoredDocuments()) {
                 delay(INDEXING_POLL)
                 info = checkNotNull(info()) { "Index[$name] dropped while it was indexing" }
             }
@@ -123,6 +113,15 @@ internal class RedisIndex(
     suspend fun dispatch(command: ProtocolKeyword, args: CommandArgs<String, String>) {
         commands.dispatch<String>(command, StatusOutput(StringCodec.UTF8), args).awaitFirstOrNull()
     }
+
+    companion object {
+        /** How long a view waits, at most, for its index to read the stored documents. */
+        val INDEXING_CEILING: Duration = 60.seconds
+
+        private val INDEXING_POLL = 100.milliseconds
+
+        private val logger = LoggerFactory.getLogger(RedisSnapView::class.java)
+    }
 }
 
 internal object SearchCommand {
@@ -141,8 +140,9 @@ internal object SearchCommand {
     }
 }
 
-/** Whether `FT.INFO` says the index has read the stored documents: RESP3 answers `indexing` as 0.0, RESP2 as "0". */
-private fun Map<String, Any?>.indexed(): Boolean = get("indexing")?.toString()?.toDoubleOrNull() == 0.0
+// RESP3 answers `indexing` as 0.0, RESP2 as "0".
+private fun Map<String, Any?>.hasReadStoredDocuments(): Boolean =
+    get("indexing")?.run { toString().toDoubleOrNull() } == 0.0
 
 /** The stored documents `FT.INFO` says the index could not read. */
 internal fun Map<String, Any?>.failures(): Long = get("hash_indexing_failures")?.toString()?.toDoubleOrNull()?.toLong()

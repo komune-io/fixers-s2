@@ -82,7 +82,9 @@ class S2AutomateEngineAppEventsTest {
         override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts
-            .map { ctx -> PersistOutcome.Rejected<TestEvent>(ctx.msgId, s2error("ERR", "rejected")) }
+            .map { ctx ->
+                PersistOutcome.Rejected<TestEvent>(ctx.msgId, s2error(code = "ERR", description = "rejected"))
+            }
     }
 
     private fun createCommands(vararg ids: String): EnvelopedFlow<CreateCmd> =
@@ -103,13 +105,13 @@ class S2AutomateEngineAppEventsTest {
         }.toList()
 
         val ended = publisher.eventsOf<AutomateInitTransitionEnded<*, *>>()
-        assertEquals(2, ended.size)
-        assertEquals(listOf("1", "2"), ended.map { (it.entity as TestEntity).id })
-        assertEquals(listOf("1", "2"), ended.map { (it.msg as CreateCmd).id })
-        assertEquals(listOf(TestState.Created, TestState.Created), ended.map { it.to })
+        assertEquals(expected = 2, actual = ended.size)
+        assertEquals(expected = listOf("1", "2"), actual = ended.map { (it.entity as TestEntity).id })
+        assertEquals(expected = listOf("1", "2"), actual = ended.map { (it.msg as CreateCmd).id })
+        assertEquals(expected = listOf(TestState.Created, TestState.Created), actual = ended.map { it.to })
 
         val started = publisher.eventsOf<AutomateSessionStarted<*>>()
-        assertEquals(2, started.size)
+        assertEquals(expected = 2, actual = started.size)
         assertTrue(started.all { it.automate is S2Automate })
     }
 
@@ -122,8 +124,8 @@ class S2AutomateEngineAppEventsTest {
             TestEntity(cmd.data.id, TestState.Created) to CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(0, publisher.eventsOf<AutomateStateEntered>().size)
-        assertEquals(0, publisher.eventsOf<AutomateStateExited>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateEntered>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateExited>().size)
     }
 
     @Test
@@ -135,8 +137,8 @@ class S2AutomateEngineAppEventsTest {
             TestEntity(cmd.data.id, TestState.Created) to CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(2, publisher.eventsOf<AutomateInitTransitionEnded<*, *>>().size)
-        assertEquals(2, publisher.eventsOf<AutomateSessionStarted<*>>().size)
+        assertEquals(expected = 2, actual = publisher.eventsOf<AutomateInitTransitionEnded<*, *>>().size)
+        assertEquals(expected = 2, actual = publisher.eventsOf<AutomateSessionStarted<*>>().size)
     }
 
     @Test
@@ -148,9 +150,9 @@ class S2AutomateEngineAppEventsTest {
             TestEntity(cmd.data.id, TestState.Created) to CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, outcomes.count { it.data is PersistOutcome.Rejected })
-        assertEquals(0, publisher.eventsOf<AutomateInitTransitionEnded<*, *>>().size)
-        assertEquals(0, publisher.eventsOf<AutomateSessionStarted<*>>().size)
+        assertEquals(expected = 1, actual = outcomes.count { it.data is PersistOutcome.Rejected })
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateInitTransitionEnded<*, *>>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateSessionStarted<*>>().size)
     }
 
     // ---- doTransition ----
@@ -169,16 +171,16 @@ class S2AutomateEngineAppEventsTest {
         }.toList()
 
         val exited = publisher.eventsOf<AutomateStateExited>()
-        assertEquals(1, exited.size)
-        assertEquals(TestState.Created, exited.single().state)
+        assertEquals(expected = 1, actual = exited.size)
+        assertEquals(expected = TestState.Created, actual = exited.single().state)
 
         val entered = publisher.eventsOf<AutomateStateEntered>()
-        assertEquals(1, entered.size)
-        assertEquals(TestState.Active, entered.single().state)
+        assertEquals(expected = 1, actual = entered.size)
+        assertEquals(expected = TestState.Active, actual = entered.single().state)
 
         // The transition-level event is unchanged, and Active is final so the session stops.
-        assertEquals(1, publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
-        assertEquals(1, publisher.eventsOf<AutomateSessionStopped<*>>().size)
+        assertEquals(expected = 1, actual = publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
+        assertEquals(expected = 1, actual = publisher.eventsOf<AutomateSessionStopped<*>>().size)
     }
 
     @Test
@@ -194,11 +196,11 @@ class S2AutomateEngineAppEventsTest {
             entity to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(0, publisher.eventsOf<AutomateStateExited>().size)
-        assertEquals(0, publisher.eventsOf<AutomateStateEntered>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateExited>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateEntered>().size)
         // The transition still ended, and Created is not final so the session keeps running.
-        assertEquals(1, publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
-        assertEquals(0, publisher.eventsOf<AutomateSessionStopped<*>>().size)
+        assertEquals(expected = 1, actual = publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateSessionStopped<*>>().size)
     }
 
     @Test
@@ -213,8 +215,8 @@ class S2AutomateEngineAppEventsTest {
             entity.copy(state = TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(TestState.Created, publisher.eventsOf<AutomateStateExited>().single().state)
-        assertEquals(TestState.Active, publisher.eventsOf<AutomateStateEntered>().single().state)
+        assertEquals(expected = TestState.Created, actual = publisher.eventsOf<AutomateStateExited>().single().state)
+        assertEquals(expected = TestState.Active, actual = publisher.eventsOf<AutomateStateEntered>().single().state)
     }
 
     @Test
@@ -230,9 +232,9 @@ class S2AutomateEngineAppEventsTest {
             entity to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(0, publisher.eventsOf<AutomateStateExited>().size)
-        assertEquals(0, publisher.eventsOf<AutomateStateEntered>().size)
-        assertEquals(1, publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateExited>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateStateEntered>().size)
+        assertEquals(expected = 1, actual = publisher.eventsOf<AutomateTransitionEnded<*, *>>().size)
     }
 
     // ---- error funnel ----
@@ -251,13 +253,13 @@ class S2AutomateEngineAppEventsTest {
         }
 
         val transitionErrors = publisher.eventsOf<AutomateTransitionError>()
-        assertEquals(1, transitionErrors.size)
-        assertSame(boom, transitionErrors.single().exception)
+        assertEquals(expected = 1, actual = transitionErrors.size)
+        assertSame(expected = boom, actual = transitionErrors.single().exception)
 
         val sessionErrors = publisher.eventsOf<AutomateSessionError>()
-        assertEquals(1, sessionErrors.size)
-        assertSame(automate, sessionErrors.single().automate)
-        assertSame(boom, sessionErrors.single().exception)
+        assertEquals(expected = 1, actual = sessionErrors.size)
+        assertSame(expected = automate, actual = sessionErrors.single().automate)
+        assertSame(expected = boom, actual = sessionErrors.single().exception)
     }
 
     /**
@@ -276,8 +278,8 @@ class S2AutomateEngineAppEventsTest {
             .createWithOutcomes<CreateCmd, TestEntity, TestEvent>(createCommands("1")) { throw boom }
             .toList()
 
-        assertEquals(1, outcomes.count { it.data is PersistOutcome.Indeterminate })
-        assertEquals(0, publisher.eventsOf<AutomateTransitionError>().size)
-        assertEquals(0, publisher.eventsOf<AutomateSessionError>().size)
+        assertEquals(expected = 1, actual = outcomes.count { it.data is PersistOutcome.Indeterminate })
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateTransitionError>().size)
+        assertEquals(expected = 0, actual = publisher.eventsOf<AutomateSessionError>().size)
     }
 }

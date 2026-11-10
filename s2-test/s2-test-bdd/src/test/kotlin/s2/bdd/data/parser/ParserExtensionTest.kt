@@ -7,12 +7,6 @@ import s2.bdd.exception.NullDataTableParamException
 
 class ParserExtensionTest {
 
-    companion object {
-        init {
-            registerPrimitiveParsers()
-        }
-    }
-
     private val entry = mapOf("count" to "3", "ids" to "1,2,3")
 
     @Test
@@ -39,5 +33,11 @@ class ParserExtensionTest {
         assertThat(entry.safeExtractList<Int>("ids")).containsExactly(1, 2, 3)
         assertThatThrownBy { val _ = entry.safeExtractList<Int>("missing") }
             .isInstanceOf(NullDataTableParamException::class.java)
+    }
+
+    companion object {
+        init {
+            registerPrimitiveParsers()
+        }
     }
 }
