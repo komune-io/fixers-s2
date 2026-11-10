@@ -1,5 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
+import f2.dsl.cqrs.exception.F2Exception
 import f2.dsl.cqrs.page.OffsetPagination
 import io.lettuce.core.RedisCommandExecutionException
 import java.nio.charset.Charset
@@ -17,40 +18,52 @@ class RedisSnapViewSearchTest {
 
 	data class SearchProbeSnap(val id: String, val name: String)
 
-	private val view = RedisStack.view()
+	private companion object {
+		/** RediSearch's default `MAXEXPANSIONS`, past which a prefix stops expanding. */
+		const val MAX_EXPANSIONS = 200
+	}
+
+	private val view = RedisStack.view(
+		SearchProbeSnap::class,
+		listOf(
+			RedisIndexField(SearchProbeSnap::id.name, RedisFieldType.TAG),
+			RedisIndexField(SearchProbeSnap::name.name, RedisFieldType.TEXT),
+		),
+		SearchProbeSnap::id,
+	)
 
 	@BeforeEach
-	suspend fun prepare() {
-		view.deleteAll<SearchProbeSnap>()
-		view.createIndex<SearchProbeSnap>()
+	fun prepare() = runBlocking {
+		view.deleteAll()
+		view.initIndex()
 	}
 
 	@AfterEach
-	suspend fun tidy() {
-		view.deleteAll<SearchProbeSnap>()
-		view.dropIndex<SearchProbeSnap>()
+	fun tidy() = runBlocking {
+		view.deleteAll()
+		view.dropIndex()
 	}
 
 	private suspend fun store(names: List<String>): List<String> =
-		names.map { name ->
-			"search-probe-${UUID.randomUUID()}".also { view.save(it, SearchProbeSnap(id = it, name = name)) }
-		}
+		names.map { name -> "search-probe-${UUID.randomUUID()}".also { view.save(SearchProbeSnap(id = it, name = name)) } }
 
-	private suspend fun found(term: String) =
-		view.search<SearchProbeSnap>(term.addWildcard(), null, null).items.map { it.id }
+	private suspend fun found(term: String) = view.search(term.addWildcard(), null, null).items.map { it.id }
+
+	private fun refusal(search: suspend () -> Any?) =
+		runCatching { runBlocking { search() } }.exceptionOrNull().let { it as F2Exception }.error
 
 	@Test
 	fun `a search Redis refuses leaves the connection serving`() {
 		repeat(3) {
-			assertThatThrownBy { runBlocking { view.search<SearchProbeSnap>("Thônes* (74280)*", null, null) } }
+			assertThatThrownBy { runBlocking { view.search("Thônes* (74280)*", null, null) } }
 				.describedAs("failure ${it + 1}")
 				.isInstanceOf(RedisCommandExecutionException::class.java)
 		}
-		assertThat(runBlocking { view.get<SearchProbeSnap>("absent-${UUID.randomUUID()}") }).isNull()
+		assertThat(runBlocking { view.get("absent-${UUID.randomUUID()}") }).isNull()
 	}
 
 	@Test
-	suspend fun `a label carrying query syntax finds its document`() {
+	suspend fun `a label carrying query syntax finds its document, and only it`() {
 		val names = listOf(
 			"Thônes (74280)",
 			"Saint-Égrève",
@@ -61,7 +74,7 @@ class RedisSnapViewSearchTest {
 		)
 		val ids = store(names)
 
-		names.zip(ids).forEach { (name, id) -> assertThat(found(name)).describedAs("«$name»").contains(id) }
+		names.zip(ids).forEach { (name, id) -> assertThat(found(name)).describedAs("«$name»").containsExactly(id) }
 	}
 
 	@Test
@@ -69,7 +82,7 @@ class RedisSnapViewSearchTest {
 		val ids = store(listOf("Silver - Or", "If", "Pont de pierre"))
 
 		listOf("Or" to ids[0], "Silver - Or" to ids[0], "If" to ids[1], "de" to ids[2]).forEach { (term, id) ->
-			assertThat(found(term)).describedAs("«$term»").contains(id)
+			assertThat(found(term)).describedAs("«$term»").containsExactly(id)
 		}
 	}
 
@@ -77,11 +90,34 @@ class RedisSnapViewSearchTest {
 	suspend fun `a page is sorted and bounded, its total the whole match`() {
 		store(listOf("Charlie", "Alpha", "Bravo"))
 
-		val page = view.search<SearchProbeSnap>(null, OffsetPagination(offset = 0, limit = 2), "name", descending = true)
+		val page = view.search(null, OffsetPagination(offset = 0, limit = 2), "name", descending = true)
 
 		assertThat(page.items.map { it.name }).containsExactly("Charlie", "Bravo")
 		assertThat(page.total).isEqualTo(3)
-		assertThat(view.count<SearchProbeSnap>()).isEqualTo(3)
+		assertThat(view.count()).isEqualTo(3)
+	}
+
+	@Test
+	fun `a page larger than one read answers is refused`() {
+		val error = refusal { view.search(null, OffsetPagination(offset = 0, limit = SEARCH_WINDOW + 1), null) }
+
+		assertThat(error.refusal).isEqualTo(SearchRefusal.PAGE_TOO_LARGE)
+		assertThat(error.code).isEqualTo(422)
+		assertThat(error.parameters).containsExactlyInAnyOrderEntriesOf(
+			mapOf("index" to "SearchProbeSnap", "limit" to "${SEARCH_WINDOW + 1}", "bound" to "$SEARCH_WINDOW"),
+		)
+	}
+
+	/** Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut. */
+	@Test
+	suspend fun `a prefix expanding past MAXEXPANSIONS is refused, never cut`() {
+		store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
+
+		val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
+
+		assertThat(error.refusal).isEqualTo(SearchRefusal.TOO_BROAD)
+		assertThat(error.parameters).containsEntry("warning", "Max prefix expansions limit was reached")
+		assertThat(found("ab0")).hasSize(100)
 	}
 
 	@Test
@@ -92,17 +128,8 @@ class RedisSnapViewSearchTest {
 		val text = "Café du Mélézin — Saint-Égrève"
 		val id = store(listOf(text)).single()
 
-		assertThat(view.get<SearchProbeSnap>(id)?.name).isEqualTo(text)
-		assertThat(view.getAll<SearchProbeSnap>(listOf(id)).getValue(id).name).isEqualTo(text)
-		assertThat(view.search<SearchProbeSnap>(null, null, null).items.single().name).isEqualTo(text)
-	}
-
-	open class Named(val name: String)
-
-	class Labelled(name: String, val label: String, val rank: Int) : Named(name)
-
-	@Test
-	fun `the TEXT index of a model takes its String properties, inherited ones included`() {
-		assertThat(view.textFields(Labelled::class).map { it.field }).containsExactlyInAnyOrder("label", "name")
+		assertThat(view.get(id)?.name).isEqualTo(text)
+		assertThat(view.getAll(listOf(id)).getValue(id).name).isEqualTo(text)
+		assertThat(view.search(null, null, null).items.single().name).isEqualTo(text)
 	}
 }

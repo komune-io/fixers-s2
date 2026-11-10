@@ -4,7 +4,7 @@ import s2.dsl.automate.Evt
 import s2.dsl.automate.model.WithS2Id
 import s2.sourcing.dsl.snap.SnapRepository
 
-class SourcingViewExecutorImpl< EVENT, ENTITY, ID : Any>(
+class SourcingViewExecutorImpl<EVENT, ENTITY : Any, ID : Any>(
 	private val evolver: View<EVENT, ENTITY>,
 	private val viewBuilder: ViewLoader<EVENT, ENTITY, ID>,
 	private val viewRepository: SnapRepository<ENTITY, ID>

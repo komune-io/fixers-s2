@@ -21,15 +21,16 @@ class ReloadViewTest {
 		override fun s2State() = State.Only
 	}
 
-	private class View(var count: Long = 0, var deleteFailure: Exception? = null) : RedisSnapRepository<Model> {
+	private class View(
+		var count: Long = 0,
+		var deleteFailure: Exception? = null,
+		override val indexName: String = "Model",
+	) : RedisSnapRepository<Model> {
 		var deleted = 0
 
-		override fun all(): Flow<Model> = emptyFlow()
-		override suspend fun stored(): List<Model> = emptyList()
-		override suspend fun count(): Long = error("emptiness is counted by key")
-		override suspend fun storedCount(): Long = count
-		override suspend fun get(id: String): Model? = null
-		override suspend fun save(entity: Model): Model = entity
+		override fun stored(): Flow<Model> = emptyFlow()
+		override suspend fun count(): Long = error("emptiness is read by key")
+		override suspend fun isEmpty(): Boolean = count == 0L
 		override suspend fun deleteAll(): Int {
 			deleted++
 			deleteFailure?.let { throw it }
@@ -138,5 +139,40 @@ class ReloadViewTest {
 
 		assertThat(thrown).isInstanceOf(CancellationException::class.java).hasMessage("shutting down")
 		assertThat(view.deleted).isZero()
+	}
+
+	@Test
+	suspend fun `every view is reloaded, a failed one included, and the first failure thrown with the others`() {
+		val first = IllegalStateException("first view failed")
+		val third = IllegalStateException("third view failed")
+		val deciders = listOf(Decider(first), Decider(), Decider(third))
+		val reloads = deciders.mapIndexed { i, decider -> ReloadView(View(indexName = "Model$i"), decider) }
+
+		val thrown = runCatching { ReloadView.reloadAll(reloads) }.exceptionOrNull()
+
+		assertThat(deciders.map { it.replayed }).containsExactly(1, 1, 1)
+		assertThat(thrown).isSameAs(first)
+		assertThat(checkNotNull(thrown).suppressed).containsExactly(third)
+	}
+
+	@Test
+	suspend fun `views that all reload throw nothing, and a forced reload reaches every one`() {
+		val views = listOf(View(count = 2), View(count = 1))
+		val deciders = listOf(Decider(), Decider())
+
+		ReloadView.reloadAll(views.zip(deciders).map { (view, decider) -> ReloadView(view, decider) }, forceReload = true)
+
+		assertThat(deciders.map { it.replayed }).containsExactly(1, 1)
+		assertThat(views.map { it.deleted }).containsExactly(1, 1)
+	}
+
+	@Test
+	suspend fun `a cancelled reload stops the others`() {
+		val deciders = listOf(Decider(CancellationException("shutting down")), Decider())
+
+		val thrown = runCatching { ReloadView.reloadAll(deciders.map { ReloadView(View(), it) }) }.exceptionOrNull()
+
+		assertThat(thrown).isInstanceOf(CancellationException::class.java)
+		assertThat(deciders[1].replayed).isZero()
 	}
 }

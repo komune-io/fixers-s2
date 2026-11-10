@@ -1,5 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
+import f2.dsl.cqrs.exception.F2Exception
 import f2.dsl.cqrs.page.OffsetPagination
 import io.lettuce.core.json.DefaultJsonParser
 import io.lettuce.core.search.SearchReply
@@ -25,7 +26,7 @@ class RedisSnapViewReadTest {
 		hits.forEach { addResult(it) }
 	}
 
-	private fun decode(document: String) = Model(document.substringAfter(":\"").substringBefore("\""))
+	private fun decode(hit: Pair<String, String>) = Model(hit.second.substringAfter(":\"").substringBefore("\""))
 
 	private fun whole(total: Long, vararg hits: SearchReply.SearchResult<String>) =
 		RedisSnapView.searchPage("Model", total, reply(*hits).documents(), null, ::decode)
@@ -51,7 +52,7 @@ class RedisSnapViewReadTest {
 	fun `a hit without a document is reported by its key, the others read in order`() {
 		val read = reply(hit("Model-1", """{"id":"1"}"""), hit("Model-2"), hit("Model-3", """{"id":"3"}""")).documents()
 
-		assertThat(read.documents).containsExactly("""{"id":"1"}""", """{"id":"3"}""")
+		assertThat(read.documents).containsExactly("Model-1" to """{"id":"1"}""", "Model-3" to """{"id":"3"}""")
 		assertThat(read.missing).containsExactly("Model-2")
 	}
 
@@ -59,7 +60,7 @@ class RedisSnapViewReadTest {
 	fun `a document is read as UTF-8 whatever the JVM default charset`() {
 		val read = reply(hit("Model-1", """{"id":"Égrève"}""")).documents()
 
-		assertThat(read.documents).containsExactly("""{"id":"Égrève"}""")
+		assertThat(read.documents).containsExactly("Model-1" to """{"id":"Égrève"}""")
 	}
 
 	@Test
@@ -73,29 +74,34 @@ class RedisSnapViewReadTest {
 	@Test
 	fun `a whole read answered fewer hits than its total is refused`() {
 		assertThatThrownBy { whole(3, hit("Model-1", """{"id":"1"}"""), hit("Model-2")) }
-			.isInstanceOfSatisfying(WholeReadRefused.ShortRead::class.java) {
-				assertThat(it.index).isEqualTo("Model")
-				assertThat(it.total).isEqualTo(2)
-				assertThat(it.read).isEqualTo(1)
+			.isInstanceOfSatisfying(F2Exception::class.java) {
+				assertThat(it.error.refusal).isEqualTo(SearchRefusal.SHORT_READ)
+				assertThat(it.error.code).isEqualTo(409)
+				assertThat(it.error.parameters).containsExactlyInAnyOrderEntriesOf(
+					mapOf("index" to "Model", "total" to "2", "read" to "1"),
+				)
 			}
 	}
 
 	@Test
 	fun `a whole read past the window is refused, missing documents or not`() {
 		assertThatThrownBy { whole(SEARCH_WINDOW + 1L, hit("Model-1")) }
-			.isInstanceOfSatisfying(WholeReadRefused.TooManyEntries::class.java) {
-				assertThat(it.total).isEqualTo(SEARCH_WINDOW)
-				assertThat(it.bound).isEqualTo(SEARCH_WINDOW - 1)
+			.isInstanceOfSatisfying(F2Exception::class.java) {
+				assertThat(it.error.refusal).isEqualTo(SearchRefusal.TOO_MANY_ENTRIES)
+				assertThat(it.error.code).isEqualTo(422)
+				assertThat(it.error.parameters).containsExactlyInAnyOrderEntriesOf(
+					mapOf("index" to "Model", "total" to "$SEARCH_WINDOW", "bound" to "${SEARCH_WINDOW - 1}"),
+				)
 			}
 	}
 
 	@Test
-	fun `a page leaves a hit without a document out of its total too, and is never refused`() {
+	fun `a page leaves a hit without a document out of its rows, its total as counted, and is never refused`() {
 		val documents = reply(hit("Model-1", """{"id":"1"}"""), hit("Model-2")).documents()
 
 		val page = RedisSnapView.searchPage("Model", 3, documents, OffsetPagination(offset = 0, limit = 10), ::decode)
 
 		assertThat(page.items).containsExactly(Model("1"))
-		assertThat(page.total).isEqualTo(2)
+		assertThat(page.total).isEqualTo(3)
 	}
 }

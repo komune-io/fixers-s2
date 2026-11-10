@@ -1,7 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.reflect.KClass
 import org.slf4j.LoggerFactory
 import s2.automate.core.sourcing.S2AutomateSourcingDecider
 
@@ -13,29 +12,47 @@ import s2.automate.core.sourcing.S2AutomateSourcingDecider
 class ReloadView<MODEL : Any>(
 	private val view: RedisSnapRepository<MODEL>,
 	private val decider: S2AutomateSourcingDecider<*, *, *, *>,
-	private val model: KClass<MODEL>,
 ) {
 	companion object {
 		private val logger = LoggerFactory.getLogger(ReloadView::class.java)
 
-		inline operator fun <reified MODEL : Any> invoke(
-			view: RedisSnapRepository<MODEL>,
-			decider: S2AutomateSourcingDecider<*, *, *, *>,
-		): ReloadView<MODEL> = ReloadView(view, decider, MODEL::class)
+		/**
+		 * Reloads every one of [reloads], each failure included: a failed view does not keep the next from its
+		 * replay. Once all have run, the first failure is thrown with the others suppressed in it.
+		 */
+		// Every failure of a replay is kept to be rethrown, whatever its type.
+		@Suppress("TooGenericExceptionCaught")
+		suspend fun reloadAll(reloads: List<ReloadView<*>>, forceReload: Boolean = false) {
+			val failures = reloads.mapNotNull { reload ->
+				try {
+					reload.reload(forceReload)
+					null
+				} catch (e: CancellationException) {
+					throw e
+				} catch (e: Exception) {
+					e
+				}
+			}
+			failures.firstOrNull()?.let { first ->
+				failures.drop(1).forEach(first::addSuppressed)
+				throw first
+			}
+		}
 	}
 
 	/**
 	 * Replays the history into the view when it stores no snapshot or [forceReload] is set, emptying it first.
-	 * Emptiness is counted by key, not through the index, which may hold fewer. A failed replay empties the view,
-	 * then rethrows; a view that cannot be emptied adds that failure to it as suppressed.
+	 * Emptiness is read by key, not through the index. A failed replay empties the view, then rethrows; a view that
+	 * cannot be emptied adds that failure to it as suppressed.
 	 */
+	// Any failure of the replay leaves the view half written: it is emptied whatever the failure, then rethrown.
+	@Suppress("TooGenericExceptionCaught")
 	suspend fun reload(forceReload: Boolean = false) {
-		val name = model.java.name
-		val count = view.storedCount()
-		if (!forceReload && count != 0L) return
-		if (count != 0L) {
-			val deleted = view.deleteAll()
-			logger.info("Replay - {} - deleted {} snapshots", name, deleted)
+		val name = view.indexName
+		val empty = view.isEmpty()
+		if (!forceReload && !empty) return
+		if (!empty) {
+			logger.info("Replay - {} - deleted {} snapshots", name, view.deleteAll())
 		}
 		try {
 			logger.info("Replaying event history - {}", name)
@@ -50,6 +67,8 @@ class ReloadView<MODEL : Any>(
 		}
 	}
 
+	// The emptying failure joins the replay's, which is the one rethrown.
+	@Suppress("TooGenericExceptionCaught")
 	private suspend fun empty(failure: Exception) {
 		try {
 			view.deleteAll()

@@ -1,10 +1,12 @@
 package s2.spring.sourcing.snap.redis
 
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisCommandExecutionException
 import io.lettuce.core.RedisURI
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.codec.StringCodec
 import io.lettuce.core.protocol.CommandArgs
+import kotlin.reflect.KClass
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.utility.DockerImageName
 
@@ -12,7 +14,7 @@ import org.testcontainers.utility.DockerImageName
 object RedisStack {
 	private const val PORT = 6379
 	private const val IMAGE =
-		"redis/redis-stack:6.2.2-v2-edge@sha256:eb0bd59d722b089875c878e88b92bd6de79033242b1e4da8b6e8d789fc284df1"
+		"redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7"
 
 	private val container: GenericContainer<*> by lazy {
 		GenericContainer(DockerImageName.parse(IMAGE)).withExposedPorts(PORT).also { it.start() }
@@ -26,20 +28,23 @@ object RedisStack {
 
 	val connection: StatefulRedisConnection<String, String> by lazy { client.connect() }
 
-	val settings = IndexSettings(IndexLanguage.FRENCH, PhoneticMatcher.FRENCH)
+	val settings = IndexSettings(PhoneticMatcher.FRENCH)
 
-	fun view(
+	fun <MODEL : Any> view(
+		model: KClass<MODEL>,
+		fields: List<RedisIndexField>,
+		idOf: (MODEL) -> String,
 		connection: StatefulRedisConnection<String, String> = this.connection,
 		settings: IndexSettings = this.settings,
-	) =
-		RedisSnapView(connection, settings)
+	) = RedisSnapView(connection, settings, model, fields, idOf)
 }
 
-/** Drops a probe index, never its documents; an index already absent is not an error. */
-internal suspend inline fun <reified MODEL> RedisSnapView.dropIndex() {
+/** Drops a probe index and the definition written next to it, never its documents; an absent index is no error. */
+internal suspend fun RedisSnapView<*>.dropIndex() {
 	try {
-		dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add(checkNotNull(MODEL::class.simpleName)))
-	} catch (e: Exception) {
+		dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add(indexName))
+	} catch (e: RedisCommandExecutionException) {
 		if (!e.isIndexAbsent()) throw e
 	}
+	RedisStack.connection.sync().del("$indexName:definition")
 }

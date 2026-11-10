@@ -1,6 +1,7 @@
 package s2.spring.sourcing.snap.redis
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 /**
@@ -79,22 +80,14 @@ class QueryTextTest {
 	}
 
 	@Test
-	fun `every word of the term opens a word of the name, accents and case aside`() {
-		assertThat(IndexWords.holds("Monnet-Sève Sougy", "monnet seve")).isTrue()
-		assertThat(IndexWords.holds("Monnet-Sève Sougy", "SOUG")).isTrue()
-		assertThat(IndexWords.holds("Monnet-Sève Sougy", "monnet lac")).isFalse()
-		assertThat(IndexWords.holds("Monnet-Sève Sougy", "onnet")).isFalse()
-	}
-
-	@Test
-	fun `a word under the minimum prefix opens only the same word`() {
-		assertThat(IndexWords.holds("A Lac", "a")).isTrue()
-		assertThat(IndexWords.holds("Atelier Lac", "a")).isFalse()
-		assertThat(IndexWords.holds("Atelier Lac", "at")).isTrue()
-	}
-
-	@Test
-	fun `a term without a word holds nothing`() {
-		assertThat(IndexWords.holds("Atelier Lac", " - ")).isFalse()
+	fun `a tag clause refuses an empty value, no value or an attribute name that is not one`() {
+		assertThatThrownBy { tagClause("status", "") }.isInstanceOf(IllegalArgumentException::class.java)
+		assertThatThrownBy { tagClause("status", emptyList()) }.isInstanceOf(IllegalArgumentException::class.java)
+		assertThatThrownBy { tagClause("status", listOf("Open", "")) }.isInstanceOf(IllegalArgumentException::class.java)
+		listOf("", "a b", "a}|@b", "1st", "@status").forEach { field ->
+			assertThatThrownBy { tagClause(field, "x") }
+				.describedAs("«$field»")
+				.isInstanceOf(IllegalArgumentException::class.java)
+		}
 	}
 }
