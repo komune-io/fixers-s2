@@ -65,7 +65,4 @@ fixers {
             property("sonar.cpd.exclusions", "**/sample/**")
         }
     }
-    repositories {
-        sonatypeSnapshots = true
-    }
 }

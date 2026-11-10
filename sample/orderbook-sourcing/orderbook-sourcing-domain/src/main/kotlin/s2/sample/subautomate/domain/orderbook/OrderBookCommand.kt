@@ -1,4 +1,4 @@
-package s2.sample.subautomate.domain.orderBook
+package s2.sample.subautomate.domain.orderbook
 
 import f2.dsl.fnc.F2Function
 import kotlinx.serialization.SerialName

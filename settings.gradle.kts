@@ -1,32 +1,13 @@
 pluginManagement {
     repositories {
-        if(System.getenv("FIXERS_REPOSITORIES_MAVEN_LOCAL") == "true") {
-            mavenLocal()
-        }
         gradlePluginPortal()
         mavenCentral()
         maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
     }
 }
 
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
-        if(System.getenv("FIXERS_REPOSITORIES_MAVEN_LOCAL") == "true") {
-            mavenLocal()
-        }
-    }
-    versionCatalogs {
-        val fixersVersion = file("gradle/libs.versions.toml")
-            .readLines()
-            .firstNotNullOfOrNull {
-                Regex("^fixers\\s*=\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1)
-            } ?: error("fixers version not found in gradle/libs.versions.toml")
-        create("catalogue") {
-            from("io.komune.f2:f2-gradle-catalog:$fixersVersion")
-        }
-    }
+plugins {
+    id("io.komune.fixers.gradle.settings") version "0.47.0-SNAPSHOT"
 }
 
 rootProject.name = "fixers-s2"
