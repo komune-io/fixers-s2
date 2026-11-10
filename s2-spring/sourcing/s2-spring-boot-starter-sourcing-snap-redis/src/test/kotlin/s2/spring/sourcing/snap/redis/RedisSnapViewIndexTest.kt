@@ -76,7 +76,7 @@ class RedisSnapViewIndexTest {
 
 			view.initIndex()
 
-			assertThat(view.indexInfo(ALIAS)).isNotNull()
+			assertThat(view.index.info(ALIAS)).isNotNull()
 			assertThat(messages().map { it.level }).containsExactly(Level.DEBUG)
 		} finally {
 			sync.ftAliasdel(ALIAS)
@@ -151,7 +151,7 @@ class RedisSnapViewIndexTest {
 			IndexDefinition.of("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
 		)
 
-		assertThatThrownBy { runBlocking { view.awaitIndexed(1.milliseconds) } }
+		assertThatThrownBy { runBlocking { view.index.awaitIndexed(1.milliseconds) } }
 			.isInstanceOf(IllegalStateException::class.java)
 			.hasMessage("Index[IndexProbeSnap] still indexing after 1ms")
 	}
