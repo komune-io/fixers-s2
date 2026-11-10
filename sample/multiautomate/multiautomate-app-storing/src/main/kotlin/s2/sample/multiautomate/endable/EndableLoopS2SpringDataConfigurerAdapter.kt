@@ -10,16 +10,16 @@ import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 @Configuration
 class EndableLoopS2SpringDataConfigurerAdapter(
-	repository: EndableLoopRepository,
+    repository: EndableLoopRepository,
 ) : S2SpringDataReactiveConfigurerAdapter<
-		EndableLoopState, EndableLoopId, EndableLoopEntity, EndableLoopS2Aggregate
-		>(repository) {
-	override fun automate() = endableLoopS2()
+        EndableLoopState, EndableLoopId, EndableLoopEntity, EndableLoopS2Aggregate
+        >(repository) {
+    override fun automate() = endableLoopS2()
 
-	@Autowired
-	lateinit var endableLoopS2Aggregate: EndableLoopS2Aggregate
+    @Autowired
+    lateinit var endableLoopS2Aggregate: EndableLoopS2Aggregate
 
-	override fun executor(): EndableLoopS2Aggregate = endableLoopS2Aggregate
+    override fun executor(): EndableLoopS2Aggregate = endableLoopS2Aggregate
 }
 
 @Service

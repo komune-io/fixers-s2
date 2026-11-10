@@ -7,12 +7,12 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 class Logger<in R : Any> : ReadOnlyProperty<R, Logger> {
-	override fun getValue(thisRef: R, property: KProperty<*>) =
-		LoggerFactory.getLogger(getClassForLogging(thisRef.javaClass))!!
+    override fun getValue(thisRef: R, property: KProperty<*>) =
+        LoggerFactory.getLogger(getClassForLogging(thisRef.javaClass))!!
 }
 
 fun <T : Any> getClassForLogging(javaClass: Class<T>): Class<*> {
-	return javaClass.enclosingClass?.takeIf {
-		it.kotlin.companionObject?.java == javaClass
-	} ?: javaClass
+    return javaClass.enclosingClass?.takeIf {
+        it.kotlin.companionObject?.java == javaClass
+    } ?: javaClass
 }

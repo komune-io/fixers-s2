@@ -22,86 +22,86 @@ import s2.sourcing.dsl.event.EventRepository
 import s2.spring.sourcing.data.event.EventSourcing
 
 class R2dbcEventRepository<EVENT, ID : Any>(
-	private val json: Json,
-	private val databaseClient: DatabaseClient,
-	private val r2dbcEntityTemplate: R2dbcEntityTemplate,
-	private val eventType: KClass<EVENT>,
+    private val json: Json,
+    private val databaseClient: DatabaseClient,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val eventType: KClass<EVENT>,
 
-	private val tableName: String =
-		"s2_event_sourcing_${requireNotNull(eventType.simpleName) { "An event class needs a name" }}".lowercase()
+    private val tableName: String =
+        "s2_event_sourcing_${requireNotNull(eventType.simpleName) { "An event class needs a name" }}".lowercase()
 ) : EventRepository<EVENT, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID>
 {
-	private val sortByCreatedDate = Sort.by(
-		Sort.Order.asc("created_date")
-	)
+    private val sortByCreatedDate = Sort.by(
+        Sort.Order.asc("created_date")
+    )
 
-	override fun load(id: ID): Flow<EVENT> {
-		val query = Query
-			.query(Criteria.where("obj_id").`is`(id))
-			.sort(sortByCreatedDate)
-		return selectEvents(query)
-	}
+    override fun load(id: ID): Flow<EVENT> {
+        val query = Query
+            .query(Criteria.where("obj_id").`is`(id))
+            .sort(sortByCreatedDate)
+        return selectEvents(query)
+    }
 
-	override fun loadAll(): Flow<EVENT> {
-		val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
-		return selectEvents(query)
-	}
+    override fun loadAll(): Flow<EVENT> {
+        val query = Query.query(Criteria.empty()).sort(sortByCreatedDate)
+        return selectEvents(query)
+    }
 
-	override fun persist(events: Flow<EVENT>): Flow<EVENT> {
-		return events.map { event ->
-			insert(event)
-		}
-	}
+    override fun persist(events: Flow<EVENT>): Flow<EVENT> {
+        return events.map { event ->
+            insert(event)
+        }
+    }
 
-	override suspend fun createTable() {
-		val createScript = """
-			CREATE TABLE IF NOT EXISTS ${tableName} (
-			      id VARCHAR(255) PRIMARY KEY,
-			      obj_id VARCHAR(255) NOT NULL,
-			      event text NOT NULL,
-			      created_by VARCHAR(255),
-			      created_date TIMESTAMP,
-			      last_modified_by VARCHAR(255),
-			      last_modified_date TIMESTAMP,
-			      version INTEGER
-			);
+    override suspend fun createTable() {
+        val createScript = """
+            CREATE TABLE IF NOT EXISTS ${tableName} (
+                  id VARCHAR(255) PRIMARY KEY,
+                  obj_id VARCHAR(255) NOT NULL,
+                  event text NOT NULL,
+                  created_by VARCHAR(255),
+                  created_date TIMESTAMP,
+                  last_modified_by VARCHAR(255),
+                  last_modified_date TIMESTAMP,
+                  version INTEGER
+            );
 
-		""".trimIndent()
+        """.trimIndent()
 
-		databaseClient.sql(createScript)
-			.then().awaitFirstOrNull()
-	}
+        databaseClient.sql(createScript)
+            .then().awaitFirstOrNull()
+    }
 
-	override suspend fun persist(event: EVENT): EVENT = insert(event)
+    override suspend fun persist(event: EVENT): EVENT = insert(event)
 
-	private fun selectEvents(query: Query): Flow<EVENT> {
-		return r2dbcEntityTemplate.select(EventSourcing::class.java)
-			.from(tableName)
-			.matching(query)
-			.flow().toEvents()
-	}
+    private fun selectEvents(query: Query): Flow<EVENT> {
+        return r2dbcEntityTemplate.select(EventSourcing::class.java)
+            .from(tableName)
+            .matching(query)
+            .flow().toEvents()
+    }
 
-	@OptIn(InternalSerializationApi::class)
-	private suspend fun insert(event: EVENT): EVENT {
-		val encoded = json.encodeToString(eventType.serializer(), event)
-		return r2dbcEntityTemplate.insert(EventSourcing::class.java)
-			.into(tableName)
-			.using(EventSourcing(
-				id = UUID.randomUUID().toString(),
-				objId = event.s2Id(),
-				event = encoded
-			)).toEvent().awaitSingle()
-	}
+    @OptIn(InternalSerializationApi::class)
+    private suspend fun insert(event: EVENT): EVENT {
+        val encoded = json.encodeToString(eventType.serializer(), event)
+        return r2dbcEntityTemplate.insert(EventSourcing::class.java)
+            .into(tableName)
+            .using(EventSourcing(
+                id = UUID.randomUUID().toString(),
+                objId = event.s2Id(),
+                event = encoded
+            )).toEvent().awaitSingle()
+    }
 
-	@OptIn(InternalSerializationApi::class)
-	private fun Flow<EventSourcing<*>>.toEvents(): Flow<EVENT> = map {
-		json.decodeFromString(eventType.serializer(), it.event)
-	}
+    @OptIn(InternalSerializationApi::class)
+    private fun Flow<EventSourcing<*>>.toEvents(): Flow<EVENT> = map {
+        json.decodeFromString(eventType.serializer(), it.event)
+    }
 
-	@OptIn(InternalSerializationApi::class)
-	private fun Mono<EventSourcing<*>>.toEvent(): Mono<EVENT> = map {
-		json.decodeFromString(eventType.serializer(), it.event)
-	}
+    @OptIn(InternalSerializationApi::class)
+    private fun Mono<EventSourcing<*>>.toEvent(): Mono<EVENT> = map {
+        json.decodeFromString(eventType.serializer(), it.event)
+    }
 }

@@ -10,15 +10,15 @@ import org.springframework.context.annotation.Configuration
 // and @Configuration classes must be subclassable for CGLIB proxying.
 @Configuration
 open class RedisConfig(
-	@Value("\${spring.data.redis.host:localhost}")
-	private val redisHost: String,
-	@Value("\${spring.data.redis.port:6379}")
-	private val redisPort: Int,
+    @Value("\${spring.data.redis.host:localhost}")
+    private val redisHost: String,
+    @Value("\${spring.data.redis.port:6379}")
+    private val redisPort: Int,
 ) {
 
-	@Bean(destroyMethod = "shutdown")
-	open fun redisClient(): RedisClient = RedisClient.create("redis://$redisHost:$redisPort")
+    @Bean(destroyMethod = "shutdown")
+    open fun redisClient(): RedisClient = RedisClient.create("redis://$redisHost:$redisPort")
 
-	@Bean(destroyMethod = "close")
-	open fun redisConnection(client: RedisClient): StatefulRedisConnection<String, String> = client.connect()
+    @Bean(destroyMethod = "close")
+    open fun redisConnection(client: RedisClient): StatefulRedisConnection<String, String> = client.connect()
 }

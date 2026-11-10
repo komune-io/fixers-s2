@@ -5,7 +5,7 @@ package s2.dsl.automate.extention
  * `{ name, ordinal, position }`; only that shape is read, not any object with a `name`.
  */
 internal actual fun enumCopyName(value: Any): String? {
-	val copy = value.asDynamic()
-	val name = copy.name
-	return if (name is String && copy.ordinal is Number) name else null
+    val copy = value.asDynamic()
+    val name = copy.name
+    return if (name is String && copy.ordinal is Number) name else null
 }

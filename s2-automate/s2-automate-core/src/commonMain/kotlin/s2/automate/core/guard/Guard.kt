@@ -14,39 +14,39 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	/**
-	 * Evaluate a guard condition before init transition.
-	 *
-	 * @param context the state context init
-	 * @return true, if guard evaluation is successful, false otherwise.
-	 */
-	suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>): GuardResult
+    /**
+     * Evaluate a guard condition before init transition.
+     *
+     * @param context the state context init
+     * @return true, if guard evaluation is successful, false otherwise.
+     */
+    suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>): GuardResult
 
-	/**
-	 * Evaluate a guard condition for transition.
-	 *
-	 * @param context the state context transaction
-	 * @return true, if guard evaluation is successful, false otherwise.
-	 */
-	suspend fun <COMMAND: Cmd> evaluateTransition(
-		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
-	): GuardResult
+    /**
+     * Evaluate a guard condition for transition.
+     *
+     * @param context the state context transaction
+     * @return true, if guard evaluation is successful, false otherwise.
+     */
+    suspend fun <COMMAND: Cmd> evaluateTransition(
+        context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
+    ): GuardResult
 
-	/**
-	 * Verify a guard condition after init transition has been applied.
-	 *
-	 * @param context the state context init
-	 * @return true, if guard evaluation is successful, false otherwise.
-	 */
-	suspend fun verifyInitTransition(
-		context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
-	): GuardResult
+    /**
+     * Verify a guard condition after init transition has been applied.
+     *
+     * @param context the state context init
+     * @return true, if guard evaluation is successful, false otherwise.
+     */
+    suspend fun verifyInitTransition(
+        context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+    ): GuardResult
 
-	/**
-	 * Verify a guard condition after init transition has been applied.
-	 *
-	 * @param context the state context init
-	 * @return true, if guard evaluation is successful, false otherwise.
-	 */
-	suspend fun verifyTransition(context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>): GuardResult
+    /**
+     * Verify a guard condition after init transition has been applied.
+     *
+     * @param context the state context init
+     * @return true, if guard evaluation is successful, false otherwise.
+     */
+    suspend fun verifyTransition(context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>): GuardResult
 }

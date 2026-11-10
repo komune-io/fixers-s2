@@ -1,11 +1,11 @@
 plugins {
-	alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
-	alias(catalogue.plugins.fixers.gradle.publish)
+    alias(catalogue.plugins.fixers.gradle.kotlin.jvm)
+    alias(catalogue.plugins.fixers.gradle.publish)
 }
 
 dependencies {
-	implementation(project(":s2-automate:s2-automate-dsl"))
-	api(libs.kotlinx.serialization.json)
+    implementation(project(":s2-automate:s2-automate-dsl"))
+    api(libs.kotlinx.serialization.json)
 
-	testImplementation(libs.bundles.test.junit)
+    testImplementation(libs.bundles.test.junit)
 }

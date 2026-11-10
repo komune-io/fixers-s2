@@ -4,5 +4,5 @@ import kotlin.js.JsExport
 
 @JsExport
 interface S2State {
-	val position: Int
+    val position: Int
 }

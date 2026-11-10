@@ -13,11 +13,11 @@ import s2.spring.sourcing.data.S2SourcingSpringDataAdapter
 
 @Configuration
 class OrderBookAutomateConfig(
-	orderBookS2Aggregate: OrderBookS2Aggregate,
-	orderBookSnapView: OrderBookSnapView
+    orderBookS2Aggregate: OrderBookS2Aggregate,
+    orderBookSnapView: OrderBookSnapView
 ): S2SourcingSpringDataAdapter<OrderBook, OrderBookState, OrderBookEvent, OrderBookId, OrderBookS2Aggregate>(
-	orderBookS2Aggregate, OrderBookModelView(), orderBookSnapView
+    orderBookS2Aggregate, OrderBookModelView(), orderBookSnapView
 ) {
-	override fun automate() = orderBookAutomate("sourcing-r2dbc")
-	override fun entityType() = OrderBookEvent::class
+    override fun automate() = orderBookAutomate("sourcing-r2dbc")
+    override fun entityType() = OrderBookEvent::class
 }

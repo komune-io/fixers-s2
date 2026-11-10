@@ -5,14 +5,14 @@ package s2.spring.sourcing.snap.redis
  * phonetic matcher, chosen by the consumer, hears one language only.
  */
 class IndexSettings(
-	/** The phonetic matcher of every TEXT attribute; `null` for none. */
-	val phonetic: PhoneticMatcher?,
+    /** The phonetic matcher of every TEXT attribute; `null` for none. */
+    val phonetic: PhoneticMatcher?,
 )
 
 /** RediSearch's Double Metaphone matchers, as `FT.CREATE … PHONETIC` takes them. */
 enum class PhoneticMatcher(val value: String) {
-	ENGLISH("dm:en"),
-	FRENCH("dm:fr"),
-	PORTUGUESE("dm:pt"),
-	SPANISH("dm:es"),
+    ENGLISH("dm:en"),
+    FRENCH("dm:fr"),
+    PORTUGUESE("dm:pt"),
+    SPANISH("dm:es"),
 }

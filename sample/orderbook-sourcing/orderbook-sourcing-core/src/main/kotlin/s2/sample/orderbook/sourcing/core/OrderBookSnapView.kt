@@ -10,11 +10,11 @@ import s2.spring.sourcing.snap.redis.RedisSnapView
 
 @Component
 class OrderBookSnapView(
-	connection: StatefulRedisConnection<String, String>,
+    connection: StatefulRedisConnection<String, String>,
 ) : RedisSnapView<OrderBook>(
-	connection,
-	IndexSettings(phonetic = null),
-	OrderBook::class,
-	listOf(RedisIndexField(OrderBook::id.name, RedisFieldType.TAG)),
-	OrderBook::id,
+    connection,
+    IndexSettings(phonetic = null),
+    OrderBook::class,
+    listOf(RedisIndexField(OrderBook::id.name, RedisFieldType.TAG)),
+    OrderBook::id,
 )

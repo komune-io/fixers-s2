@@ -10,15 +10,15 @@ import org.springframework.beans.factory.SmartInitializingSingleton
  * which all search the views. A view that cannot make or read its index fails the start.
  */
 class RedisIndexes(private val indexes: List<RedisIndexInitializer>) : SmartInitializingSingleton {
-	init {
-		val shared = indexes.groupBy { it.indexName }.filterValues { it.size > 1 }.keys
-		require(shared.isEmpty()) { "Two views make the same index, their models sharing a name: $shared" }
-	}
+    init {
+        val shared = indexes.groupBy { it.indexName }.filterValues { it.size > 1 }.keys
+        require(shared.isEmpty()) { "Two views make the same index, their models sharing a name: $shared" }
+    }
 
-	override fun afterSingletonsInstantiated() = runBlocking { create() }
+    override fun afterSingletonsInstantiated() = runBlocking { create() }
 
-	/** Makes every index at once and waits for them all; the first failure cancels the others and is thrown. */
-	suspend fun create() = coroutineScope {
-		indexes.forEach { launch { it.initIndex() } }
-	}
+    /** Makes every index at once and waits for them all; the first failure cancels the others and is thrown. */
+    suspend fun create() = coroutineScope {
+        indexes.forEach { launch { it.initIndex() } }
+    }
 }

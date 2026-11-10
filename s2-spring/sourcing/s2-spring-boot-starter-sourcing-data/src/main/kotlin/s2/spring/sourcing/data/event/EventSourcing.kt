@@ -16,24 +16,24 @@ import org.springframework.data.annotation.Version
 @MappedSuperclass
 @EntityListeners
 class EventSourcing<ID : Any>(
-	@Id
-	val id: String,
-	val objId: ID,
-	val event: String,
+    @Id
+    val id: String,
+    val objId: ID,
+    val event: String,
 ) {
-	/** Audit columns, set by Spring Data auditing when enabled. */
-	@CreatedBy
-	var createdBy: String? = null
+    /** Audit columns, set by Spring Data auditing when enabled. */
+    @CreatedBy
+    var createdBy: String? = null
 
-	@CreatedDate
-	var createdDate: LocalDateTime? = null
+    @CreatedDate
+    var createdDate: LocalDateTime? = null
 
-	@LastModifiedBy
-	var lastModifiedBy: String? = null
+    @LastModifiedBy
+    var lastModifiedBy: String? = null
 
-	@LastModifiedDate
-	var lastModifiedDate: LocalDateTime? = null
+    @LastModifiedDate
+    var lastModifiedDate: LocalDateTime? = null
 
-	@Version
-	var version: Int? = null
+    @Version
+    var version: Int? = null
 }

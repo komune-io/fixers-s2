@@ -9,5 +9,5 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 class SubAutomateR2dbcApp
 
 fun main(vararg args: String) {
-	runApplication<SubAutomateR2dbcApp>(*args)
+    runApplication<SubAutomateR2dbcApp>(*args)
 }

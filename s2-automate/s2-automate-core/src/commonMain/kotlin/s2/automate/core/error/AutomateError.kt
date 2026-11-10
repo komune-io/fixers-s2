@@ -4,23 +4,23 @@ import s2.dsl.automate.S2Error
 import s2.dsl.automate.s2error
 
 fun unknownError(e: Exception) =
-	s2error("ERROR_UNKNOWN",
-		"An unknown error has occurred.",
-			cause = e
-		)
+    s2error("ERROR_UNKNOWN",
+        "An unknown error has occurred.",
+            cause = e
+        )
 
 fun invalidTransitionError(state: String, command: String) =
-	s2error("ERROR_INVALID_TRANSITION",
-		"Not available transition from $state with command $command",
-		mapOf("from" to state, "command" to command))
+    s2error("ERROR_INVALID_TRANSITION",
+        "Not available transition from $state with command $command",
+        mapOf("from" to state, "command" to command))
 
 fun invalidInitTransitionError(command: String) =
-	s2error("ERROR_INVALID_INIT_TRANSITION",
-		"Not available init transition with command $command",
-		mapOf("command" to command))
+    s2error("ERROR_INVALID_INIT_TRANSITION",
+        "Not available init transition with command $command",
+        mapOf("command" to command))
 
 fun entityNotFoundError(id: String) =
-	s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
+    s2error("ERROR_ENTITY_NOT_FOUND", "Entity with id[$id] not found", mapOf("id" to id))
 
 /**
  * Several commands within the same batch target the same entity id. The engine loads each
@@ -38,13 +38,13 @@ fun duplicateCommandIdsError(ids: Collection<String>) =
     )
 
 fun persisterEventCountError(expected: Int, actual: Int) =
-	s2error(
-		code = "ERROR_PERSISTER_EVENT_COUNT",
-		description = "Persister contract violation: expected $expected persisted event(s) " +
-			"for the chunk but received $actual. AutomatePersister.persist must emit exactly " +
-			"one event per received context, in the same order.",
-		payload = mapOf("expected" to expected.toString(), "actual" to actual.toString()),
-	)
+    s2error(
+        code = "ERROR_PERSISTER_EVENT_COUNT",
+        description = "Persister contract violation: expected $expected persisted event(s) " +
+            "for the chunk but received $actual. AutomatePersister.persist must emit exactly " +
+            "one event per received context, in the same order.",
+        payload = mapOf("expected" to expected.toString(), "actual" to actual.toString()),
+    )
 
 /**
  * The caller holds none of the roles the automate declares for the attempted transition.
@@ -72,5 +72,5 @@ fun persistLambdaThrowError(cause: Throwable) =
 fun S2Error.asException() = AutomateException(listOf(this), this.cause)
 
 fun S2Error.throwException() {
-	throw AutomateException(listOf(this))
+    throw AutomateException(listOf(this))
 }

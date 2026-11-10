@@ -5,11 +5,11 @@ import s2.automate.core.config.S2BatchProperties
 
 
 class AutomateContext<AUTOMATE>(
-	val automate: AUTOMATE,
-	val batch: S2BatchProperties
+    val automate: AUTOMATE,
+    val batch: S2BatchProperties
 )
 
 fun S2BatchProperties.asBatch() = Batch(
-	size = size,
-	concurrency = concurrency
+    size = size,
+    concurrency = concurrency
 )

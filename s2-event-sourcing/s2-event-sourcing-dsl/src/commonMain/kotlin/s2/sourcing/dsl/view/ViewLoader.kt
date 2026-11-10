@@ -11,69 +11,69 @@ import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
 open class ViewLoader<EVENT, ENTITY, ID : Any>(
-	private val eventRepository: EventRepository<EVENT, ID>,
-	private val view: View<EVENT, ENTITY>
+    private val eventRepository: EventRepository<EVENT, ID>,
+    private val view: View<EVENT, ENTITY>
 ): Loader<EVENT, ENTITY, ID> where
 EVENT: Evt,
 EVENT: WithS2Id<ID> {
 
-	override suspend fun load(id: ID): ENTITY? {
-		val events = eventRepository.load(id)
-		return load(events)
-	}
+    override suspend fun load(id: ID): ENTITY? {
+        val events = eventRepository.load(id)
+        return load(events)
+    }
 
-	override suspend fun load(events: Flow<EVENT>): ENTITY? {
-		return evolve(events, null)
-	}
+    override suspend fun load(events: Flow<EVENT>): ENTITY? {
+        return evolve(events, null)
+    }
 
-	override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
-		return eventRepository.load(id).let { events ->
-			load(events)
-		}.let { entity ->
-			evolve(news, entity)
-		}
-	}
+    override suspend fun loadAndEvolve(id: ID, news: Flow<EVENT>): ENTITY? {
+        return eventRepository.load(id).let { events ->
+            load(events)
+        }.let { entity ->
+            evolve(news, entity)
+        }
+    }
 
-	override suspend fun evolve(events: Flow<EVENT>, entity: ENTITY?): ENTITY? {
-		return events.fold(entity) { updated, event ->
-			view.evolve(event, updated)
-		}
-	}
+    override suspend fun evolve(events: Flow<EVENT>, entity: ENTITY?): ENTITY? {
+        return events.fold(entity) { updated, event ->
+            view.evolve(event, updated)
+        }
+    }
 
-	override suspend fun reloadHistory(): List<ENTITY> {
-		return eventRepository.loadAll()
-			.groupByOrdered(
-				{ event -> event.s2Id() },
-				{ a, b ->
-					when {
-						a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
-							// Both events are of the same class, so each compares to the other.
-							@Suppress("UNCHECKED_CAST")
-							(a as Comparable<Any>).compareTo(b)
-						}
+    override suspend fun reloadHistory(): List<ENTITY> {
+        return eventRepository.loadAll()
+            .groupByOrdered(
+                { event -> event.s2Id() },
+                { a, b ->
+                    when {
+                        a is Comparable<*> && b is Comparable<*> && a::class == b::class -> {
+                            // Both events are of the same class, so each compares to the other.
+                            @Suppress("UNCHECKED_CAST")
+                            (a as Comparable<Any>).compareTo(b)
+                        }
 
-						else -> 0
-					}
-				}
-			)
-			.values.asFlow()
-			.mapNotNull { events -> load(events.asFlow()) }
-			.toList()
-	}
+                        else -> 0
+                    }
+                }
+            )
+            .values.asFlow()
+            .mapNotNull { events -> load(events.asFlow()) }
+            .toList()
+    }
 
-	/**
-	 * Groups the flow's elements by key, keys in first-seen order, each group sorted with
-	 * [comparator] (a stable sort: elements the comparator ties keep their emission order).
-	 */
-	private suspend fun <T, K> Flow<T>.groupByOrdered(
-		keySelector: suspend (T) -> K,
-		comparator: Comparator<T>,
-	): Map<K, List<T>> {
-		val groups = linkedMapOf<K, MutableList<T>>()
-		collect { value ->
-			groups.getOrPut(keySelector(value)) { mutableListOf() }.add(value)
-		}
-		return groups.mapValues { (_, values) -> values.sortedWith(comparator) }
-	}
+    /**
+     * Groups the flow's elements by key, keys in first-seen order, each group sorted with
+     * [comparator] (a stable sort: elements the comparator ties keep their emission order).
+     */
+    private suspend fun <T, K> Flow<T>.groupByOrdered(
+        keySelector: suspend (T) -> K,
+        comparator: Comparator<T>,
+    ): Map<K, List<T>> {
+        val groups = linkedMapOf<K, MutableList<T>>()
+        collect { value ->
+            groups.getOrPut(keySelector(value)) { mutableListOf() }.add(value)
+        }
+        return groups.mapValues { (_, values) -> values.sortedWith(comparator) }
+    }
 
 }

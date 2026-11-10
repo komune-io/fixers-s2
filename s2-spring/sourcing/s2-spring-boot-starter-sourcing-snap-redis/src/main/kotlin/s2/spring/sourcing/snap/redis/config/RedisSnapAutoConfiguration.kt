@@ -11,8 +11,8 @@ import s2.spring.sourcing.snap.redis.RedisIndexes
 @AutoConfiguration
 open class RedisSnapAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	open fun redisIndexes(indexes: ObjectProvider<RedisIndexInitializer>): RedisIndexes =
-		RedisIndexes(indexes.orderedStream().toList())
+    @Bean
+    @ConditionalOnMissingBean
+    open fun redisIndexes(indexes: ObjectProvider<RedisIndexInitializer>): RedisIndexes =
+        RedisIndexes(indexes.orderedStream().toList())
 }

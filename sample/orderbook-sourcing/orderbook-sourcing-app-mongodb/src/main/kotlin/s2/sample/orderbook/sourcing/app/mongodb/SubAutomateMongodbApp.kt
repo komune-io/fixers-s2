@@ -11,5 +11,5 @@ import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRep
 class SubAutomateMongodbApp
 
 fun main(vararg args: String) {
-	runApplication<SubAutomateMongodbApp>(*args)
+    runApplication<SubAutomateMongodbApp>(*args)
 }

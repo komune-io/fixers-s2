@@ -13,7 +13,7 @@ interface AppEvent
  * @param state the state
  */
 class AutomateStateEntered(
-	val state: S2State,
+    val state: S2State,
 ) : AppEvent
 
 /**
@@ -22,7 +22,7 @@ class AutomateStateEntered(
  * @param state the state
  */
 class AutomateStateExited(
-	val state: S2State,
+    val state: S2State,
 ) : AppEvent
 
 /**
@@ -31,8 +31,8 @@ class AutomateStateExited(
  * @param event the event
  */
 class AutomateTransitionNotAccepted(
-	val from: S2State?,
-	val msg: Msg,
+    val from: S2State?,
+    val msg: Msg,
 ) : AppEvent
 
 /**
@@ -41,7 +41,7 @@ class AutomateTransitionNotAccepted(
  * @param transition the transition
  */
 class AutomateInitTransitionStarted(
-	val msg: Msg,
+    val msg: Msg,
 ) : AppEvent
 
 /**
@@ -50,11 +50,11 @@ class AutomateInitTransitionStarted(
  * @param transition the transition
  */
 class AutomateInitTransitionEnded<STATE, ENTITY>(
-	val to: STATE,
-	val msg: Msg,
-	val entity: ENTITY,
+    val to: STATE,
+    val msg: Msg,
+    val entity: ENTITY,
 ) : AppEvent
-		where STATE : S2State, ENTITY : WithS2State<STATE>
+        where STATE : S2State, ENTITY : WithS2State<STATE>
 
 /**
  * Notification when transition started.
@@ -62,8 +62,8 @@ class AutomateInitTransitionEnded<STATE, ENTITY>(
  * @param transition the transition
  */
 class AutomateTransitionStarted(
-	val from: S2State,
-	val msg: Msg,
+    val from: S2State,
+    val msg: Msg,
 ) : AppEvent
 
 /**
@@ -72,12 +72,12 @@ class AutomateTransitionStarted(
  * @param transition the transition
  */
 class AutomateTransitionEnded<STATE, ENTITY>(
-	val from: STATE,
-	val to: STATE,
-	val msg: Msg,
-	val entity: ENTITY,
+    val from: STATE,
+    val to: STATE,
+    val msg: Msg,
+    val entity: ENTITY,
 ) : AppEvent
-		where STATE : S2State, ENTITY : WithS2State<STATE>
+        where STATE : S2State, ENTITY : WithS2State<STATE>
 
 /**
  * Notification when transition happened.
@@ -85,8 +85,8 @@ class AutomateTransitionEnded<STATE, ENTITY>(
  * @param transition the transition
  */
 class AutomateTransitionError(
-	val msg: Msg,
-	val exception: Exception,
+    val msg: Msg,
+    val exception: Exception,
 ) : AppEvent
 
 /**
@@ -95,7 +95,7 @@ class AutomateTransitionError(
  * @param automate the automate
  */
 class AutomateSessionStarted<AUTOMATE>(
-	val automate: AUTOMATE,
+    val automate: AUTOMATE,
 ) : AppEvent
 
 /**
@@ -104,7 +104,7 @@ class AutomateSessionStarted<AUTOMATE>(
  * @param automate the automate
  */
 class AutomateSessionStopped<AUTOMATE>(
-	val automate: AUTOMATE,
+    val automate: AUTOMATE,
 ) : AppEvent
 
 /**
@@ -114,6 +114,6 @@ class AutomateSessionStopped<AUTOMATE>(
  * @param exception the exception
  */
 class AutomateSessionError(
-	val automate: S2Automate,
-	val exception: Exception,
+    val automate: S2Automate,
+    val exception: Exception,
 ) : AppEvent

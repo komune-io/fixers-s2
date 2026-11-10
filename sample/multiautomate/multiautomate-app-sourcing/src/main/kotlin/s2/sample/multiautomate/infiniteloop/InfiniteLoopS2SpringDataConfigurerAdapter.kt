@@ -9,24 +9,24 @@ import s2.spring.sourcing.data.S2SourcingSpringDataAdapter
 
 @Configuration
 class InfiniteLoopS2SpringDataConfigurerAdapter(
-	infiniteLoopS2Aggregate: InfiniteLoopS2Aggregate,
-	infiniteLoopS2View: InfiniteLoopS2View
+    infiniteLoopS2Aggregate: InfiniteLoopS2Aggregate,
+    infiniteLoopS2View: InfiniteLoopS2View
 ) : S2SourcingSpringDataAdapter<
-		InfiniteLoopEntity, InfiniteLoopState, InfiniteLoopEvent, InfiniteLoopId, InfiniteLoopS2Aggregate
-		>(infiniteLoopS2Aggregate, infiniteLoopS2View) {
+        InfiniteLoopEntity, InfiniteLoopState, InfiniteLoopEvent, InfiniteLoopId, InfiniteLoopS2Aggregate
+        >(infiniteLoopS2Aggregate, infiniteLoopS2View) {
 
-	override fun automate() = infiniteLoopS2()
-	override fun entityType() = InfiniteLoopEvent::class
+    override fun automate() = infiniteLoopS2()
+    override fun entityType() = InfiniteLoopEvent::class
 }
 
 @Service
 class InfiniteLoopS2Aggregate
-	: S2AutomateDeciderSpring<InfiniteLoopEntity, InfiniteLoopState, InfiniteLoopEvent, InfiniteLoopId>()
+    : S2AutomateDeciderSpring<InfiniteLoopEntity, InfiniteLoopState, InfiniteLoopEvent, InfiniteLoopId>()
 
 @Service
 class InfiniteLoopS2View : View<InfiniteLoopEvent, InfiniteLoopEntity> {
-	override suspend fun evolve(event: InfiniteLoopEvent, model: InfiniteLoopEntity?): InfiniteLoopEntity? {
-		TODO("Not yet implemented")
-	}
+    override suspend fun evolve(event: InfiniteLoopEvent, model: InfiniteLoopEntity?): InfiniteLoopEntity? {
+        TODO("Not yet implemented")
+    }
 
 }

@@ -13,5 +13,5 @@ const val PACKAGE = "s2.sample.multiautomate"
 class MultiAutomateApp
 
 fun main(vararg args: String) {
-	runApplication<MultiAutomateApp>(*args)
+    runApplication<MultiAutomateApp>(*args)
 }

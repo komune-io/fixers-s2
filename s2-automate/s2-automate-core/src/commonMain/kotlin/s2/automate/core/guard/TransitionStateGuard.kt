@@ -9,25 +9,25 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
 class TransitionStateGuard<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>
-	: GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
+    : GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AUTOMATE : Automate {
 
-	override suspend fun <COMMAND : Cmd> evaluateTransition(
-		context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
-	): GuardResult {
-		val state = context.entity.s2State()
-		val cmd = context.command
-		val isCmdValid = context.automateContext.automate.isAvailableTransition(state, cmd.data)
-		return if (isCmdValid) {
-			GuardResult.valid()
-		} else {
-			GuardResult.error(
-				invalidTransitionError(state.toString(), "$cmd")
-			)
-		}
-	}
+    override suspend fun <COMMAND : Cmd> evaluateTransition(
+        context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>
+    ): GuardResult {
+        val state = context.entity.s2State()
+        val cmd = context.command
+        val isCmdValid = context.automateContext.automate.isAvailableTransition(state, cmd.data)
+        return if (isCmdValid) {
+            GuardResult.valid()
+        } else {
+            GuardResult.error(
+                invalidTransitionError(state.toString(), "$cmd")
+            )
+        }
+    }
 
 }

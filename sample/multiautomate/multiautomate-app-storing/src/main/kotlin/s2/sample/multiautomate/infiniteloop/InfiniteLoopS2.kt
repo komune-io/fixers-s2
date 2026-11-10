@@ -11,37 +11,37 @@ import s2.dsl.automate.builder.s2
 typealias InfiniteLoopId = String
 
 fun infiniteLoopS2(): S2Automate {
-	return s2 {
-		name = "InfiniteLoopS2"
-		init<InfiniteCreateCommand> {
-			to = InfiniteLoopState.Running
-			role = InfiniteLoopRole.User()
-		}
-		transaction<InfiniteStepCommand> {
-			from = InfiniteLoopState.Running
-			to = InfiniteLoopState.Running
-			role = InfiniteLoopRole.User()
-		}
-	}
+    return s2 {
+        name = "InfiniteLoopS2"
+        init<InfiniteCreateCommand> {
+            to = InfiniteLoopState.Running
+            role = InfiniteLoopRole.User()
+        }
+        transaction<InfiniteStepCommand> {
+            from = InfiniteLoopState.Running
+            to = InfiniteLoopState.Running
+            role = InfiniteLoopRole.User()
+        }
+    }
 }
 
 sealed class InfiniteLoopRole : S2Role {
-	class User : InfiniteLoopRole()
+    class User : InfiniteLoopRole()
 
-	override fun toString(): String {
-		return this::class.simpleName ?: super.toString()
-	}
+    override fun toString(): String {
+        return this::class.simpleName ?: super.toString()
+    }
 }
 
 open class InfiniteLoopState(
-	override val position: Int,
+    override val position: Int,
 ) : S2State {
 
-	object Running : InfiniteLoopState(0)
+    object Running : InfiniteLoopState(0)
 
-	override fun toString(): String {
-		return this::class.simpleName ?: super.toString()
-	}
+    override fun toString(): String {
+        return this::class.simpleName ?: super.toString()
+    }
 }
 
 interface InfiniteLoopInitCommand : S2InitCommand
@@ -50,11 +50,11 @@ interface InfiniteLoopEvent : S2Event<InfiniteLoopState, InfiniteLoopId>
 
 class InfiniteCreateCommand : InfiniteLoopInitCommand
 class InfiniteCreatedEvent(
-	override val id: InfiniteLoopId,
-	override val type: InfiniteLoopState
+    override val id: InfiniteLoopId,
+    override val type: InfiniteLoopState
 ) : InfiniteLoopEvent
 class InfiniteStepCommand(override val id: InfiniteLoopId) : InfiniteLoopCommand
 class InfiniteStepEvent(
-	override val id: InfiniteLoopId,
-	override val type: InfiniteLoopState
+    override val id: InfiniteLoopId,
+    override val type: InfiniteLoopState
 ) : InfiniteLoopEvent

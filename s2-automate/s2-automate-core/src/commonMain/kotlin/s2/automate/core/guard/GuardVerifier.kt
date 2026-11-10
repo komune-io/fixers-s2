@@ -13,14 +13,14 @@ interface GuardVerifier<STATE, ID : Any, ENTITY, EVENT, AUTOMATE> where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
-	suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>)
-	suspend fun <COMMAND: Cmd> evaluateTransition(context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>)
+    suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>)
+    suspend fun <COMMAND: Cmd> evaluateTransition(context: TransitionContext<STATE, ID, ENTITY, AUTOMATE, COMMAND>)
 
-	suspend fun verifyInitTransition(
-		context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
-	): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+    suspend fun verifyInitTransition(
+        context: InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+    ): InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
 
-	suspend fun verifyTransition(
-		context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
-	): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+    suspend fun verifyTransition(
+        context: TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
+    ): TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>
 }

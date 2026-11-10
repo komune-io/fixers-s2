@@ -11,28 +11,28 @@ import s2.sourcing.dsl.view.View
 
 class OrderBookModelView: View<OrderBookEvent, OrderBook> {
 
-	override suspend fun evolve(event: OrderBookEvent, model: OrderBook?): OrderBook? = when(event) {
-		is OrderBookCreatedEvent -> created(event)
-		is OrderBookClosedEvent -> model?.closed(event)
-		is OrderBookPublishedEvent -> model?.published(event)
-		is OrderBookUpdatedEvent -> model?.updated(event)
-	}
+    override suspend fun evolve(event: OrderBookEvent, model: OrderBook?): OrderBook? = when(event) {
+        is OrderBookCreatedEvent -> created(event)
+        is OrderBookClosedEvent -> model?.closed(event)
+        is OrderBookPublishedEvent -> model?.published(event)
+        is OrderBookUpdatedEvent -> model?.updated(event)
+    }
 
-	private fun OrderBook.closed(event: OrderBookClosedEvent): OrderBook = copy(
-		status = event.state
-	)
+    private fun OrderBook.closed(event: OrderBookClosedEvent): OrderBook = copy(
+        status = event.state
+    )
 
-	private fun OrderBook.published(event: OrderBookPublishedEvent): OrderBook = copy(
-		status = event.state
-	)
+    private fun OrderBook.published(event: OrderBookPublishedEvent): OrderBook = copy(
+        status = event.state
+    )
 
-	private fun OrderBook.updated(event: OrderBookUpdatedEvent): OrderBook = copy(
-		name = event.name
-	)
+    private fun OrderBook.updated(event: OrderBookUpdatedEvent): OrderBook = copy(
+        name = event.name
+    )
 
-	private fun created(event: OrderBookCreatedEvent) = OrderBook(
-		id = event.id,
-		name = event.name,
-		status = OrderBookState.Created
-	)
+    private fun created(event: OrderBookCreatedEvent) = OrderBook(
+        id = event.id,
+        name = event.name,
+        status = OrderBookState.Created
+    )
 }

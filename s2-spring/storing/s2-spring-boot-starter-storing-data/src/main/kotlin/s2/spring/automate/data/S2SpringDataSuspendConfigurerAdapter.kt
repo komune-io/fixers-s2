@@ -12,7 +12,7 @@ import s2.spring.automate.data.persister.SpringDataAutomateCoroutinePersisterFlo
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 abstract class S2SpringDataSuspendConfigurerAdapter<STATE, ID: Any, ENTITY, AGGREGATE>(
-	private val aggregateRepository: CoroutineCrudRepository<ENTITY, ID>,
+    private val aggregateRepository: CoroutineCrudRepository<ENTITY, ID>,
 ) : S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where
 STATE : S2State,
 ENTITY : Any,
@@ -20,11 +20,11 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
-		return SpringDataAutomateCoroutinePersisterFlow(
-			aggregateRepository,
-			batchParams
-		)
-	}
+    override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
+        return SpringDataAutomateCoroutinePersisterFlow(
+            aggregateRepository,
+            batchParams
+        )
+    }
 
 }

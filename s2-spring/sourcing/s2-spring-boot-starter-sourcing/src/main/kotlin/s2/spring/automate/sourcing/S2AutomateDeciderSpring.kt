@@ -17,48 +17,48 @@ import s2.sourcing.dsl.event.EventRepository
 // S6514: interface delegation with "by" is impossible, the engine is injected after construction.
 @Suppress("kotlin:S6514")
 open class S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID : Any> :
-	S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
+    S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 EVENT : Evt,
 EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
-	private lateinit var engine: S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID, EVENT>
+    private lateinit var engine: S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID, EVENT>
 
-	internal fun withContext(
-		automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
-		publisher: AppEventPublisher,
-		projectionLoader: Loader<EVENT, ENTITY, ID>,
-		eventStore: EventRepository<EVENT, ID>
-	) {
-		this.engine = S2AutomateSourcingDeciderImpl(automateExecutor, publisher, projectionLoader, eventStore)
-	}
+    internal fun withContext(
+        automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
+        publisher: AppEventPublisher,
+        projectionLoader: Loader<EVENT, ENTITY, ID>,
+        eventStore: EventRepository<EVENT, ID>
+    ) {
+        this.engine = S2AutomateSourcingDeciderImpl(automateExecutor, publisher, projectionLoader, eventStore)
+    }
 
-	override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
-		return engine.init(command, buildEvent)
-	}
+    override suspend fun <EVENT_OUT : EVENT> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT): EVENT_OUT {
+        return engine.init(command, buildEvent)
+    }
 
-	override suspend fun <EVENT_OUT : EVENT> transition(
-		command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
-	): EVENT_OUT {
-		return engine.transition(command, exec)
-	}
+    override suspend fun <EVENT_OUT : EVENT> transition(
+        command: S2Command<ID>, exec: suspend (ENTITY) -> EVENT_OUT
+    ): EVENT_OUT {
+        return engine.transition(command, exec)
+    }
 
-	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> init(
-		fnc: suspend (t: COMMAND) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
+    fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> init(
+        fnc: suspend (t: COMMAND) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
-	fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
-		fnc: suspend (t: COMMAND) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
+    fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
+        fnc: suspend (t: COMMAND) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
-	fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(
-		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
+    fun <EVENT_OUT : EVENT, COMMAND: S2Command<ID>> decide(
+        fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = engine.decide(fnc)
 
-	fun loadAll() = engine.loadAll()
-	fun load(id: ID) = engine.load(id)
+    fun loadAll() = engine.loadAll()
+    fun load(id: ID) = engine.load(id)
 
-	override suspend fun replayHistory() = engine.replayHistory()
+    override suspend fun replayHistory() = engine.replayHistory()
 }

@@ -13,166 +13,166 @@ import s2.dsl.automate.model.WithS2State
 
 class ReloadViewTest {
 
-	private data class Model(val id: String)
+    private data class Model(val id: String)
 
-	private enum class State(override val position: Int) : S2State { Only(0) }
+    private enum class State(override val position: Int) : S2State { Only(0) }
 
-	private class Entity : WithS2State<State> {
-		override fun s2State() = State.Only
-	}
+    private class Entity : WithS2State<State> {
+        override fun s2State() = State.Only
+    }
 
-	private class View(
-		var count: Long = 0,
-		var deleteFailure: Exception? = null,
-		override val indexName: String = "Model",
-	) : RedisSnapRepository<Model> {
-		var deleted = 0
+    private class View(
+        var count: Long = 0,
+        var deleteFailure: Exception? = null,
+        override val indexName: String = "Model",
+    ) : RedisSnapRepository<Model> {
+        var deleted = 0
 
-		override fun stored(): Flow<Model> = emptyFlow()
-		override suspend fun count(): Long = error("emptiness is read by key")
-		override suspend fun isEmpty(): Boolean = count == 0L
-		override suspend fun deleteAll(): Int {
-			deleted++
-			deleteFailure?.let { throw it }
-			return count.toInt()
-		}
-	}
+        override fun stored(): Flow<Model> = emptyFlow()
+        override suspend fun count(): Long = error("emptiness is read by key")
+        override suspend fun isEmpty(): Boolean = count == 0L
+        override suspend fun deleteAll(): Int {
+            deleted++
+            deleteFailure?.let { throw it }
+            return count.toInt()
+        }
+    }
 
-	private class Decider(var failure: Throwable? = null) : S2AutomateSourcingDecider<Entity, State, Any, String> {
-		var replayed = 0
+    private class Decider(var failure: Throwable? = null) : S2AutomateSourcingDecider<Entity, State, Any, String> {
+        var replayed = 0
 
-		override suspend fun <EVENT_OUT : Any> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT) =
-			error("not a command test")
+        override suspend fun <EVENT_OUT : Any> init(command: S2InitCommand, buildEvent: suspend () -> EVENT_OUT) =
+            error("not a command test")
 
-		override suspend fun <EVENT_OUT : Any> transition(command: S2Command<String>, exec: suspend Entity.() -> EVENT_OUT) =
-			error("not a command test")
+        override suspend fun <EVENT_OUT : Any> transition(command: S2Command<String>, exec: suspend Entity.() -> EVENT_OUT) =
+            error("not a command test")
 
-		override suspend fun replayHistory() {
-			replayed++
-			failure?.let { throw it }
-		}
-	}
+        override suspend fun replayHistory() {
+            replayed++
+            failure?.let { throw it }
+        }
+    }
 
-	private val view = View()
-	private val decider = Decider()
-	private val reload = ReloadView(view, decider)
+    private val view = View()
+    private val decider = Decider()
+    private val reload = ReloadView(view, decider)
 
-	@Test
-	suspend fun `an empty view is replayed and left as the replay wrote it`() {
-		reload.reload()
+    @Test
+    suspend fun `an empty view is replayed and left as the replay wrote it`() {
+        reload.reload()
 
-		assertThat(decider.replayed).isEqualTo(1)
-		assertThat(view.deleted).isZero()
-	}
+        assertThat(decider.replayed).isEqualTo(1)
+        assertThat(view.deleted).isZero()
+    }
 
-	@Test
-	suspend fun `a view that holds snapshots is not replayed unless forced`() {
-		view.count = 3
+    @Test
+    suspend fun `a view that holds snapshots is not replayed unless forced`() {
+        view.count = 3
 
-		reload.reload()
+        reload.reload()
 
-		assertThat(decider.replayed).isZero()
-		assertThat(view.deleted).isZero()
-	}
+        assertThat(decider.replayed).isZero()
+        assertThat(view.deleted).isZero()
+    }
 
-	@Test
-	suspend fun `a forced replay empties the view first`() {
-		view.count = 3
+    @Test
+    suspend fun `a forced replay empties the view first`() {
+        view.count = 3
 
-		reload.reload(forceReload = true)
+        reload.reload(forceReload = true)
 
-		assertThat(decider.replayed).isEqualTo(1)
-		assertThat(view.deleted).isEqualTo(1)
-	}
+        assertThat(decider.replayed).isEqualTo(1)
+        assertThat(view.deleted).isEqualTo(1)
+    }
 
-	@Test
-	suspend fun `a replay that fails is emptied, so the next start replays it again, and fails the start`() {
-		val failure = IllegalStateException("Redis refused a save")
-		decider.failure = failure
+    @Test
+    suspend fun `a replay that fails is emptied, so the next start replays it again, and fails the start`() {
+        val failure = IllegalStateException("Redis refused a save")
+        decider.failure = failure
 
-		val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = runCatching { reload.reload() }.exceptionOrNull()
 
-		assertThat(thrown).isSameAs(failure)
-		assertThat(checkNotNull(thrown).suppressed).isEmpty()
-		assertThat(view.deleted).isEqualTo(1)
-	}
+        assertThat(thrown).isSameAs(failure)
+        assertThat(checkNotNull(thrown).suppressed).isEmpty()
+        assertThat(view.deleted).isEqualTo(1)
+    }
 
-	@Test
-	suspend fun `a forced replay that fails is emptied after the failure too`() {
-		view.count = 3
-		decider.failure = IllegalStateException("Redis refused a save")
+    @Test
+    suspend fun `a forced replay that fails is emptied after the failure too`() {
+        view.count = 3
+        decider.failure = IllegalStateException("Redis refused a save")
 
-		val thrown = runCatching { reload.reload(forceReload = true) }.exceptionOrNull()
+        val thrown = runCatching { reload.reload(forceReload = true) }.exceptionOrNull()
 
-		assertThat(thrown).hasMessage("Redis refused a save")
-		assertThat(view.deleted).isEqualTo(2)
-	}
+        assertThat(thrown).hasMessage("Redis refused a save")
+        assertThat(view.deleted).isEqualTo(2)
+    }
 
-	@Test
-	suspend fun `a cancelled emptying is not taken for a failure of its own`() {
-		decider.failure = IllegalStateException("Redis refused a save")
-		view.deleteFailure = CancellationException("shutting down")
+    @Test
+    suspend fun `a cancelled emptying is not taken for a failure of its own`() {
+        decider.failure = IllegalStateException("Redis refused a save")
+        view.deleteFailure = CancellationException("shutting down")
 
-		val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = runCatching { reload.reload() }.exceptionOrNull()
 
-		assertThat(thrown).isInstanceOf(CancellationException::class.java)
-	}
+        assertThat(thrown).isInstanceOf(CancellationException::class.java)
+    }
 
-	@Test
-	suspend fun `a failed replay whose view cannot be emptied stops the start`() {
-		val failure = IllegalStateException("Redis refused a save")
-		val emptying = IllegalStateException("Redis gone")
-		decider.failure = failure
-		view.deleteFailure = emptying
+    @Test
+    suspend fun `a failed replay whose view cannot be emptied stops the start`() {
+        val failure = IllegalStateException("Redis refused a save")
+        val emptying = IllegalStateException("Redis gone")
+        decider.failure = failure
+        view.deleteFailure = emptying
 
-		val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = runCatching { reload.reload() }.exceptionOrNull()
 
-		assertThat(thrown).isSameAs(failure)
-		assertThat(checkNotNull(thrown).suppressed).containsExactly(emptying)
-	}
+        assertThat(thrown).isSameAs(failure)
+        assertThat(checkNotNull(thrown).suppressed).containsExactly(emptying)
+    }
 
-	@Test
-	suspend fun `a cancelled replay is not taken for a failure`() {
-		decider.failure = CancellationException("shutting down")
+    @Test
+    suspend fun `a cancelled replay is not taken for a failure`() {
+        decider.failure = CancellationException("shutting down")
 
-		val thrown = runCatching { reload.reload() }.exceptionOrNull()
+        val thrown = runCatching { reload.reload() }.exceptionOrNull()
 
-		assertThat(thrown).isInstanceOf(CancellationException::class.java).hasMessage("shutting down")
-		assertThat(view.deleted).isZero()
-	}
+        assertThat(thrown).isInstanceOf(CancellationException::class.java).hasMessage("shutting down")
+        assertThat(view.deleted).isZero()
+    }
 
-	@Test
-	suspend fun `every view is reloaded, a failed one included, and the first failure thrown with the others`() {
-		val first = IllegalStateException("first view failed")
-		val third = IllegalStateException("third view failed")
-		val deciders = listOf(Decider(first), Decider(), Decider(third))
-		val reloads = deciders.mapIndexed { i, decider -> ReloadView(View(indexName = "Model$i"), decider) }
+    @Test
+    suspend fun `every view is reloaded, a failed one included, and the first failure thrown with the others`() {
+        val first = IllegalStateException("first view failed")
+        val third = IllegalStateException("third view failed")
+        val deciders = listOf(Decider(first), Decider(), Decider(third))
+        val reloads = deciders.mapIndexed { i, decider -> ReloadView(View(indexName = "Model$i"), decider) }
 
-		val thrown = runCatching { ReloadView.reloadAll(reloads) }.exceptionOrNull()
+        val thrown = runCatching { ReloadView.reloadAll(reloads) }.exceptionOrNull()
 
-		assertThat(deciders.map { it.replayed }).containsExactly(1, 1, 1)
-		assertThat(thrown).isSameAs(first)
-		assertThat(checkNotNull(thrown).suppressed).containsExactly(third)
-	}
+        assertThat(deciders.map { it.replayed }).containsExactly(1, 1, 1)
+        assertThat(thrown).isSameAs(first)
+        assertThat(checkNotNull(thrown).suppressed).containsExactly(third)
+    }
 
-	@Test
-	suspend fun `views that all reload throw nothing, and a forced reload reaches every one`() {
-		val views = listOf(View(count = 2), View(count = 1))
-		val deciders = listOf(Decider(), Decider())
+    @Test
+    suspend fun `views that all reload throw nothing, and a forced reload reaches every one`() {
+        val views = listOf(View(count = 2), View(count = 1))
+        val deciders = listOf(Decider(), Decider())
 
-		ReloadView.reloadAll(views.zip(deciders).map { (view, decider) -> ReloadView(view, decider) }, forceReload = true)
+        ReloadView.reloadAll(views.zip(deciders).map { (view, decider) -> ReloadView(view, decider) }, forceReload = true)
 
-		assertThat(deciders.map { it.replayed }).containsExactly(1, 1)
-		assertThat(views.map { it.deleted }).containsExactly(1, 1)
-	}
+        assertThat(deciders.map { it.replayed }).containsExactly(1, 1)
+        assertThat(views.map { it.deleted }).containsExactly(1, 1)
+    }
 
-	@Test
-	suspend fun `a cancelled reload stops the others`() {
-		val deciders = listOf(Decider(CancellationException("shutting down")), Decider())
+    @Test
+    suspend fun `a cancelled reload stops the others`() {
+        val deciders = listOf(Decider(CancellationException("shutting down")), Decider())
 
-		val thrown = runCatching { ReloadView.reloadAll(deciders.map { ReloadView(View(), it) }) }.exceptionOrNull()
+        val thrown = runCatching { ReloadView.reloadAll(deciders.map { ReloadView(View(), it) }) }.exceptionOrNull()
 
-		assertThat(thrown).isInstanceOf(CancellationException::class.java)
-		assertThat(deciders[1].replayed).isZero()
-	}
+        assertThat(thrown).isInstanceOf(CancellationException::class.java)
+        assertThat(deciders[1].replayed).isZero()
+    }
 }

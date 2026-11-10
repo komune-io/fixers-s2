@@ -9,11 +9,11 @@ import s2.spring.utils.data.S2Entity
 
 @Document
 class InfiniteLoopEntity(
-	@Id
-	val id: InfiniteLoopId = UUID.randomUUID().toString(),
-	val step: Int,
-	var state: Int,
+    @Id
+    val id: InfiniteLoopId = UUID.randomUUID().toString(),
+    val step: Int,
+    var state: Int,
 ) : S2Entity<InfiniteLoopId, InfiniteLoopState>() {
-	override fun s2Id() = id
-	override fun s2State() = InfiniteLoopState(state)
+    override fun s2Id() = id
+    override fun s2State() = InfiniteLoopState(state)
 }

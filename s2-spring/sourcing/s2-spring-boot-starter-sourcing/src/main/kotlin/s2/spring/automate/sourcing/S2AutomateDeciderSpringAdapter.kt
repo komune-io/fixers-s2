@@ -26,9 +26,9 @@ import s2.spring.core.S2SpringAdapterBase
 import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID : Any, EXECUTOR>(
-	val executor: EXECUTOR,
-	val view: View<EVENT, ENTITY>,
-	val snapRepository: SnapRepository<ENTITY, ID>? = null,
+    val executor: EXECUTOR,
+    val view: View<EVENT, ENTITY>,
+    val snapRepository: SnapRepository<ENTITY, ID>? = null,
 ): InitializingBean, ApplicationContextAware, S2SpringAdapterBase<ENTITY, STATE, EVENT, ID>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
@@ -37,69 +37,69 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
-	private lateinit var applicationContext: ApplicationContext
+    private lateinit var applicationContext: ApplicationContext
 
-	@Autowired
-	lateinit var eventPublisher: SpringEventPublisher
+    @Autowired
+    lateinit var eventPublisher: SpringEventPublisher
 
-	@Autowired
-	lateinit var retryTaskChannel: RetryTaskChannel
+    @Autowired
+    lateinit var retryTaskChannel: RetryTaskChannel
 
-	override fun setApplicationContext(applicationContext: ApplicationContext) {
-		this.applicationContext = applicationContext
-	}
+    override fun setApplicationContext(applicationContext: ApplicationContext) {
+        this.applicationContext = applicationContext
+    }
 
-	open fun aggregate(
-		projectionBuilder: Loader<EVENT, ENTITY, ID>,
-		eventStore: EventRepository<EVENT, ID>,
-	): S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT> {
-		val automateContext = automateContext()
-		val publisher = automateAppEventPublisher(eventPublisher)
-		val snapPersister = SnapPersister(
-			projectionBuilder,
-			snapRepository,
-			retryTaskChannel.takeIf { preventOptimisticLocking() }
-		)
-		val guardExecutor = guardExecutor(publisher)
-		return S2AutomateEngineImpl(
-			automateContext = automateContext,
-			guardExecutor = guardExecutor,
-			persister = S2AutomateSourcingPersister(
-				projectionLoader = projectionBuilder,
-				eventStore = eventStore,
-				snapPersister = snapPersister,
-			),
-			publisher = publisher
-		).also {
-			executor.withContext(it, eventPublisher, projectionBuilder, eventStore)
-		}
-	}
+    open fun aggregate(
+        projectionBuilder: Loader<EVENT, ENTITY, ID>,
+        eventStore: EventRepository<EVENT, ID>,
+    ): S2AutomateEngineImpl<STATE, ID, ENTITY, EVENT> {
+        val automateContext = automateContext()
+        val publisher = automateAppEventPublisher(eventPublisher)
+        val snapPersister = SnapPersister(
+            projectionBuilder,
+            snapRepository,
+            retryTaskChannel.takeIf { preventOptimisticLocking() }
+        )
+        val guardExecutor = guardExecutor(publisher)
+        return S2AutomateEngineImpl(
+            automateContext = automateContext,
+            guardExecutor = guardExecutor,
+            persister = S2AutomateSourcingPersister(
+                projectionLoader = projectionBuilder,
+                eventStore = eventStore,
+                snapPersister = snapPersister,
+            ),
+            publisher = publisher
+        ).also {
+            executor.withContext(it, eventPublisher, projectionBuilder, eventStore)
+        }
+    }
 
-	abstract override fun automate(): S2Automate
-	abstract fun eventStore(): EventRepository<EVENT, ID>
-	abstract fun entityType(): KClass<EVENT>
-	open fun preventOptimisticLocking(): Boolean = false
+    abstract override fun automate(): S2Automate
+    abstract fun eventStore(): EventRepository<EVENT, ID>
+    abstract fun entityType(): KClass<EVENT>
+    open fun preventOptimisticLocking(): Boolean = false
 
-	override fun afterPropertiesSet() {
-		val store = eventStore()
-		val viewLoader = viewLoader(store)
-		val snapLoader = snapLoader(viewLoader)
+    override fun afterPropertiesSet() {
+        val store = eventStore()
+        val viewLoader = viewLoader(store)
+        val snapLoader = snapLoader(viewLoader)
 
-		val beanFactory = (applicationContext as GenericApplicationContext).beanFactory
-		beanFactory.registerSingleton(store.toString(), store)
-		beanFactory.registerSingleton("snapLoader-${UUID.randomUUID()}", snapLoader)
+        val beanFactory = (applicationContext as GenericApplicationContext).beanFactory
+        beanFactory.registerSingleton(store.toString(), store)
+        beanFactory.registerSingleton("snapLoader-${UUID.randomUUID()}", snapLoader)
 
-		aggregate(snapLoader, store)
-	}
+        aggregate(snapLoader, store)
+    }
 
 
-	protected open fun snapLoader(viewLoader: ViewLoader<EVENT, ENTITY, ID>): Loader<EVENT, ENTITY, ID> {
-		return snapRepository?.let { repo ->
-			SnapLoader(repo, viewLoader)
-		} ?: viewLoader
-	}
+    protected open fun snapLoader(viewLoader: ViewLoader<EVENT, ENTITY, ID>): Loader<EVENT, ENTITY, ID> {
+        return snapRepository?.let { repo ->
+            SnapLoader(repo, viewLoader)
+        } ?: viewLoader
+    }
 
-	protected open fun viewLoader(eventStore: EventRepository<EVENT, ID>): ViewLoader<EVENT, ENTITY, ID> {
-		return ViewLoader(eventStore, view)
-	}
+    protected open fun viewLoader(eventStore: EventRepository<EVENT, ID>): ViewLoader<EVENT, ENTITY, ID> {
+        return ViewLoader(eventStore, view)
+    }
 }

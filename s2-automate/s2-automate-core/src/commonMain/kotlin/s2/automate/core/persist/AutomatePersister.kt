@@ -21,98 +21,98 @@ STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	fun persistInit(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
-	): Flow<EVENT>
+    fun persistInit(
+        transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+    ): Flow<EVENT>
 
-	/**
-	 * Persists every received context and emits the resulting events.
-	 *
-	 * Implementations MUST emit exactly one event per received context, in the same
-	 * order: the engine correlates each emitted event back to its context positionally
-	 * in order to publish the end-of-transition application events.
-	 */
-	fun persist(
-		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
-	): Flow<EVENT>
+    /**
+     * Persists every received context and emits the resulting events.
+     *
+     * Implementations MUST emit exactly one event per received context, in the same
+     * order: the engine correlates each emitted event back to its context positionally
+     * in order to publish the end-of-transition application events.
+     */
+    fun persist(
+        transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+    ): Flow<EVENT>
 
-	fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID>): Flow<ENTITY?>
+    fun load(automateContexts: AutomateContext<AUTOMATE>, ids: Flow<ID>): Flow<ENTITY?>
 
-	suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID): ENTITY? =
-		load(automateContexts, flowOf(id)).firstOrNull()
+    suspend fun load(automateContexts: AutomateContext<AUTOMATE>, id: ID): ENTITY? =
+        load(automateContexts, flowOf(id)).firstOrNull()
 
-	/**
-	 * Per-id load with classified failures. The default implementation is built
-	 * on top of the existing [load] overload — it materialises the ids, runs the
-	 * legacy load, and:
-	 *  - emits [LoadOutcome.Loaded] for ids whose entity came back;
-	 *  - emits [LoadOutcome.Rejected] (ERROR_ENTITY_NOT_FOUND) for ids the
-	 *    legacy load skipped (null-emission or absent from the result flow);
-	 *  - emits [LoadOutcome.Transient] (ERROR_PERSIST_LAMBDA_THROW) for every
-	 *    id when the legacy load throws — the throw aborts the whole flow so
-	 *    we can't distinguish per-id, but Transient lets the consumer retry.
-	 *
-	 * Implementations SHOULD override this when their backing store supports
-	 * per-id failure classification (e.g. distinguishing "no row" from "JDBC
-	 * timeout"). The engine's `evolveWithOutcomes` path consumes this method
-	 * directly — overriding it is the supported way to surface rich failures
-	 * without aborting sibling commands in the same batch.
-	 */
-	// The legacy load may fail with anything: every failure is classified Transient for each id.
-	@Suppress("TooGenericExceptionCaught")
-	fun loadWithOutcomes(
-		automateContexts: AutomateContext<AUTOMATE>,
-		ids: Flow<ID>,
-	): Flow<LoadOutcome<ID, ENTITY>> = flow {
-		val idList = ids.toList()
-		if (idList.isEmpty()) return@flow
-		val loaded = mutableMapOf<ID, ENTITY>()
-		val failure: Throwable? = try {
-			load(automateContexts, idList.asFlow()).collect { entity ->
-				entity?.let { loaded[it.s2Id()] = it }
-			}
-			null
-		} catch (e: CancellationException) {
-			// Cooperative cancellation must propagate up the coroutine tree — do
-			// NOT convert it into a Transient outcome, otherwise structured
-			// concurrency unwinding stalls and the parent never sees the cancel.
-			throw e
-		} catch (e: Throwable) {
-			e
-		}
-		if (failure != null) {
-			idList.forEach { id ->
-				emit(LoadOutcome.Transient<ID, ENTITY>(id, persistLambdaThrowError(failure)))
-			}
-			return@flow
-		}
-		idList.forEach { id ->
-			val entity = loaded[id]
-			if (entity != null) {
-				emit(LoadOutcome.Loaded(id, entity))
-			} else {
-				emit(LoadOutcome.Rejected(id, entityNotFoundError(id.toString())))
-			}
-		}
-	}
+    /**
+     * Per-id load with classified failures. The default implementation is built
+     * on top of the existing [load] overload — it materialises the ids, runs the
+     * legacy load, and:
+     *  - emits [LoadOutcome.Loaded] for ids whose entity came back;
+     *  - emits [LoadOutcome.Rejected] (ERROR_ENTITY_NOT_FOUND) for ids the
+     *    legacy load skipped (null-emission or absent from the result flow);
+     *  - emits [LoadOutcome.Transient] (ERROR_PERSIST_LAMBDA_THROW) for every
+     *    id when the legacy load throws — the throw aborts the whole flow so
+     *    we can't distinguish per-id, but Transient lets the consumer retry.
+     *
+     * Implementations SHOULD override this when their backing store supports
+     * per-id failure classification (e.g. distinguishing "no row" from "JDBC
+     * timeout"). The engine's `evolveWithOutcomes` path consumes this method
+     * directly — overriding it is the supported way to surface rich failures
+     * without aborting sibling commands in the same batch.
+     */
+    // The legacy load may fail with anything: every failure is classified Transient for each id.
+    @Suppress("TooGenericExceptionCaught")
+    fun loadWithOutcomes(
+        automateContexts: AutomateContext<AUTOMATE>,
+        ids: Flow<ID>,
+    ): Flow<LoadOutcome<ID, ENTITY>> = flow {
+        val idList = ids.toList()
+        if (idList.isEmpty()) return@flow
+        val loaded = mutableMapOf<ID, ENTITY>()
+        val failure: Throwable? = try {
+            load(automateContexts, idList.asFlow()).collect { entity ->
+                entity?.let { loaded[it.s2Id()] = it }
+            }
+            null
+        } catch (e: CancellationException) {
+            // Cooperative cancellation must propagate up the coroutine tree — do
+            // NOT convert it into a Transient outcome, otherwise structured
+            // concurrency unwinding stalls and the parent never sees the cancel.
+            throw e
+        } catch (e: Throwable) {
+            e
+        }
+        if (failure != null) {
+            idList.forEach { id ->
+                emit(LoadOutcome.Transient<ID, ENTITY>(id, persistLambdaThrowError(failure)))
+            }
+            return@flow
+        }
+        idList.forEach { id ->
+            val entity = loaded[id]
+            if (entity != null) {
+                emit(LoadOutcome.Loaded(id, entity))
+            } else {
+                emit(LoadOutcome.Rejected(id, entityNotFoundError(id.toString())))
+            }
+        }
+    }
 
-	fun persistInitWithOutcomes(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
-	): Flow<PersistOutcome<EVENT>> = flow {
-		transitionContexts.collect { ctx ->
-			persistInit(flowOf(ctx)).collect { event ->
-				emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
-			}
-		}
-	}
+    fun persistInitWithOutcomes(
+        transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+    ): Flow<PersistOutcome<EVENT>> = flow {
+        transitionContexts.collect { ctx ->
+            persistInit(flowOf(ctx)).collect { event ->
+                emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
+            }
+        }
+    }
 
-	fun persistWithOutcomes(
-		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
-	): Flow<PersistOutcome<EVENT>> = flow {
-		transitionContexts.collect { ctx ->
-			persist(flowOf(ctx)).collect { event ->
-				emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
-			}
-		}
-	}
+    fun persistWithOutcomes(
+        transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, AUTOMATE>>
+    ): Flow<PersistOutcome<EVENT>> = flow {
+        transitionContexts.collect { ctx ->
+            persist(flowOf(ctx)).collect { event ->
+                emit(PersistOutcome.Success(msgId = ctx.msgId, event = event))
+            }
+        }
+    }
 }

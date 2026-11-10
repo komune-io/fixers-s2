@@ -8,10 +8,10 @@ import org.springframework.r2dbc.core.DatabaseClient
 
 @Configuration
 open class R2dbcEventRepositoryFactoryConfiguration {
-	@Bean
-	open fun r2dbcRepositoryFactory(
-		databaseClient: DatabaseClient, template: R2dbcEntityTemplate
-	): R2dbcEventRepositoryFactory {
-		return R2dbcEventRepositoryFactory(databaseClient, template)
-	}
+    @Bean
+    open fun r2dbcRepositoryFactory(
+        databaseClient: DatabaseClient, template: R2dbcEntityTemplate
+    ): R2dbcEventRepositoryFactory {
+        return R2dbcEventRepositoryFactory(databaseClient, template)
+    }
 }

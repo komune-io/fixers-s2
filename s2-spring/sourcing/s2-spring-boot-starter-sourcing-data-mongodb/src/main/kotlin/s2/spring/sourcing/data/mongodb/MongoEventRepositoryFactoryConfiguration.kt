@@ -8,10 +8,10 @@ import org.springframework.data.mongodb.core.ReactiveMongoOperations
 @Configuration
 open class MongoEventRepositoryFactoryConfiguration {
 
-	@Bean
-	open fun mongoRepositoryFactory(mongoOperations: ReactiveMongoOperations): MongoEventRepositoryFactory {
-		return MongoEventRepositoryFactory(mongoOperations)
-	}
+    @Bean
+    open fun mongoRepositoryFactory(mongoOperations: ReactiveMongoOperations): MongoEventRepositoryFactory {
+        return MongoEventRepositoryFactory(mongoOperations)
+    }
 
 
 }

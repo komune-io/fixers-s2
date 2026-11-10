@@ -6,6 +6,6 @@ class AutomateException(
     val errors: List<S2Error>,
     cause: Throwable? = null
 ) : Exception(
-	errors.toString(),
+    errors.toString(),
     cause
 )
