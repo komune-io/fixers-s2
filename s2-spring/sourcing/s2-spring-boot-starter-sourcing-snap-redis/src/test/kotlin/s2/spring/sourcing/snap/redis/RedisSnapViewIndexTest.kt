@@ -9,6 +9,7 @@ import io.lettuce.core.RedisCommandExecutionException
 import io.lettuce.core.RedisException
 import io.lettuce.core.codec.StringCodec
 import io.lettuce.core.output.StatusOutput
+import io.lettuce.core.protocol.CommandArgs
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.runBlocking
@@ -103,6 +104,25 @@ class RedisSnapViewIndexTest {
 
         assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
         assertThat(sync["IndexProbeSnap:definition"]).contains("PHONETIC dm:fr")
+    }
+
+    @Test
+    suspend fun `an index another writer replaced is made again, though its written definition is this one`() {
+        view.initIndex()
+        view.index.dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add("IndexProbeSnap"))
+        sync.dispatch(
+            SearchCommand.FT_CREATE,
+            StatusOutput(StringCodec.UTF8),
+            IndexDefinition.from("IndexProbeSnap", listOf(ID, NAME), RedisStack.settings).createArgs("IndexProbeSnap"),
+        )
+        logged.list.clear()
+
+        view.initIndex()
+
+        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
+        assertThat(IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).isShownBy(
+            checkNotNull(view.index.info()),
+        )).isTrue()
     }
 
     @Test
@@ -210,12 +230,6 @@ class RedisSnapViewIndexTest {
         assertThat(IllegalStateException("Unknown Index name").isIndexAbsent()).isFalse()
     }
 
-    @Test
-    fun `only the store's own « already exists » answer counts as an index already there`() {
-        assertThat(RedisCommandExecutionException("Index already exists").isIndexAlreadyPresent()).isTrue()
-        assertThat(RedisCommandExecutionException("Duplicate field in schema - id").isIndexAlreadyPresent()).isFalse()
-        assertThat(IllegalStateException("Index already exists").isIndexAlreadyPresent()).isFalse()
-    }
 
     private companion object {
         const val ALIAS = "IndexProbeSnapAlias"

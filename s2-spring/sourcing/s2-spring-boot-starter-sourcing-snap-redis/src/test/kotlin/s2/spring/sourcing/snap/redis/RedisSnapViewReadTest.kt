@@ -93,7 +93,7 @@ class RedisSnapViewReadTest {
                 assertThat(refusal.error.refusal?.code).isEqualTo(SearchRefusal.SHORT_READ)
                 assertThat(refusal.error.code).isEqualTo(409)
                 assertThat(refusal.error.refusal?.parameters).containsExactlyInAnyOrderEntriesOf(
-                    mapOf("index" to "Model", "total" to "2", "read" to "1"),
+                    mapOf("total" to "2", "read" to "1"),
                 )
             }
     }
@@ -105,7 +105,7 @@ class RedisSnapViewReadTest {
                 assertThat(refusal.error.refusal?.code).isEqualTo(SearchRefusal.TOO_MANY_ENTRIES)
                 assertThat(refusal.error.code).isEqualTo(422)
                 assertThat(refusal.error.refusal?.parameters).containsExactlyInAnyOrderEntriesOf(
-                    mapOf("index" to "Model", "total" to "$SEARCH_WINDOW", "bound" to "${SEARCH_WINDOW - 1}"),
+                    mapOf("total" to "$SEARCH_WINDOW", "bound" to "${SEARCH_WINDOW - 1}"),
                 )
             }
     }

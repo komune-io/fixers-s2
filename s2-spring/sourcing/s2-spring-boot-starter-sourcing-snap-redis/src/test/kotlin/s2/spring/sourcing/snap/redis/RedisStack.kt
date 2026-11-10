@@ -10,14 +10,23 @@ import kotlin.reflect.KClass
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.utility.DockerImageName
 
-/** One Redis Stack (RedisJSON and RediSearch) for the whole test run, started on first use. */
+/**
+ * One Redis Stack (RedisJSON and RediSearch) for the whole test run, started on first use: the image the build
+ * names in `s2.redis.image`, each supported version having its own test task.
+ */
 object RedisStack {
     private const val PORT = 6379
-    private const val IMAGE =
-        "redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7"
+
+    private val image: String = checkNotNull(System.getProperty("s2.redis.image")) { "s2.redis.image is not set" }
+
+    /**
+     * Whether this RediSearch says when a prefix expansion cut an answer: from Redis Stack 7.4 on; 6.2 cuts it
+     * without a word, which no refusal can then catch.
+     */
+    val isWarningOnCutExpansion: Boolean = !image.startsWith("redis/redis-stack:6.")
 
     private val container: GenericContainer<*> by lazy {
-        GenericContainer(DockerImageName.parse(IMAGE)).withExposedPorts(PORT).apply { start() }
+        GenericContainer(DockerImageName.parse(image)).withExposedPorts(PORT).apply { start() }
     }
 
     val uri: RedisURI by lazy {

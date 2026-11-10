@@ -1,8 +1,14 @@
 package s2.spring.sourcing.snap.redis
 
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.automate.core.sourcing.S2AutomateSourcingDecider
@@ -134,13 +140,43 @@ class ReloadViewTest {
     }
 
     @Test
-    suspend fun `a cancelled replay is not taken for a failure`() {
+    suspend fun `a cancelled replay is rethrown, the view emptied`() {
         decider.failure = CancellationException("shutting down")
 
         val thrown = thrownBy { reload.reload() }
 
         assertThat(thrown).isInstanceOf(CancellationException::class.java).hasMessage("shutting down")
-        assertThat(view.deleted).isZero()
+        assertThat(view.deleted).isEqualTo(1)
+    }
+
+    /** The emptying suspends after the replay was cancelled: it runs to its end all the same. */
+    @Test
+    fun `a replay cancelled by its caller still empties the view to its end`(): Unit = runBlocking {
+        val replaying = CompletableDeferred<Unit>()
+        val emptied = CompletableDeferred<Unit>()
+        val slowView = object : RedisSnapRepository<Model> {
+            override val indexName = "Model"
+            override fun stored(): Flow<Model> = emptyFlow()
+            override suspend fun count(): Long = 0
+            override suspend fun isEmpty(): Boolean = true
+            override suspend fun deleteAll(): Int {
+                delay(EMPTYING_MS)
+                check(emptied.complete(Unit))
+                return 0
+            }
+        }
+        val hanging = object : S2AutomateSourcingDecider<Entity, State, Any, String> by decider {
+            override suspend fun replayHistory() {
+                check(replaying.complete(Unit))
+                awaitCancellation()
+            }
+        }
+        val job = launch { ReloadView(slowView, hanging).reload() }
+        replaying.await()
+
+        job.cancelAndJoin()
+
+        assertThat(emptied.isCompleted).isTrue()
     }
 
     @Test
@@ -190,4 +226,8 @@ class ReloadViewTest {
         } catch (thrown: Throwable) {
             thrown
         }
+
+    private companion object {
+        const val EMPTYING_MS = 50L
+    }
 }

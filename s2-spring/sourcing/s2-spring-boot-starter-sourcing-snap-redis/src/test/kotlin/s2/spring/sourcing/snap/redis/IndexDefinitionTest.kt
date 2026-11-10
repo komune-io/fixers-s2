@@ -53,4 +53,55 @@ class IndexDefinitionTest {
             .isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("at least one field")
     }
+
+    @Test
+    fun `FT INFO is read in both protocols, and an index that reads otherwise is not this one`() {
+        val definition = IndexDefinition.from(
+            indexName = "Probe",
+            fields = listOf(RedisIndexField("id", RedisFieldType.TAG)),
+            settings = IndexSettings(null),
+        )
+        val resp2 = mapOf(
+            "index_definition" to listOf("key_type", "JSON", "prefixes", listOf("Probe-"), "default_score", "1"),
+            "attributes" to listOf(
+                listOf("identifier", "$.id", "attribute", "id", "type", "TAG", "SEPARATOR", ","),
+            ),
+            "stopwords_list" to emptyList<Any?>(),
+        )
+        val resp3 = mapOf(
+            "index_definition" to mapOf("key_type" to "JSON", "prefixes" to listOf("Probe-")),
+            "attributes" to listOf(mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG")),
+            "stopwords_list" to emptyList<Any?>(),
+        )
+
+        assertThat(definition.isShownBy(resp2)).isTrue()
+        assertThat(definition.isShownBy(resp3)).isTrue()
+        assertThat(definition.isShownBy(resp3 + ("stopwords_list" to listOf("a")))).isFalse()
+        assertThat(definition.isShownBy(resp3 + ("attributes" to emptyList<Any?>()))).isFalse()
+        val french = mapOf("prefixes" to listOf("Probe-"), "default_language" to "french")
+        val otherPrefix = mapOf("prefixes" to listOf("Probe"))
+
+        assertThat(definition.isShownBy(resp3 + ("index_definition" to french))).isFalse()
+        assertThat(definition.isShownBy(resp3 + ("index_definition" to otherPrefix))).isFalse()
+    }
+
+    @Test
+    fun `an FT INFO answer that cannot be read is an error, not an absent index`() {
+        val definition = IndexDefinition.from(
+            indexName = "Probe",
+            fields = listOf(RedisIndexField("id", RedisFieldType.TAG)),
+            settings = IndexSettings(null),
+        )
+
+        assertThat(asFields(listOf("odd"))).isNull()
+        val noDefinition = mapOf("attributes" to emptyList<Any?>())
+        val badAttribute = mapOf("index_definition" to emptyMap<String, Any?>(), "attributes" to listOf(listOf("x")))
+
+        assertThat(runCatching { definition.isShownBy(noDefinition) }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("index_definition")
+        assertThat(runCatching { definition.isShownBy(badAttribute) }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("attribute unreadable")
+    }
 }

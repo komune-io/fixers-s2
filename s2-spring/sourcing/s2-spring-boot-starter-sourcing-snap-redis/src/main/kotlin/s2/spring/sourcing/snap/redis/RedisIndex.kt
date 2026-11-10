@@ -21,7 +21,8 @@ import org.slf4j.LoggerFactory
 
 /**
  * The RediSearch index of one view: made to match its [definition], whose fingerprint is written under
- * `<index>:definition` — outside every view's key prefix — since `FT.INFO` does not show all of it.
+ * `<index>:definition` — outside every view's key prefix — since `FT.INFO` does not show all of it; what `FT.INFO`
+ * does show is checked too.
  */
 internal class RedisIndex(
     private val connection: StatefulRedisConnection<String, String>,
@@ -51,17 +52,19 @@ internal class RedisIndex(
 
     private fun unindexed(count: Long) = "$count stored documents could not be indexed"
 
+    // Kept only when the written definition is this one and FT.INFO shows what it reads: another writer — an older
+    // version of the view, a hand-made FT.CREATE — could have replaced the index and left the written definition.
     private suspend fun make(): Boolean {
-        val current = info()
+        val current = info() ?: return true.also { create() }
         val written = commands[definitionKey].awaitSingleOrNull()
-        return when {
-            current == null -> true.also { create() }
-            written == definition.fingerprint -> false.also { logger.debug("Index[{}] already exists", name) }
-            else -> true.also {
-                logger.info("Index[{}] made again: its definition differs from [{}]", name, written)
-                remake()
-            }
+        val isKept = written == definition.fingerprint && definition.isShownBy(current)
+        if (isKept) {
+            logger.debug("Index[{}] already exists", name)
+        } else {
+            logger.info("Index[{}] made again: its definition differs from [{}]", name, written)
+            remake()
         }
+        return !isKept
     }
 
     private suspend fun remake() {
@@ -73,14 +76,10 @@ internal class RedisIndex(
         create()
     }
 
+    // An index another writer created in between is not taken for this one: FT.CREATE fails, and the next start
+    // compares that index like any other.
     private suspend fun create() {
-        try {
-            dispatch(SearchCommand.FT_CREATE, definition.createArgs(name))
-        } catch (e: RedisCommandExecutionException) {
-            // Another instance of the same view, starting at the same time, created it first.
-            if (!e.isIndexAlreadyPresent()) throw e
-            logger.debug("Index[{}] already exists", name, e)
-        }
+        dispatch(SearchCommand.FT_CREATE, definition.createArgs(name))
         check(commands.set(definitionKey, definition.fingerprint).awaitSingle() == "OK") {
             "Index[$name]: its definition could not be written to $definitionKey"
         }
@@ -97,17 +96,22 @@ internal class RedisIndex(
             info
         } ?: error("Index[$name] still indexing after $ceiling")
 
-    /** `FT.INFO` of [index], as plain maps, lists and scalars; null when there is no such index. */
-    suspend fun info(index: String = name): Map<String, Any?>? =
-        try {
-            val output = ComplexOutput<String, String, Any?>(StringCodec.UTF8, ComplexDataParser<Any?> { plain(it) })
-            val reply = commands
+    /**
+     * `FT.INFO` of [index], as plain maps, lists and scalars; null when the store says there is no such index. An
+     * answer that cannot be read as fields fails: it says nothing about whether the index exists.
+     */
+    suspend fun info(index: String = name): Map<String, Any?>? {
+        val output = ComplexOutput<String, String, Any?>(StringCodec.UTF8, ComplexDataParser<Any?> { plain(it) })
+        val reply = try {
+            commands
                 .dispatch<Any?>(SearchCommand.FT_INFO, output, CommandArgs<String, String>(StringCodec.UTF8).add(index))
                 .awaitFirstOrNull()
-            asFields(reply)
         } catch (e: RedisCommandExecutionException) {
-            if (e.isIndexAbsent()) null else throw e
+            if (e.isIndexAbsent()) return null
+            throw e
         }
+        return checkNotNull(asFields(reply)) { "Index[$index]: FT.INFO answer unreadable: ${reply ?: "none"}" }
+    }
 
     /** A module command, sent like every other: a blocking call could wait on the thread that reads its answer. */
     suspend fun dispatch(command: ProtocolKeyword, args: CommandArgs<String, String>) {
@@ -147,9 +151,6 @@ private fun Map<String, Any?>.hasReadStoredDocuments(): Boolean =
 /** The stored documents `FT.INFO` says the index could not read. */
 internal fun Map<String, Any?>.failures(): Long = get("hash_indexing_failures")?.toString()?.toDoubleOrNull()?.toLong()
     ?: error("FT.INFO carries no hash_indexing_failures: $this")
-
-internal fun Throwable.isIndexAlreadyPresent(): Boolean =
-    this is RedisCommandExecutionException && message.orEmpty().contains("Index already exists", ignoreCase = true)
 
 internal fun Throwable.isIndexAbsent(): Boolean =
     this is RedisCommandExecutionException && message.orEmpty().let {

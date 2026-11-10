@@ -13,10 +13,19 @@ const val STORE_BATCH = 1_000
 /** RediSearch's default `MINPREFIX`: a shorter prefix expands to nothing. */
 const val MIN_PREFIX = 2
 
-/** A tag clause matching [value]. */
+/**
+ * A tag clause matching [value].
+ *
+ * @throws IllegalArgumentException as [tagClause] of a list does.
+ */
 fun tagClause(field: String, value: String): String = tagClause(field, listOf(value))
 
-/** A tag clause matching any of [values]: the `|` between them is the only query syntax it writes. */
+/**
+ * A tag clause matching any of [values]: the `|` between them is the only query syntax it writes.
+ *
+ * @throws IllegalArgumentException when [field] is not an attribute name, [values] is empty or holds an empty
+ * value: a mistake of the calling code, which builds the clause, never of what a user typed.
+ */
 fun tagClause(field: String, values: Collection<String>): String {
     require(FIELD.matches(field)) { "Not an index attribute name: «$field»" }
     require(values.isNotEmpty()) { "A tag clause on @$field needs at least one value" }

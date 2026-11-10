@@ -1,13 +1,15 @@
 package s2.spring.sourcing.snap.redis
 
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import s2.automate.core.sourcing.S2AutomateSourcingDecider
 
 /**
- * Rebuilds a view from its event history: when it stores nothing, or always when forced. A replay that fails
- * leaves the view empty and fails the start, so that the next start replays it again instead of serving it half
- * written.
+ * Rebuilds a view from its event history: when it stores nothing, or always when forced. A replay that fails, or
+ * is cancelled, leaves the view empty and fails the start, so that the next start replays it again instead of
+ * serving it half written.
  */
 class ReloadView<MODEL : Any>(
     private val view: RedisSnapRepository<MODEL>,
@@ -18,8 +20,8 @@ class ReloadView<MODEL : Any>(
      * Emptiness is read by key, not through the index. A failed replay empties the view, then rethrows; a view that
      * cannot be emptied adds that failure to it as suppressed.
      */
-    // Any failure of the replay leaves the view half written: it is emptied whatever the failure, then rethrown.
-    @Suppress("TooGenericExceptionCaught")
+    // Any failure or cancellation of the replay leaves the view half written: it is emptied, then rethrown.
+    @Suppress("TooGenericExceptionCaught", "SuspendFunSwallowedCancellation")
     suspend fun reload(forceReload: Boolean = false) {
         val name = view.indexName
         val isViewEmpty = view.isEmpty()
@@ -32,6 +34,10 @@ class ReloadView<MODEL : Any>(
             decider.replayHistory()
             logger.info("Replayed event history - {}", name)
         } catch (e: CancellationException) {
+            // A stop during the replay leaves the view half written: it is emptied all the same, out of the
+            // cancellation, so that the next start replays it instead of serving it.
+            logger.warn("Replay cancelled - {} - emptying the view so the next start replays it", name)
+            withContext(NonCancellable) { empty(e) }
             throw e
         } catch (e: Exception) {
             logger.error("Replay failed - {} - emptying the view so the next start replays it", name, e)

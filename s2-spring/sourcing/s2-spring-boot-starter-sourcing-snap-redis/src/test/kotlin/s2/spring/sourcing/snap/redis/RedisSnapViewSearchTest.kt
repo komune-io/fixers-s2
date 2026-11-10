@@ -117,20 +117,39 @@ class RedisSnapViewSearchTest {
         assertThat(error.refusal?.code).isEqualTo(SearchRefusal.PAGE_TOO_LARGE)
         assertThat(error.code).isEqualTo(422)
         assertThat(error.refusal?.parameters).containsExactlyInAnyOrderEntriesOf(
-            mapOf("index" to "SearchProbeSnap", "limit" to "${SEARCH_WINDOW + 1}", "bound" to "$SEARCH_WINDOW"),
+            mapOf("limit" to "${SEARCH_WINDOW + 1}", "bound" to "$SEARCH_WINDOW"),
         )
     }
 
     // Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut.
     @Test
-    suspend fun `a prefix expanding past MAXEXPANSIONS is refused, never cut`() {
+    suspend fun `a prefix expanding past MAXEXPANSIONS is refused where the store says so, cut silently before 7_4`() {
         val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
 
-        val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
+        if (RedisStack.isWarningOnCutExpansion) {
+            val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
 
-        assertThat(error.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
-        assertThat(error.refusal?.parameters).containsEntry("warning", "Max prefix expansions limit was reached")
+            assertThat(error.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
+            assertThat(error.refusal?.parameters).isEmpty()
+            assertThat(error.message).doesNotContain("SearchProbeSnap", EXPANSIONS_WARNING)
+        } else {
+            assertThat(view.search("ab".addWildcard(), null, null).items).hasSize(MAX_EXPANSIONS)
+        }
         assertThat(found("ab0")).hasSize(100)
+    }
+
+    @Test
+    fun `only a cut expansion is too broad, a timeout is worth another try, any other warning an error`() {
+        val tooBroad = refusalFor(indexName = "Probe", warning = EXPANSIONS_WARNING).error
+
+        assertThat(tooBroad.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
+        val timedOut = refusalFor(indexName = "Probe", warning = TIMEOUT_WARNING).error
+
+        assertThat(timedOut.refusal?.code).isEqualTo(SearchRefusal.TIMED_OUT)
+        assertThat(timedOut.code).isEqualTo(503)
+        assertThatThrownBy { val _ = refusalFor(indexName = "Probe", warning = "Something new") }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("Something new")
     }
 
     @Test

@@ -128,7 +128,7 @@ open class RedisSnapView<MODEL : Any>(
         descending: Boolean = false,
     ): PageQueryResult<MODEL> {
         if (pagination != null && pagination.limit > SEARCH_WINDOW) {
-            throw SearchRefusal.pageTooLarge(index = indexName, limit = pagination.limit, bound = SEARCH_WINDOW)
+            throw SearchRefusal.pageTooLarge(limit = pagination.limit, bound = SEARCH_WINDOW)
         }
         val page = pagination ?: OffsetPagination(offset = 0, limit = SEARCH_WINDOW)
         val args = SearchArgs.builder<String>().limit(page.offset.toLong(), page.limit.toLong())
@@ -137,8 +137,10 @@ open class RedisSnapView<MODEL : Any>(
             args.sortBy((if (descending) order.descending() else order).build())
         }
         val reply = commands.ftSearch(indexName, query.orWildcard(), args.build()).awaitSingle()
-        val warning = reply.warnings.firstOrNull()
-        if (warning != null) throw SearchRefusal.tooBroad(index = indexName, warning = warning)
+        reply.warnings.firstOrNull()?.let { warning ->
+            logger.warn("Index[{}]: search refused, the store warned: {}", indexName, warning)
+            throw refusalFor(indexName = indexName, warning = warning)
+        }
         return searchPage(
             indexName = indexName,
             count = reply.count,
@@ -218,7 +220,12 @@ internal fun SearchReply<String>.documents(): SearchDocuments {
 // The total is already without the missing hits, which still took their place in the window.
 private fun <MODEL> everyRowOrRefusal(indexName: String, total: Int, missing: Int, read: List<MODEL>): List<MODEL> {
     val bound = SEARCH_WINDOW - missing
-    if (total > bound) throw SearchRefusal.tooManyEntries(index = indexName, total = total, bound = bound)
-    if (read.size < total) throw SearchRefusal.shortRead(index = indexName, total = total, read = read.size)
-    return read
+    val refusal = when {
+        total > bound -> SearchRefusal.tooManyEntries(total = total, bound = bound)
+        read.size < total -> SearchRefusal.shortRead(total = total, read = read.size)
+        else -> return read
+    }
+    LoggerFactory.getLogger(RedisSnapView::class.java)
+        .warn("Index[{}]: whole read refused, {} entries, {} read, {} missing", indexName, total, read.size, missing)
+    throw refusal
 }
