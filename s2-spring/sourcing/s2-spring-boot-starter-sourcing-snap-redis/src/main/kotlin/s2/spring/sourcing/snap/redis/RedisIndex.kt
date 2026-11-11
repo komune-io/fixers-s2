@@ -73,8 +73,7 @@ internal class RedisIndex(
 
     // Compared again right before the drop: a replica that made it meanwhile is not undone. False when another writer
     // made the index in between, which is then compared again.
-    private suspend fun tryRemake(): Boolean =
-        if (info()?.let(definition::isShownBy) == true) false else dropAndCreate()
+    private suspend fun tryRemake(): Boolean = info()?.let(definition::isShownBy) != true && dropAndCreate()
 
     // Drops the index, its documents kept, and creates it again; false when another writer created it first.
     private suspend fun dropAndCreate(): Boolean {
