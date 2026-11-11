@@ -192,7 +192,7 @@ class RedisSnapViewIndexTest {
 
         assertThatThrownBy { runBlocking { weighted.initIndex() } }
             .isInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("Index[IndexProbeSnap]: stored documents could not be indexed (failed attempts: ")
+            .hasMessageMatching(UNINDEXED)
     }
 
     @Test
@@ -221,7 +221,7 @@ class RedisSnapViewIndexTest {
 
         assertThatThrownBy { runBlocking { weighted.initIndex() } }
             .isInstanceOf(IllegalStateException::class.java)
-            .hasMessageStartingWith("Index[IndexProbeSnap]: stored documents could not be indexed (failed attempts: ")
+            .hasMessageMatching(UNINDEXED)
         assertThat(messages().map { it.formattedMessage })
             .contains("Index[IndexProbeSnap] made again: stored documents could not be indexed (failed attempts: 2)")
     }
@@ -358,6 +358,11 @@ class RedisSnapViewIndexTest {
 
     private companion object {
         const val ALIAS = "IndexProbeSnapAlias"
+
+        // Any count but zero: the store counts attempts, and its first scan may read a key twice.
+        const val UNINDEXED =
+            """Index\[IndexProbeSnap]: stored documents could not be indexed \(failed attempts: [1-9]\d*\)"""
+
         const val STORED = 5_000
         const val RACES = 20
         val ABSENT_FOR = 300.milliseconds

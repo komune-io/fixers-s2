@@ -165,7 +165,7 @@ internal object SearchCommand {
 private fun Map<String, Any?>.hasReadStoredDocuments(): Boolean =
     get("indexing")?.run { toString().toDoubleOrNull() } == 0.0
 
-/** The stored documents `FT.INFO` says the index could not read. */
+/** The failed attempts to read a stored document, as `FT.INFO` counts them: one document may count several times. */
 internal fun Map<String, Any?>.failures(): Long = get("hash_indexing_failures")?.toString()?.toDoubleOrNull()?.toLong()
     ?: error("FT.INFO carries no hash_indexing_failures: $this")
 
