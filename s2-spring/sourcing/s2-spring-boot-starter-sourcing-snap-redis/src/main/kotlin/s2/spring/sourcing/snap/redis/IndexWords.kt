@@ -9,7 +9,6 @@ import java.text.Normalizer
  */
 object IndexWords {
     private val DIACRITICS = Regex("\\p{M}+")
-    private val SEPARATOR = Regex("[^\\p{L}\\p{N}]+")
 
     /** Whether [name] holds [term] as a search with words made prefixes from [minPrefix] letters would find it. */
     fun holds(name: String, term: String, minPrefix: Int = MIN_PREFIX): Boolean {
@@ -26,6 +25,6 @@ object IndexWords {
         Normalizer.normalize(text, Normalizer.Form.NFD)
             .replace(DIACRITICS, "")
             .lowercase()
-            .split(SEPARATOR)
+            .split(WORD_SEPARATOR)
             .filter { it.isNotEmpty() }
 }

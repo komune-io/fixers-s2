@@ -48,9 +48,10 @@ private val TAG_SYNTAX = Regex("""[^\p{L}\p{M}\p{N}_]""")
 fun String?.addWildcard(minPrefix: Int = MIN_PREFIX): String {
     require(minPrefix >= MIN_PREFIX) { "RediSearch expands no prefix under $MIN_PREFIX letters: $minPrefix" }
     return orEmpty()
-        .split(QUERY_WORD_SEPARATOR)
+        .split(WORD_SEPARATOR)
         .filter { it.isNotEmpty() }
         .joinToString(" ") { if (it.length < minPrefix) it else "$it*" }
 }
 
-private val QUERY_WORD_SEPARATOR = Regex("""[^\p{L}\p{M}\p{N}_]+""")
+/** What parts the words of a text as RediSearch reads them: `_` joins a word, it does not split one. */
+internal val WORD_SEPARATOR = Regex("""[^\p{L}\p{M}\p{N}_]+""")

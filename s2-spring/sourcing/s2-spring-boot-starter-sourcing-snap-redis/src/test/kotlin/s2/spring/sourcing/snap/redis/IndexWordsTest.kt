@@ -31,4 +31,11 @@ class IndexWordsTest {
         assertThat(IndexWords.holds(name = "Atelier Lac", term = "at", minPrefix = 3)).isFalse()
         assertThat(IndexWords.holds(name = "Atelier Lac", term = "ate", minPrefix = 3)).isTrue()
     }
+
+    @Test
+    fun `an underscore joins a word, as in the index and in a search`() {
+        assertThat(IndexWords.holds(name = "Lot a_b", term = "a_b")).isTrue()
+        assertThat(IndexWords.holds(name = "Lot a_b", term = "b")).isFalse()
+        assertThat("a_b".addWildcard()).isEqualTo("a_b*")
+    }
 }

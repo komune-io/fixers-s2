@@ -37,7 +37,10 @@ val testRedisStack74 by tasks.registering(Test::class) {
 tasks.withType<Test>().configureEach {
     // Snapshots are written as UTF-8 whatever the JVM's default charset: a non-UTF-8 default proves it.
     jvmArgs("-Dfile.encoding=US-ASCII")
-    systemProperty("s2.redis.image", redisStacks.getValue(name))
+    val image = checkNotNull(redisStacks[name]) {
+        "Test task '$name' names no Redis Stack: add it to redisStacks (${redisStacks.keys.joinToString()})"
+    }
+    systemProperty("s2.redis.image", image)
 }
 
 tasks.check {

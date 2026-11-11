@@ -12,7 +12,11 @@ import io.lettuce.core.output.StatusOutput
 import io.lettuce.core.protocol.CommandArgs
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
@@ -223,6 +227,39 @@ class RedisSnapViewIndexTest {
     }
 
     @Test
+    suspend fun `two replicas starting together on an absent index both start, on one index of their definition`() {
+        val other = RedisStack.client.connect()
+        try {
+            val replica = RedisStack.view(
+                model = IndexProbeSnap::class,
+                fields = listOf(ID),
+                idOf = IndexProbeSnap::id,
+                connection = other,
+            )
+            repeat(RACES) {
+                tidy()
+
+                val _ = withContext(Dispatchers.Default) {
+                    listOf(view, replica).map { async { it.initIndex() } }.awaitAll()
+                }
+
+                val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
+                assertThat(sync["IndexProbeSnap:definition"]).isEqualTo(definition.fingerprint)
+                assertThat(definition.isShownBy(checkNotNull(view.index.info()))).isTrue()
+            }
+        } finally {
+            other.close()
+        }
+    }
+
+    @Test
+    fun `only the store's own « already exists » answer counts as another writer's index`() {
+        assertThat(RedisCommandExecutionException("Index already exists").isIndexExisting()).isTrue()
+        assertThat(RedisCommandExecutionException("ERR wrong number of arguments").isIndexExisting()).isFalse()
+        assertThat(IllegalStateException("Index already exists").isIndexExisting()).isFalse()
+    }
+
+    @Test
     fun `only the store's own « unknown index » answer counts as nothing to drop`() {
         assertThat(RedisCommandExecutionException("Unknown Index name").isIndexAbsent()).isTrue()
         assertThat(RedisCommandExecutionException("Unknown index name").isIndexAbsent()).isTrue()
@@ -234,6 +271,7 @@ class RedisSnapViewIndexTest {
     private companion object {
         const val ALIAS = "IndexProbeSnapAlias"
         const val STORED = 5_000
+        const val RACES = 20
         val ID = RedisIndexField(IndexProbeSnap::id.name, RedisFieldType.TAG)
         val NAME = RedisIndexField(IndexProbeSnap::name.name, RedisFieldType.TEXT)
         val WEIGHT = RedisIndexField(IndexProbeSnap::weight.name, RedisFieldType.NUMERIC)

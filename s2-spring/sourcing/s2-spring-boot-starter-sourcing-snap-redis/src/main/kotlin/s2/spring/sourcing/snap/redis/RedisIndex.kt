@@ -45,7 +45,7 @@ internal class RedisIndex(
         if (failures == 0L) return
         check(!isMadeNow) { "Index[$name]: ${unindexed(failures)}" }
         logger.info("Index[{}] made again: {}", name, unindexed(failures))
-        remake()
+        if (!remake()) logger.info("Index[{}] made again by another writer", name)
         val left = awaitIndexed().failures()
         check(left == 0L) { "Index[$name]: ${unindexed(left)}" }
     }
@@ -54,35 +54,54 @@ internal class RedisIndex(
 
     // Kept only when the written definition is this one and FT.INFO shows what it reads: another writer — an older
     // version of the view, a hand-made FT.CREATE — could have replaced the index and left the written definition.
+    // An index another writer creates in between — two replicas starting together — is compared like any other.
     private suspend fun make(): Boolean {
-        val current = info() ?: return true.also { create() }
-        val written = commands[definitionKey].awaitSingleOrNull()
-        val isKept = written == definition.fingerprint && definition.isShownBy(current)
-        if (isKept) {
-            logger.debug("Index[{}] already exists", name)
-        } else {
-            logger.info("Index[{}] made again: its definition differs from [{}]", name, written)
-            remake()
+        repeat(MAKE_ATTEMPTS) {
+            val current = info()
+            if (current == null) {
+                if (create()) return true
+            } else if (isKept(current)) {
+                logger.debug("Index[{}] already exists", name)
+                return false
+            } else {
+                logger.info("Index[{}] made again: its definition differs from [{}]", name, written())
+                if (remake()) return true
+            }
         }
-        return !isKept
+        error("Index[$name]: other writers made it $MAKE_ATTEMPTS times while this one compared it")
     }
 
-    private suspend fun remake() {
+    private suspend fun written(): String? = commands[definitionKey].awaitSingleOrNull()
+
+    private suspend fun isKept(current: Map<String, Any?>): Boolean =
+        written() == definition.fingerprint && definition.isShownBy(current)
+
+    /** Drops the index, its documents kept, and creates it again; false when another writer created it first. */
+    private suspend fun remake(): Boolean {
         try {
             dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add(name))
         } catch (e: RedisCommandExecutionException) {
             if (!e.isIndexAbsent()) throw e
         }
-        create()
+        return create()
     }
 
-    // An index another writer created in between is not taken for this one: FT.CREATE fails, and the next start
-    // compares that index like any other.
-    private suspend fun create() {
-        dispatch(SearchCommand.FT_CREATE, definition.createArgs(name))
+    /**
+     * Creates the index; false when another writer created one in between, which is then to be compared. The
+     * definition is written first: a replica that loses the race finds the winner's definition beside its index,
+     * never an index without one that it would take for a stranger's and drop.
+     */
+    private suspend fun create(): Boolean {
         check(commands.set(definitionKey, definition.fingerprint).awaitSingle() == "OK") {
             "Index[$name]: its definition could not be written to $definitionKey"
         }
+        try {
+            dispatch(SearchCommand.FT_CREATE, definition.createArgs(name))
+        } catch (e: RedisCommandExecutionException) {
+            if (!e.isIndexExisting()) throw e
+            return false
+        }
+        return true
     }
 
     /** Waits until the index has read the stored documents, at most [ceiling]; answers its last `FT.INFO`. */
@@ -124,6 +143,8 @@ internal class RedisIndex(
 
         private val INDEXING_POLL = 100.milliseconds
 
+        private const val MAKE_ATTEMPTS = 3
+
         private val logger = LoggerFactory.getLogger(RedisSnapView::class.java)
     }
 }
@@ -151,6 +172,9 @@ private fun Map<String, Any?>.hasReadStoredDocuments(): Boolean =
 /** The stored documents `FT.INFO` says the index could not read. */
 internal fun Map<String, Any?>.failures(): Long = get("hash_indexing_failures")?.toString()?.toDoubleOrNull()?.toLong()
     ?: error("FT.INFO carries no hash_indexing_failures: $this")
+
+internal fun Throwable.isIndexExisting(): Boolean =
+    this is RedisCommandExecutionException && message.orEmpty().contains("already exists", ignoreCase = true)
 
 internal fun Throwable.isIndexAbsent(): Boolean =
     this is RedisCommandExecutionException && message.orEmpty().let {
