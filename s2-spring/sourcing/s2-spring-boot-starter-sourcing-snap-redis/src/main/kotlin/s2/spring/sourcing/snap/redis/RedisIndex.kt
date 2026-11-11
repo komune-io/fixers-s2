@@ -45,7 +45,7 @@ internal class RedisIndex(
         if (failures == 0L) return
         check(!isMadeNow) { "Index[$name]: ${unindexed(failures)}" }
         logger.info("Index[{}] made again: {}", name, unindexed(failures))
-        if (!remake()) logger.info("Index[{}] made again by another writer", name)
+        if (!tryRemake()) logger.info("Index[{}] made again by another writer", name)
         val left = awaitIndexed().failures()
         check(left == 0L) { "Index[$name]: ${unindexed(left)}" }
     }
@@ -55,20 +55,26 @@ internal class RedisIndex(
     // Kept only when the written definition is this one and FT.INFO shows what it reads: another writer — an older
     // version of the view, a hand-made FT.CREATE — could have replaced the index and left the written definition.
     // An index another writer creates in between — two replicas starting together — is compared like any other.
-    private suspend fun make(): Boolean {
-        repeat(MAKE_ATTEMPTS) {
-            val current = info()
-            if (current == null) {
-                if (create()) return true
-            } else if (isKept(current)) {
+    private suspend fun make(): Boolean =
+        (1..MAKE_ATTEMPTS).firstNotNullOfOrNull { attemptMake() }
+            ?: error("Index[$name]: other writers made it $MAKE_ATTEMPTS times while this one compared it")
+
+    // Whether the index is made now; null when another writer created it in between, to be compared again.
+    private suspend fun attemptMake(): Boolean? {
+        val current = info()
+        return when {
+            current == null -> {
+                true.takeIf { tryCreate() }
+            }
+            isKept(current) -> {
                 logger.debug("Index[{}] already exists", name)
-                return false
-            } else {
+                false
+            }
+            else -> {
                 logger.info("Index[{}] made again: its definition differs from [{}]", name, written())
-                if (remake()) return true
+                true.takeIf { tryRemake() }
             }
         }
-        error("Index[$name]: other writers made it $MAKE_ATTEMPTS times while this one compared it")
     }
 
     private suspend fun written(): String? = commands[definitionKey].awaitSingleOrNull()
@@ -76,22 +82,19 @@ internal class RedisIndex(
     private suspend fun isKept(current: Map<String, Any?>): Boolean =
         written() == definition.fingerprint && definition.isShownBy(current)
 
-    /** Drops the index, its documents kept, and creates it again; false when another writer created it first. */
-    private suspend fun remake(): Boolean {
+    // Drops the index, its documents kept, and creates it again; false when another writer created it first.
+    private suspend fun tryRemake(): Boolean {
         try {
             dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add(name))
         } catch (e: RedisCommandExecutionException) {
             if (!e.isIndexAbsent()) throw e
         }
-        return create()
+        return tryCreate()
     }
 
-    /**
-     * Creates the index; false when another writer created one in between, which is then to be compared. The
-     * definition is written first: a replica that loses the race finds the winner's definition beside its index,
-     * never an index without one that it would take for a stranger's and drop.
-     */
-    private suspend fun create(): Boolean {
+    // False when another writer created the index in between. The definition is written first: a replica that loses
+    // the race finds the winner's definition beside its index, never an index without one that it would drop.
+    private suspend fun tryCreate(): Boolean {
         check(commands.set(definitionKey, definition.fingerprint).awaitSingle() == "OK") {
             "Index[$name]: its definition could not be written to $definitionKey"
         }

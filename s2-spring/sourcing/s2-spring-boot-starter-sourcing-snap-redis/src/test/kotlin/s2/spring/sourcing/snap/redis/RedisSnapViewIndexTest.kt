@@ -12,6 +12,7 @@ import io.lettuce.core.output.StatusOutput
 import io.lettuce.core.protocol.CommandArgs
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -239,9 +240,7 @@ class RedisSnapViewIndexTest {
             repeat(RACES) {
                 tidy()
 
-                val _ = withContext(Dispatchers.Default) {
-                    listOf(view, replica).map { async { it.initIndex() } }.awaitAll()
-                }
+                startTogether(view, replica)
 
                 val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
                 assertThat(sync["IndexProbeSnap:definition"]).isEqualTo(definition.fingerprint)
@@ -267,6 +266,13 @@ class RedisSnapViewIndexTest {
         assertThat(IllegalStateException("Unknown Index name").isIndexAbsent()).isFalse()
     }
 
+
+    private suspend fun startTogether(
+        vararg replicas: RedisSnapView<*>,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    ) {
+        val _ = withContext(dispatcher) { replicas.map { async { it.initIndex() } }.awaitAll() }
+    }
 
     private companion object {
         const val ALIAS = "IndexProbeSnapAlias"
