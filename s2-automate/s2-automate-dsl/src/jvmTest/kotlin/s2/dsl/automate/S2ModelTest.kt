@@ -29,14 +29,14 @@ class S2ModelTest {
 
     @Test
     fun `s2error defaults payload and cause`() {
-        val error = s2error("CODE", "desc")
+        val error = s2error(code = "CODE", description = "desc")
         assertThat(error.payload).isEmpty()
         assertThat(error.cause).isNull()
     }
 
     @Test
     fun `s2warning builds an S2ErrorBase without cause`() {
-        val warning = s2warning("WARN", "careful", mapOf("a" to "b"))
+        val warning = s2warning(code = "WARN", description = "careful", payload = mapOf("a" to "b"))
         assertThat(warning.type).isEqualTo("WARN")
         assertThat(warning.description).isEqualTo("careful")
         assertThat(warning.payload).containsEntry("a", "b")
@@ -45,7 +45,7 @@ class S2ModelTest {
 
     @Test
     fun `S2ErrorBase toString contains its fields`() {
-        val error = s2error("CODE", "desc", mapOf("k" to "v"))
+        val error = s2error(code = "CODE", description = "desc", payload = mapOf("k" to "v"))
         assertThat(error.toString())
             .contains("CODE")
             .contains("desc")
@@ -65,7 +65,7 @@ class S2ModelTest {
     @Test
     fun `S2EventError carries the error alongside the transition`() {
         val cmd = DoCmd("42")
-        val error = s2error("ERR", "failed")
+        val error = s2error(code = "ERR", description = "failed")
         val event = S2EventError(id = "42", type = cmd, from = TestState.Created, to = TestState.Active, error = error)
         assertThat(event.id).isEqualTo("42")
         assertThat(event.error.type).isEqualTo("ERR")
@@ -80,9 +80,9 @@ class S2ModelTest {
         assertThat(sub.automate).isSameAs(automate)
         assertThat(sub.startsOn).isEmpty()
         assertThat(sub.endsOn).isEmpty()
-        assertThat(sub.autostart).isFalse()
-        assertThat(sub.blocking).isFalse()
-        assertThat(sub.singleton).isFalse()
+        assertThat(sub.isAutostart).isFalse()
+        assertThat(sub.isBlocking).isFalse()
+        assertThat(sub.isSingleton).isFalse()
     }
 
     @Test
@@ -92,15 +92,15 @@ class S2ModelTest {
             automate = automate,
             startsOn = listOf(DoCmd::class),
             endsOn = listOf(DoCmd::class),
-            autostart = true,
-            blocking = true,
-            singleton = true,
+            isAutostart = true,
+            isBlocking = true,
+            isSingleton = true,
         )
         assertThat(sub.startsOn).containsExactly(DoCmd::class)
         assertThat(sub.endsOn).containsExactly(DoCmd::class)
-        assertThat(sub.autostart).isTrue()
-        assertThat(sub.blocking).isTrue()
-        assertThat(sub.singleton).isTrue()
+        assertThat(sub.isAutostart).isTrue()
+        assertThat(sub.isBlocking).isTrue()
+        assertThat(sub.isSingleton).isTrue()
     }
 
     @Test

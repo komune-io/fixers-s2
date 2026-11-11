@@ -33,51 +33,55 @@ import s2.dsl.automate.toValue
  * A command matching no declared transition is left alone: deciding whether that command is
  * legal at all is [TransitionStateGuard]'s job, and this guard has no role to check against.
  *
+ * @param STATE the automate state type
+ * @param ID the entity id type
+ * @param ENTITY the entity type
+ * @param EVENT the event type
  * @param rolesProvider the roles held by the current caller, resolved per command — on Spring
  * this reads the current `SecurityContext`.
  */
 class RoleGuard<STATE, ID : Any, ENTITY, EVENT>(
-	private val rolesProvider: suspend () -> Set<S2RoleValue>,
+    private val rolesProvider: suspend () -> Set<S2RoleValue>,
 ) : GuardAdapter<STATE, ID, ENTITY, EVENT, S2Automate>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>): GuardResult {
-		val required = context.automateContext.automate.transitions
-			.filter { it.from == null && it.matches(context.msg) }
-			.map { it.role }
-		return check(required)
-	}
+    override suspend fun evaluateInit(context: InitTransitionContext<S2Automate>): GuardResult {
+        val required = context.automateContext.automate.transitions
+            .filter { it.from == null && it.matches(context.msg) }
+            .map { it.role }
+        return check(required)
+    }
 
-	override suspend fun <COMMAND : Cmd> evaluateTransition(
-		context: TransitionContext<STATE, ID, ENTITY, S2Automate, COMMAND>
-	): GuardResult {
-		val command = context.command.data
-		val required = context.automateContext.automate
-			.getAvailableTransitions(context.entity.s2State())
-			.filter { it.matches(command) }
-			.map { it.role }
-		return check(required)
-	}
+    override suspend fun <COMMAND : Cmd> evaluateTransition(
+        context: TransitionContext<STATE, ID, ENTITY, S2Automate, COMMAND>
+    ): GuardResult {
+        val command = context.command.data
+        val required = context.automateContext.automate
+            .getAvailableTransitions(context.entity.s2State())
+            .filter { it.matches(command) }
+            .map { it.role }
+        return check(required)
+    }
 
-	private suspend fun check(required: List<S2RoleValue>): GuardResult {
-		// No declared transition matches this command: nothing to enforce here.
-		if (required.isEmpty()) return GuardResult.valid()
+    private suspend fun check(required: List<S2RoleValue>): GuardResult {
+        // No declared transition matches this command: nothing to enforce here.
+        if (required.isEmpty()) return GuardResult.valid()
 
-		val actual = rolesProvider()
-		val actualNames = actual.map { it.name.lowercase() }.toSet()
-		return if (required.any { it.name.lowercase() in actualNames }) {
-			GuardResult.valid()
-		} else {
-			GuardResult.error(
-				missingRoleError(
-					required = required.map { it.name },
-					actual = actual.map { it.name },
-				)
-			)
-		}
-	}
+        val actual = rolesProvider()
+        val actualNames = actual.map { it.name.lowercase() }.toSet()
+        return if (required.any { it.name.lowercase() in actualNames }) {
+            GuardResult.valid()
+        } else {
+            GuardResult.error(
+                missingRoleError(
+                    required = required.map { it.name },
+                    actual = actual.map { it.name },
+                )
+            )
+        }
+    }
 
-	private fun S2Transition.matches(msg: Msg): Boolean = action.name == msg::class.toValue().name
+    private fun S2Transition.matches(msg: Msg): Boolean = action.name == msg::class.toValue().name
 }

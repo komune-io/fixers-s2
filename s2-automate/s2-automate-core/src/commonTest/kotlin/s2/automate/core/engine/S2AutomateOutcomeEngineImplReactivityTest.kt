@@ -2,14 +2,12 @@ package s2.automate.core.engine
 
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
-import f2.dsl.fnc.operators.mapToEnvelope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import s2.automate.core.config.S2BatchProperties
@@ -49,17 +47,17 @@ class S2AutomateOutcomeEngineImplReactivityTest {
 
         var loadCallCount = 0
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<Any> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<Any> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> {
@@ -72,14 +70,14 @@ class S2AutomateOutcomeEngineImplReactivityTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
         }
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<
                 TestState, String, TestEntity, Any, S2Automate>>
         ): Flow<PersistOutcome<Any>> = transitionContexts.map { ctx ->
@@ -115,9 +113,9 @@ class S2AutomateOutcomeEngineImplReactivityTest {
         }.toList()
 
         assertEquals(
-            2,
-            persister.loadCallCount,
-            "Expected exactly 2 batched load(ids) calls (one per chunk of 5), " +
+            expected = 2,
+            actual = persister.loadCallCount,
+            message = "Expected exactly 2 batched load(ids) calls (one per chunk of 5), " +
                 "got ${persister.loadCallCount} — likely regressed to per-command load"
         )
     }

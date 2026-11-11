@@ -5,5 +5,5 @@ import s2.dsl.automate.Evt
 fun interface View<EVENT, ENTITY>
 where EVENT: Evt
 {
-	suspend fun evolve(event: EVENT, model: ENTITY?): ENTITY?
+    suspend fun evolve(event: EVENT, model: ENTITY?): ENTITY?
 }

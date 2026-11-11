@@ -8,6 +8,8 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 @SpringBootApplication(scanBasePackages = ["s2"])
 class SubAutomateR2dbcApp
 
+// The context must outlive main: closing it would stop the application it just started.
+@Suppress("MissingUseCall")
 fun main(vararg args: String) {
-	runApplication<SubAutomateR2dbcApp>(*args)
+    runApplication<SubAutomateR2dbcApp>(*args)
 }

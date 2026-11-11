@@ -104,13 +104,13 @@ class PassthroughGuard<EVENT> : GuardVerifier<TestState, String, TestEntity, EVE
 }
 
 class NoopPublisher : AppEventPublisher {
-    override fun <EVENT> publish(event: EVENT & Any) = Unit
+    override fun publish(event: Any) = Unit
 }
 
 /** Collects every published app event so tests can assert on what the engine emitted. */
 class RecordingPublisher : AppEventPublisher {
     val published = mutableListOf<Any>()
-    override fun <EVENT> publish(event: EVENT & Any) {
+    override fun publish(event: Any) {
         published.add(event)
     }
 
@@ -124,10 +124,10 @@ fun <EVENT> makeEngine(
     automate: S2Automate = testAutomate(),
     batch: S2BatchProperties = S2BatchProperties(size = 10, concurrency = BATCH_DEFAULT_CONCURRENCY),
 ): S2AutomateEngineImpl<TestState, String, TestEntity, EVENT> = S2AutomateEngineImpl(
-    AutomateContext(automate, batch),
-    guard,
-    persister,
-    AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
+    automateContext = AutomateContext(automate, batch),
+    guardExecutor = guard,
+    persister = persister,
+    publisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
 )
 
 fun <EVENT> makeOutcomeEngine(
@@ -137,8 +137,8 @@ fun <EVENT> makeOutcomeEngine(
     automate: S2Automate = testAutomate(),
     batch: S2BatchProperties = S2BatchProperties(size = 10, concurrency = BATCH_DEFAULT_CONCURRENCY),
 ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, EVENT> = S2AutomateOutcomeEngineImpl(
-    AutomateContext(automate, batch),
-    guard,
-    persister,
-    AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
+    automateContext = AutomateContext(automate, batch),
+    guardExecutor = guard,
+    persister = persister,
+    publisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher),
 )

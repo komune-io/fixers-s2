@@ -16,16 +16,19 @@ import s2.dsl.automate.model.WithS2Id
  * The blocking, coroutine and reactive persisters differ only in how they reach their
  * repository, so they each supply their own [findAllById] and share the alignment logic.
  *
+ * @param ID the identifier type of the entities.
+ * @param ENTITY the entity type, identified by its [WithS2Id.s2Id].
  * @param findAllById fetches the entities the repository knows about, in any order.
  */
 internal class AlignedEntityLoader<ID : Any, ENTITY : WithS2Id<ID>>(
-	private val findAllById: suspend (List<ID>) -> List<ENTITY>,
+    private val findAllById: suspend (List<ID>) -> List<ENTITY>,
 ) {
 
-	fun load(ids: Flow<ID>): Flow<ENTITY?> = flow {
-		val requestedIds = ids.toList()
-		if (requestedIds.isEmpty()) return@flow
-		val loaded = findAllById(requestedIds).associateBy { it.s2Id() }
-		requestedIds.forEach { id -> emit(loaded[id]) }
-	}
+    fun load(ids: Flow<ID>): Flow<ENTITY?> = flow {
+        val requestedIds = ids.toList()
+        if (requestedIds.isNotEmpty()) {
+            val loaded = findAllById(requestedIds).associateBy { it.s2Id() }
+            requestedIds.forEach { id -> emit(loaded[id]) }
+        }
+    }
 }

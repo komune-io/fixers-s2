@@ -48,24 +48,24 @@ class CucumberStepsDefinitionTest {
     @Test
     fun `parseNullableOrDefault handles null literal and default`() {
         val steps = Steps()
-        assertThat(steps.nullableOrDefault(null, "default")).isEqualTo("default")
-        assertThat(steps.nullableOrDefault("null", "default")).isNull()
-        assertThat(steps.nullableOrDefault("7", 0) { it.toInt() }).isEqualTo(7)
+        assertThat(steps.nullableOrDefault(value = null, default = "default")).isEqualTo("default")
+        assertThat(steps.nullableOrDefault(value = "null", default = "default")).isNull()
+        assertThat(steps.nullableOrDefault(value = "7", default = 0) { it.toInt() }).isEqualTo(7)
     }
 
     @Test
     fun `step runs the block in an authenticated coroutine`() {
         val steps = Steps()
-        var executed = false
-        steps.runStep { executed = true }
-        assertThat(executed).isTrue()
+        var isExecuted = false
+        steps.runStep { isExecuted = true }
+        assertThat(isExecuted).isTrue()
     }
 
     @Test
     fun `step records an AutomateException without propagating it`() {
         val steps = Steps()
         steps.runStep {
-            throw AutomateException(listOf(s2error("CODE", "boom")))
+            throw AutomateException(listOf(s2error(code = "CODE", description = "boom")))
         }
         assertThat(steps.context.errors.lastOfType(AutomateException::class)).isNotNull()
     }
@@ -104,6 +104,7 @@ class CucumberStepsDefinitionTest {
     fun `authedContext is empty without an authenticated user`() {
         val steps = Steps()
         val reactorContext: ReactorContext = steps.authed()
+        // The context holds the Mono<SecurityContext> Spring Security's ReactiveSecurityContextHolder reads.
         @Suppress("UNCHECKED_CAST")
         val securityContext =
             reactorContext.context.get<Mono<SecurityContext>>(SecurityContext::class.java)
@@ -115,6 +116,7 @@ class CucumberStepsDefinitionTest {
         val steps = Steps()
         steps.context.authedUser = AuthedUser(id = "user-1", memberOf = "org-1", roles = arrayOf("admin"))
         val reactorContext = steps.authed()
+        // The context holds the Mono<SecurityContext> Spring Security's ReactiveSecurityContextHolder reads.
         @Suppress("UNCHECKED_CAST")
         val securityContext =
             reactorContext.context.get<Mono<SecurityContext>>(SecurityContext::class.java)

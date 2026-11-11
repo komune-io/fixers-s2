@@ -23,12 +23,12 @@ class SnapLoaderTest {
     private class StubEventRepository(
         private val events: List<TestEvent>,
     ) : EventRepository<TestEvent, String> {
-        override suspend fun load(id: String): Flow<TestEvent> =
+        override fun load(id: String): Flow<TestEvent> =
             flowOf(*events.filter { it.s2Id() == id }.toTypedArray())
 
-        override suspend fun loadAll(): Flow<TestEvent> = flowOf(*events.toTypedArray())
+        override fun loadAll(): Flow<TestEvent> = flowOf(*events.toTypedArray())
         override suspend fun persist(event: TestEvent): TestEvent = event
-        override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
+        override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
         override suspend fun createTable() { /* no-op for the stub */ }
     }
 
@@ -62,7 +62,7 @@ class SnapLoaderTest {
     @Test
     suspend fun `load by id prefers the snapshot`() {
         val snapRepository = InMemorySnapRepository()
-        snapRepository.save(TestEntity("1", 999))
+        val _ = snapRepository.save(TestEntity("1", 999))
         val loader = snapLoader(snapRepository)
         assertThat(loader.load("1")).isEqualTo(TestEntity("1", 999))
     }

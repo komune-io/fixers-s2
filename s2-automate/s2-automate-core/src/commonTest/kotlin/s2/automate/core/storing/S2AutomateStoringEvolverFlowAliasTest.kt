@@ -21,6 +21,7 @@ import kotlin.test.assertEquals
  * methods they replace: an implementation that only overrides the deprecated `evolve*` methods
  * must keep working when callers migrate to `create`/`transition`.
  */
+// Implements the deprecated evolve* to prove the preferred names delegate to them.
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
 class S2AutomateStoringEvolverFlowAliasTest {
 
@@ -46,7 +47,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
 
         val calls = mutableListOf<String>()
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
             commands: Flow<COMMAND>,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
         ): Flow<EVENT_OUT> {
@@ -54,7 +55,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
             commands: EnvelopedFlow<COMMAND>,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
         ): EnvelopedFlow<EVENT_OUT> {
@@ -69,7 +70,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return Decide { emptyFlow() }
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolve(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolve(
             commands: Flow<COMMAND>,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>
         ): Flow<EVENT_OUT> {
@@ -77,7 +78,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveEnvelope(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveEnvelope(
             commands: EnvelopedFlow<COMMAND>,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>
         ): EnvelopedFlow<EVENT_OUT> {
@@ -92,7 +93,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return Decide { emptyFlow() }
         }
 
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             build: S2EvolveInitFnc<COMMAND, TestEntity, EVENT_OUT>
@@ -101,7 +102,7 @@ class S2AutomateStoringEvolverFlowAliasTest {
             return emptyFlow()
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             exec: S2EvolveFnc<COMMAND, TestEntity, EVENT_OUT>
@@ -119,56 +120,62 @@ class S2AutomateStoringEvolverFlowAliasTest {
     @Test
     fun `create delegates to the deprecated init evolve`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.create(emptyFlow<CreateCmd>(), initBuild).count())
-        assertEquals(listOf("evolve(init-flow)"), evolver.calls)
+        assertEquals(expected = 0, actual = evolver.create(emptyFlow<CreateCmd>(), initBuild).count())
+        assertEquals(expected = listOf("evolve(init-flow)"), actual = evolver.calls)
     }
 
     @Test
     fun `createEnvelope delegates to the deprecated init evolveEnvelope`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.createEnvelope(emptyFlow(), initBuild).count())
-        assertEquals(listOf("evolveEnvelope(init-flow)"), evolver.calls)
+        assertEquals(expected = 0, actual = evolver.createEnvelope(emptyFlow(), initBuild).count())
+        assertEquals(expected = listOf("evolveEnvelope(init-flow)"), actual = evolver.calls)
     }
 
     @Test
     fun `decideCreate delegates to the deprecated init evolve decider`() = runTest {
         val evolver = RecordingEvolverFlow()
-        evolver.decideCreate(initBuild)
-        assertEquals(listOf("evolve(init-decide)"), evolver.calls)
+        val _ = evolver.decideCreate(initBuild)
+        assertEquals(expected = listOf("evolve(init-decide)"), actual = evolver.calls)
     }
 
     @Test
     fun `transition delegates to the deprecated transition evolve`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.transition(emptyFlow<DoCmd>(), transitionExec).count())
-        assertEquals(listOf("evolve(transition-flow)"), evolver.calls)
+        assertEquals(expected = 0, actual = evolver.transition(emptyFlow<DoCmd>(), transitionExec).count())
+        assertEquals(expected = listOf("evolve(transition-flow)"), actual = evolver.calls)
     }
 
     @Test
     fun `transitionEnvelope delegates to the deprecated transition evolveEnvelope`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.transitionEnvelope(emptyFlow(), transitionExec).count())
-        assertEquals(listOf("evolveEnvelope(transition-flow)"), evolver.calls)
+        assertEquals(expected = 0, actual = evolver.transitionEnvelope(emptyFlow(), transitionExec).count())
+        assertEquals(expected = listOf("evolveEnvelope(transition-flow)"), actual = evolver.calls)
     }
 
     @Test
     fun `decideTransition delegates to the deprecated transition evolve decider`() = runTest {
         val evolver = RecordingEvolverFlow()
-        evolver.decideTransition(transitionExec)
-        assertEquals(listOf("evolve(transition-decide)"), evolver.calls)
+        val _ = evolver.decideTransition(transitionExec)
+        assertEquals(expected = listOf("evolve(transition-decide)"), actual = evolver.calls)
     }
 
     @Test
     fun `createWithOutcomes delegates to the deprecated init evolveWithOutcomes`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.createWithOutcomes(emptyFlow<CreateCmd>(), { it.id }, initBuild).count())
-        assertEquals(listOf("evolveWithOutcomes(init-flow)"), evolver.calls)
+        assertEquals(
+            expected = 0,
+            actual = evolver.createWithOutcomes(emptyFlow<CreateCmd>(), { it.id }, initBuild).count(),
+        )
+        assertEquals(expected = listOf("evolveWithOutcomes(init-flow)"), actual = evolver.calls)
     }
 
     @Test
     fun `transitionWithOutcomes delegates to the deprecated transition evolveWithOutcomes`() = runTest {
         val evolver = RecordingEvolverFlow()
-        assertEquals(0, evolver.transitionWithOutcomes(emptyFlow<DoCmd>(), { it.id }, transitionExec).count())
-        assertEquals(listOf("evolveWithOutcomes(transition-flow)"), evolver.calls)
+        assertEquals(
+            expected = 0,
+            actual = evolver.transitionWithOutcomes(emptyFlow<DoCmd>(), { it.id }, transitionExec).count(),
+        )
+        assertEquals(expected = listOf("evolveWithOutcomes(transition-flow)"), actual = evolver.calls)
     }
 }

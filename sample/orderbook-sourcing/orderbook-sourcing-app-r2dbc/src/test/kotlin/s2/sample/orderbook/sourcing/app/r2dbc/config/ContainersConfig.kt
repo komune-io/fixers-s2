@@ -8,10 +8,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer
 @TestConfiguration(proxyBeanMethods = false)
 class ContainersConfig {
 
-    companion object {
-        const val POSTGRES_IMAGE: String = "postgres:16-alpine"
-    }
-
     @Bean
     @ServiceConnection
     fun postgres(): PostgreSQLContainer {
@@ -21,4 +17,7 @@ class ContainersConfig {
             .withDatabaseName("orderbook-sourcing")
     }
 
+    companion object {
+        const val POSTGRES_IMAGE: String = "postgres:16-alpine"
+    }
 }

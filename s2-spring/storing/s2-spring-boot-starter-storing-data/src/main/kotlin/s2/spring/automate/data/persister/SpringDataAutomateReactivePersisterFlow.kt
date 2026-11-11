@@ -11,8 +11,8 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
 class SpringDataAutomateReactivePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
-	private val repository: ReactiveCrudRepository<ENTITY, ID>,
-	batchParams: S2BatchProperties,
+    private val repository: ReactiveCrudRepository<ENTITY, ID>,
+    batchParams: S2BatchProperties,
 ) : BatchingSpringDataPersister<STATE, ID, ENTITY, EVENT>(batchParams) where
 EVENT : Evt,
 STATE : S2State,
@@ -20,9 +20,9 @@ ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun findAllById(ids: List<ID>): List<ENTITY> = repository.findAllById(ids).asFlow().toList()
+    override suspend fun findAllById(ids: List<ID>): List<ENTITY> = repository.findAllById(ids).asFlow().toList()
 
-	override suspend fun saveAll(entities: List<ENTITY>) {
-		repository.saveAll(entities).asFlow().collect()
-	}
+    override suspend fun saveAll(entities: List<ENTITY>) {
+        repository.saveAll(entities).asFlow().collect()
+    }
 }

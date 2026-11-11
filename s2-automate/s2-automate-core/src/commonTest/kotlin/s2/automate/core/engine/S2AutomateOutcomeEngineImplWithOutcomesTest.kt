@@ -1,13 +1,14 @@
 package s2.automate.core.engine
 
-import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import s2.automate.core.appevent.AutomateTransitionEnded
 import s2.automate.core.appevent.publisher.AppEventPublisher
 import s2.automate.core.config.S2BatchProperties
 import s2.automate.core.context.AutomateContext
@@ -31,10 +32,10 @@ import s2.dsl.automate.S2Automate
 import s2.dsl.automate.s2error
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
- * Tests for the WithOutcomes paths in S2AutomateOutcomeEngineImpl:
+ * Tests for the WithOutcomes paths in S2AutomateOutcomeEngineImpl.
+ *
  * - createWithOutcomes routes through persistInitWithOutcomes
  * - doTransitionWithOutcomes routes through persistWithOutcomes
  * - guards fire for every command
@@ -59,15 +60,15 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         private val transitionPattern: List<OutcomeKind>,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("persistInit must NOT be called on the WithOutcomes path")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("persist must NOT be called on the WithOutcomes path")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = ids.map { id -> TestEntity(id, TestState.Created) }
@@ -77,23 +78,21 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             id: String,
         ): TestEntity? = TestEntity(id, TestState.Created)
 
-        override suspend fun persistInitWithOutcomes(
+        override fun persistInitWithOutcomes(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<PersistOutcome<TestEvent>> {
+        ): Flow<PersistOutcome<TestEvent>> = flow {
             val ctxs = transitionContexts.toList()
-            return ctxs.mapIndexed { i, ctx ->
-                toOutcome(initPattern[i % initPattern.size], ctx.event)
-            }.asFlow()
+            ctxs.forEachIndexed { i, ctx -> emit(toOutcome(initPattern[i % initPattern.size], ctx.event)) }
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<PersistOutcome<TestEvent>> {
+        ): Flow<PersistOutcome<TestEvent>> = flow {
             val ctxs = transitionContexts.toList()
-            return ctxs.mapIndexed { i, ctx ->
+            ctxs.forEachIndexed { i, ctx ->
                 // Use the actual msgId from the context so B.3 correlation works correctly.
-                toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msgId)
-            }.asFlow()
+                emit(toOutcome(transitionPattern[i % transitionPattern.size], ctx.event, ctx.msgId))
+            }
         }
 
         private fun toOutcome(
@@ -102,16 +101,22 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             msgId: String = "cmd",
         ): PersistOutcome<TestEvent> = when (kind) {
             OutcomeKind.COMMITTED -> PersistOutcome.Success(msgId = msgId, event = event)
-            OutcomeKind.REJECTED -> PersistOutcome.Rejected(msgId, s2error("ERR", "rejected"))
-            OutcomeKind.TRANSIENT -> PersistOutcome.Transient(msgId, s2error("TRANSIENT", "transient"))
-            OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate(msgId, s2error("INDET", "indeterminate"))
-            OutcomeKind.CONFLICT -> PersistOutcome.Conflict(msgId, s2error("CONFLICT", "conflict"))
+            OutcomeKind.REJECTED -> PersistOutcome.Rejected(msgId, s2error(code = "ERR", description = "rejected"))
+            OutcomeKind.TRANSIENT -> PersistOutcome.Transient(
+                msgId,
+                s2error(code = "TRANSIENT", description = "transient"),
+            )
+            OutcomeKind.INDETERMINATE -> PersistOutcome.Indeterminate(
+                msgId,
+                s2error(code = "INDET", description = "indeterminate"),
+            )
+            OutcomeKind.CONFLICT -> PersistOutcome.Conflict(msgId, s2error(code = "CONFLICT", description = "conflict"))
         }
     }
 
     private class RecordingAppEventPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -151,8 +156,7 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
 
     // ---- helpers ----
 
-    /** Five mixed outcome kinds: 3 Committed, 1 Rejected, 1 Transient */
-    private val mixedPattern = listOf(
+    private val threeOfFiveCommitted = listOf(
         OutcomeKind.COMMITTED,
         OutcomeKind.REJECTED,
         OutcomeKind.COMMITTED,
@@ -166,17 +170,22 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
         publisher: RecordingAppEventPublisher,
         batchSize: Int = 2,
     ): S2AutomateOutcomeEngineImpl<TestState, String, TestEntity, TestEvent> =
-        makeOutcomeEngine(persister, guard = guard, publisher = publisher, batch = S2BatchProperties(size = batchSize))
+        makeOutcomeEngine(
+            persister = persister,
+            guard = guard,
+            publisher = publisher,
+            batch = S2BatchProperties(size = batchSize),
+        )
 
     // ---- tests ----
 
     @Test
     fun `createWithOutcomes routes through persistInitWithOutcomes`() = runTest {
         val guard = PassthroughGuardVerifier()
-        val persister = StubPersister(initPattern = mixedPattern, transitionPattern = emptyList())
+        val persister = StubPersister(initPattern = threeOfFiveCommitted, transitionPattern = emptyList())
         val publisher = RecordingAppEventPublisher()
         // batchSize > input count so all commands flow through a single chunk
-        val engine = makeEngine(guard, persister, publisher, batchSize = 10)
+        val engine = makeEngine(guard = guard, persister = persister, publisher = publisher, batchSize = 10)
 
         val commands: EnvelopedFlow<CreateCmd> = (1..5).map { i ->
             CreateCmd("id$i").asEnvelopeWithType("Cmd")
@@ -188,19 +197,19 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             entity to event.asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(5, results.size, "Expected 5 outcomes from createWithOutcomes")
+        assertEquals(expected = 5, actual = results.size, message = "Expected 5 outcomes from createWithOutcomes")
         val data = results.map { it.data }
-        assertEquals(3, data.filterIsInstance<PersistOutcome.Success<*>>().size)
-        assertEquals(1, data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
-        assertEquals(1, data.filterIsInstance<PersistOutcome.Transient<*>>().size)
+        assertEquals(expected = 3, actual = data.filterIsInstance<PersistOutcome.Success<*>>().size)
+        assertEquals(expected = 1, actual = data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
+        assertEquals(expected = 1, actual = data.filterIsInstance<PersistOutcome.Transient<*>>().size)
     }
 
     @Test
     fun `doTransitionWithOutcomes routes through persistWithOutcomes`() = runTest {
         val guard = PassthroughGuardVerifier()
-        val persister = StubPersister(initPattern = emptyList(), transitionPattern = mixedPattern)
+        val persister = StubPersister(initPattern = emptyList(), transitionPattern = threeOfFiveCommitted)
         val publisher = RecordingAppEventPublisher()
-        val engine = makeEngine(guard, persister, publisher, batchSize = 5)
+        val engine = makeEngine(guard = guard, persister = persister, publisher = publisher, batchSize = 5)
 
         val commands: EnvelopedFlow<DoCmd> = (1..5).map { i ->
             DoCmd("id$i").asEnvelopeWithType("Cmd")
@@ -212,11 +221,11 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             updatedEntity to event.asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(5, results.size, "Expected 5 outcomes from doTransitionWithOutcomes")
+        assertEquals(expected = 5, actual = results.size, message = "Expected 5 outcomes from doTransitionWithOutcomes")
         val data = results.map { it.data }
-        assertEquals(3, data.filterIsInstance<PersistOutcome.Success<*>>().size)
-        assertEquals(1, data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
-        assertEquals(1, data.filterIsInstance<PersistOutcome.Transient<*>>().size)
+        assertEquals(expected = 3, actual = data.filterIsInstance<PersistOutcome.Success<*>>().size)
+        assertEquals(expected = 1, actual = data.filterIsInstance<PersistOutcome.Rejected<*>>().size)
+        assertEquals(expected = 1, actual = data.filterIsInstance<PersistOutcome.Transient<*>>().size)
     }
 
     @Test
@@ -235,19 +244,27 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             TestEntity(cmd.data.id, TestState.Created) to CreatedEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        // evaluateInit fires once per command (in prepareCreationContextForOutcomes)
-        assertEquals(3, guard.evaluateInitCount, "evaluateInit should fire for each command")
+        // evaluateInit fires once per command (in prepareInitContextForOutcomes)
+        assertEquals(
+            expected = 3,
+            actual = guard.evaluateInitCount,
+            message = "evaluateInit should fire for each command",
+        )
         // verifyInitTransition fires once per context (in persistInitWithOutcomes private helper)
-        assertEquals(3, guard.verifyInitCount, "verifyInitTransition should fire for each command")
+        assertEquals(
+            expected = 3,
+            actual = guard.verifyInitCount,
+            message = "verifyInitTransition should fire for each command",
+        )
     }
 
     @Test
     fun `sendEndDoTransitionEvent only fires for Committed outcomes`() = runTest {
         val guard = PassthroughGuardVerifier()
         // pattern: C, R, C, T, C → 3 Committed
-        val persister = StubPersister(initPattern = emptyList(), transitionPattern = mixedPattern)
+        val persister = StubPersister(initPattern = emptyList(), transitionPattern = threeOfFiveCommitted)
         val publisher = RecordingAppEventPublisher()
-        val engine = makeEngine(guard, persister, publisher, batchSize = 5)
+        val engine = makeEngine(guard = guard, persister = persister, publisher = publisher, batchSize = 5)
 
         val commands: EnvelopedFlow<DoCmd> = (1..5).map { i ->
             DoCmd("id$i").asEnvelopeWithType("Cmd")
@@ -259,11 +276,11 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
 
         // sendEndDoTransitionEvent calls publisher.automateTransitionEnded for each Committed
         val transitionEndedEvents = publisher.published
-            .filterIsInstance<s2.automate.core.appevent.AutomateTransitionEnded<*, *>>()
+            .filterIsInstance<AutomateTransitionEnded<*, *>>()
         assertEquals(
-            3,
-            transitionEndedEvents.size,
-            "AutomateTransitionEnded should fire exactly once per Committed outcome; " +
+            expected = 3,
+            actual = transitionEndedEvents.size,
+            message = "AutomateTransitionEnded should fire exactly once per Committed outcome; " +
                 "published=${publisher.published.map { it::class.simpleName }}"
         )
     }
@@ -271,10 +288,10 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
     @Test
     fun `size preservation through chunking (5 commands, batch size 2 = 5 outcomes back)`() = runTest {
         val guard = PassthroughGuardVerifier()
-        val persister = StubPersister(initPattern = emptyList(), transitionPattern = mixedPattern)
+        val persister = StubPersister(initPattern = emptyList(), transitionPattern = threeOfFiveCommitted)
         val publisher = RecordingAppEventPublisher()
         // batch.size=2 forces chunking: chunks of [2,2,1]
-        val engine = makeEngine(guard, persister, publisher, batchSize = 2)
+        val engine = makeEngine(guard = guard, persister = persister, publisher = publisher, batchSize = 2)
 
         val commands: EnvelopedFlow<DoCmd> = (1..5).map { i ->
             DoCmd("id$i").asEnvelopeWithType("Cmd")
@@ -284,6 +301,10 @@ class S2AutomateOutcomeEngineImplWithOutcomesTest {
             entity.copy(state = TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(5, results.size, "All 5 outcomes must survive chunking with batch.size=2")
+        assertEquals(
+            expected = 5,
+            actual = results.size,
+            message = "All 5 outcomes must survive chunking with batch.size=2",
+        )
     }
 }

@@ -15,7 +15,7 @@ open class EntryParser<R: Any>(
 
     fun singleOrNull(entry: Map<String, String>, key: String): R? {
         return entry[key]?.let {
-            parser(it) ?: throw IllegalDataTableParamException(key, parseErrorMessage)
+            parser(it) ?: throw IllegalDataTableParamException(param = key, cause = parseErrorMessage)
         }
     }
 
@@ -25,11 +25,11 @@ open class EntryParser<R: Any>(
     }
 
     fun listOrNull(entry: Map<String, String>, key: String): List<R>? {
-        return entry[key]
-            ?.split(",")
-            ?.map {
-                parser(it.trim()) ?: throw IllegalDataTableParamException(key, parseErrorMessage)
+        return entry[key]?.run {
+            split(",").map {
+                parser(it.trim()) ?: throw IllegalDataTableParamException(param = key, cause = parseErrorMessage)
             }
+        }
     }
 
     fun list(entry: Map<String, String>, key: String): List<R> {

@@ -5,6 +5,6 @@ import kotlin.js.JsName
 
 @JsExport
 interface WithId<ID : Any> {
-	@JsName("id")
-	val id: ID
+    @JsName("id")
+    val id: ID
 }

@@ -18,43 +18,40 @@ import s2.dsl.automate.model.WithS2State
  * only in how they reach their repository: [findAllById] and [saveAll] adapt the repository
  * flavour, everything else (aligned loading, batched saving) lives here.
  */
-// S6309: the suspend modifier is mandated by the AutomatePersister contract (published API).
-@Suppress("kotlin:S6309")
 abstract class BatchingSpringDataPersister<STATE, ID : Any, ENTITY, EVENT>(
-	private val batchParams: S2BatchProperties,
+    private val batchParams: S2BatchProperties,
 ) : AutomatePersister<STATE, ID, ENTITY, EVENT, S2Automate> where
 STATE : S2State,
 ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	/** Fetches the entities the repository knows about, in any order. */
-	protected abstract suspend fun findAllById(ids: List<ID>): List<ENTITY>
+    private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> findAllById(ids) }
 
-	/** Saves all [entities] in a single repository call. */
-	protected abstract suspend fun saveAll(entities: List<ENTITY>)
+    /** Fetches the entities the repository knows about, in any order. */
+    protected abstract suspend fun findAllById(ids: List<ID>): List<ENTITY>
 
-	private val loader = AlignedEntityLoader<ID, ENTITY> { ids -> findAllById(ids) }
+    /** Saves all [entities] in a single repository call. */
+    protected abstract suspend fun saveAll(entities: List<ENTITY>)
 
-	override suspend fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
-		loader.load(ids)
+    override fun load(automateContexts: AutomateContext<S2Automate>, ids: Flow<ID>): Flow<ENTITY?> =
+        loader.load(ids)
 
-	override suspend fun persistInit(
-		transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
+    override fun persistInit(
+        transitionContexts: Flow<InitTransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): Flow<EVENT> = transitionContexts.saveBatchesThenEmitEvents(entityOf = { it.entity }, eventOf = { it.event })
 
-	override suspend fun persist(
-		transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
-	): Flow<EVENT> = transitionContexts.saveAllBatched({ it.entity }, { it.event })
+    override fun persist(
+        transitionContexts: Flow<TransitionAppliedContext<STATE, ID, ENTITY, EVENT, S2Automate>>
+    ): Flow<EVENT> = transitionContexts.saveBatchesThenEmitEvents(entityOf = { it.entity }, eventOf = { it.event })
 
-	/** Saves each batch of entities in a single [saveAll] call, then emits the matching events in order. */
-	private fun <CONTEXT> Flow<CONTEXT>.saveAllBatched(
-		entityOf: (CONTEXT) -> ENTITY,
-		eventOf: (CONTEXT) -> EVENT,
-	): Flow<EVENT> = batch(batchParams.asBatch()) { contexts ->
-		val entities = contexts.map(entityOf)
-		val events = contexts.map(eventOf)
-		saveAll(entities)
-		events
-	}
+    private fun <CONTEXT> Flow<CONTEXT>.saveBatchesThenEmitEvents(
+        entityOf: (CONTEXT) -> ENTITY,
+        eventOf: (CONTEXT) -> EVENT,
+    ): Flow<EVENT> = batch(batchParams.asBatch()) { contexts ->
+        val entities = contexts.map(entityOf)
+        val events = contexts.map(eventOf)
+        saveAll(entities)
+        events
+    }
 }

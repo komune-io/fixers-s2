@@ -8,20 +8,20 @@ import s2.dsl.automate.model.WithS2State
 
 interface S2AutomateStoringEvolver<STATE : S2State, ID : Any, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
-	suspend fun <EVENT_OUT: EVENT> createWithEvent(
-		command: S2InitCommand,
-		buildEvent: suspend ENTITY.() -> EVENT_OUT,
-		buildEntity: suspend () -> ENTITY,
-	): EVENT_OUT
+    suspend fun <EVENT_OUT: EVENT> createWithEvent(
+        command: S2InitCommand,
+        buildEvent: suspend ENTITY.() -> EVENT_OUT,
+        buildEntity: suspend () -> ENTITY,
+    ): EVENT_OUT
 
-	suspend fun <EVENT_OUT: EVENT> createWithEvent(
-		command: S2InitCommand,
-		build: suspend () -> Pair<ENTITY, EVENT_OUT>
-	): EVENT_OUT
+    suspend fun <EVENT_OUT: EVENT> createWithEvent(
+        command: S2InitCommand,
+        build: suspend () -> Pair<ENTITY, EVENT_OUT>
+    ): EVENT_OUT
 
-	suspend fun <EVENT_OUT: EVENT> doTransition(
-		command: S2Command<ID>,
-		exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>
-	): EVENT_OUT
+    suspend fun <EVENT_OUT: EVENT> doTransition(
+        command: S2Command<ID>,
+        exec: suspend ENTITY.() -> Pair<ENTITY, EVENT_OUT>
+    ): EVENT_OUT
 
 }

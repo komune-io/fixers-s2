@@ -1,6 +1,5 @@
 package s2.automate.core.engine
 
-import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
@@ -48,7 +47,7 @@ class S2AutomateEngineImplTest {
         private val entities: Map<String, TestEntity>,
         private val persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
         /** Mimics a `findAllById`-style persister: ids without entity are simply not emitted. */
-        private val omitMissingIds: Boolean = false,
+        private val isOmittingMissingIds: Boolean = false,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
         override suspend fun load(
@@ -56,27 +55,27 @@ class S2AutomateEngineImplTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
-        ): Flow<TestEntity?> = if (omitMissingIds) {
+        ): Flow<TestEntity?> = if (isOmittingMissingIds) {
             ids.mapNotNull { entities[it] }
         } else {
             ids.map { entities[it] }
         }
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = persistDecorator(transitionContexts.map { it.event })
     }
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -117,12 +116,12 @@ class S2AutomateEngineImplTest {
         publisher: RecordingPublisher = RecordingPublisher(),
         entities: Map<String, TestEntity> = mapOf("1" to TestEntity("1", TestState.Created)),
         persistDecorator: (Flow<TestEvent>) -> Flow<TestEvent> = { it },
-        omitMissingIds: Boolean = false,
+        isOmittingMissingIds: Boolean = false,
     ): S2AutomateEngineImpl<TestState, String, TestEntity, TestEvent> = makeEngine(
-        StubPersister(
+        persister = StubPersister(
             entities,
             persistDecorator = persistDecorator,
-            omitMissingIds = omitMissingIds,
+            isOmittingMissingIds = isOmittingMissingIds,
         ),
         guard = guard,
         publisher = publisher,
@@ -199,7 +198,7 @@ class S2AutomateEngineImplTest {
 
     @Test
     suspend fun `doTransition fails with ERROR_ENTITY_NOT_FOUND when the persister omits the missing id`() {
-        val engine = engine(entities = emptyMap(), omitMissingIds = true)
+        val engine = engine(entities = emptyMap(), isOmittingMissingIds = true)
         val commands = flowOf(DoCmd("missing")).mapToEnvelopeWithRandomId(type = "Cmd")
         val exception = assertThrows<AutomateException> {
             engine.doTransition(commands) { cmd, entity ->
@@ -213,7 +212,7 @@ class S2AutomateEngineImplTest {
     suspend fun `doTransition does not silently drop a command whose entity is missing`() {
         val engine = engine(
             entities = mapOf("1" to TestEntity("1", TestState.Created)),
-            omitMissingIds = true,
+            isOmittingMissingIds = true,
         )
         val commands = flowOf(DoCmd("1"), DoCmd("missing")).mapToEnvelopeWithRandomId(type = "Cmd")
         val exception = assertThrows<AutomateException> {

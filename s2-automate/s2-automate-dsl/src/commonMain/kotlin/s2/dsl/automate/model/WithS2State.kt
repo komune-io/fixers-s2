@@ -4,5 +4,5 @@ import kotlin.js.JsExport
 
 @JsExport
 fun interface WithS2State<STATE> {
-	fun s2State(): STATE
+    fun s2State(): STATE
 }

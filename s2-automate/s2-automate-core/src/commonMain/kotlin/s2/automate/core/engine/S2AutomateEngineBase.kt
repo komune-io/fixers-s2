@@ -5,6 +5,7 @@ import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import f2.dsl.fnc.operators.chunk
 import f2.dsl.fnc.operators.flattenConcurrently
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
@@ -23,7 +24,6 @@ import s2.automate.core.appevent.publisher.AutomateEventPublisher
 import s2.automate.core.context.AutomateContext
 import s2.automate.core.context.InitTransitionAppliedContext
 import s2.automate.core.context.InitTransitionContext
-import s2.automate.core.context.TransitionAppliedContext
 import s2.automate.core.context.TransitionContext
 import s2.automate.core.error.AutomateException
 import s2.automate.core.error.duplicateCommandIdsError
@@ -52,16 +52,20 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
     /**
-     * [prepareCreationContextForOutcomes] with legacy exception handling: any failure is
+     * [prepareInitContextForOutcomes] with legacy exception handling: any failure is
      * routed through [handleException], which publishes the transition and session errors
      * and re-wraps non-[AutomateException] throws.
      */
+    // A decide lambda may fail with anything: every failure is published and wrapped alike.
+    @Suppress("TooGenericExceptionCaught")
     protected suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT>
     prepareCreationContext(
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>,
         command: Envelope<COMMAND>
     ): InitTransitionAppliedContext<STATE, ID, ENTITY_OUT, EVENT_OUT, S2Automate> = try {
-        prepareCreationContextForOutcomes(decide, command)
+        prepareInitContextForOutcomes(decide, command)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         handleException(command, e)
     }
@@ -73,7 +77,7 @@ ENTITY : WithS2Id<ID> {
      * than [PersistOutcome.Rejected].
      */
     protected suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : ENTITY, EVENT_OUT : EVENT>
-    prepareCreationContextForOutcomes(
+    prepareInitContextForOutcomes(
         decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>,
         command: Envelope<COMMAND>
     ): InitTransitionAppliedContext<STATE, ID, ENTITY_OUT, EVENT_OUT, S2Automate> {
@@ -89,7 +93,7 @@ ENTITY : WithS2Id<ID> {
         )
     }
 
-    protected suspend fun <COMMAND : S2Command<ID>> loadTransitionContext(
+    protected fun <COMMAND : S2Command<ID>> loadTransitionContext(
         commands: EnvelopedFlow<COMMAND>
     ): Flow<Pair<ENTITY, TransitionContext<STATE, ID, ENTITY, S2Automate, out COMMAND>>> {
         return commands.chunk(automateContext.batch.size).map { commandsChunk ->
@@ -128,14 +132,13 @@ ENTITY : WithS2Id<ID> {
      * Commands sharing an id across *different* batches are unaffected: each batch reloads.
      */
     protected fun <COMMAND : S2Command<ID>> rejectDuplicateIds(cmds: List<Envelope<COMMAND>>) {
-        val duplicates = duplicateIdsOf(cmds)
+        val duplicates = duplicateIdsInFirstSeenOrder(cmds)
         if (duplicates.isNotEmpty()) {
             throw duplicateCommandIdsError(duplicates).asException()
         }
     }
 
-    /** Ids appearing more than once in [cmds], in first-seen order. */
-    private fun <COMMAND : S2Command<ID>> duplicateIdsOf(cmds: List<Envelope<COMMAND>>): List<String> {
+    private fun <COMMAND : S2Command<ID>> duplicateIdsInFirstSeenOrder(cmds: List<Envelope<COMMAND>>): List<String> {
         val seen = mutableSetOf<ID>()
         val duplicates = mutableListOf<String>()
         cmds.forEach { cmd ->
@@ -199,24 +202,25 @@ ENTITY : WithS2Id<ID> {
         return cmds.map { cmd ->
             val cmdId = cmd.data.id
             if (!seenIds.add(cmdId)) {
-                return@map LoadedSlot.Failed(
+                LoadedSlot.Failed(
                     cmd,
                     PersistOutcome.Rejected<Nothing>(
                         msgId = cmd.id,
                         error = duplicateCommandIdsError(listOf(cmdId.toString())),
                     ),
                 )
-            }
-            when (val outcome = byId[cmdId]) {
-                is LoadOutcome.Loaded -> LoadedSlot.Ready(cmd, outcome.entity)
-                is LoadOutcome.Failure -> LoadedSlot.Failed(cmd, outcome.toPersistFailure(cmd.id))
-                null -> LoadedSlot.Failed(
-                    cmd,
-                    PersistOutcome.Rejected<Nothing>(
-                        msgId = cmd.id,
-                        error = entityNotFoundError(cmdId.toString()),
-                    ),
-                )
+            } else {
+                when (val outcome = byId[cmdId]) {
+                    is LoadOutcome.Loaded -> LoadedSlot.Ready(cmd, outcome.entity)
+                    is LoadOutcome.Failure -> LoadedSlot.Failed(cmd, outcome.toPersistFailure(cmd.id))
+                    null -> LoadedSlot.Failed(
+                        cmd,
+                        PersistOutcome.Rejected<Nothing>(
+                            msgId = cmd.id,
+                            error = entityNotFoundError(cmdId.toString()),
+                        ),
+                    )
+                }
             }
         }
     }

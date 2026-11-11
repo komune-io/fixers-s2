@@ -48,12 +48,12 @@ class S2AutomateSourcingDeciderImplTest {
     data class DoCmd(override val id: String) : S2Command<String>
 
     private class StubEngine : S2AutomateEngine<TestState, TestEntity, String, TestEvent> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { command -> decide(command).second }
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : TestEvent>
         doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -64,36 +64,36 @@ class S2AutomateSourcingDeciderImplTest {
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
 
-    /** [nullProjection]: the view projects every event to nothing, as a buggy View would. */
-    private class StubLoader(private val nullProjection: Boolean = false) : Loader<TestEvent, TestEntity, String> {
-        var reloadHistoryCalled = false
+    /** [isProjectionNull]: the view projects every event to nothing, as a buggy View would. */
+    private class StubLoader(private val isProjectionNull: Boolean = false) : Loader<TestEvent, TestEntity, String> {
+        var isReloadHistoryCalled = false
         override suspend fun load(id: String): TestEntity? = TestEntity(id)
         override suspend fun load(events: Flow<TestEvent>): TestEntity? = evolve(events)
         override suspend fun loadAndEvolve(id: String, news: Flow<TestEvent>): TestEntity? =
             evolve(news, TestEntity(id))
 
         override suspend fun evolve(events: Flow<TestEvent>, entity: TestEntity?): TestEntity? =
-            if (nullProjection) null else events.fold(entity) { _, event -> TestEntity(event.s2Id()) }
+            if (isProjectionNull) null else events.fold(entity) { _, event -> TestEntity(event.s2Id()) }
 
         override suspend fun reloadHistory(): List<TestEntity> {
-            reloadHistoryCalled = true
+            isReloadHistoryCalled = true
             return listOf(TestEntity("history"))
         }
     }
 
     private class StubEventRepository : EventRepository<TestEvent, String> {
         val stored = mutableListOf<TestEvent>(CreatedEvt("stored"))
-        override suspend fun load(id: String): Flow<TestEvent> =
+        override fun load(id: String): Flow<TestEvent> =
             flowOf(*stored.filter { it.s2Id() == id }.toTypedArray())
 
-        override suspend fun loadAll(): Flow<TestEvent> = flowOf(*stored.toTypedArray())
+        override fun loadAll(): Flow<TestEvent> = flowOf(*stored.toTypedArray())
         override suspend fun persist(event: TestEvent): TestEvent = event.also(stored::add)
-        override suspend fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
+        override fun persist(events: Flow<TestEvent>): Flow<TestEvent> = events
         override suspend fun createTable() { /* no-op for the stub */ }
     }
 
@@ -101,7 +101,12 @@ class S2AutomateSourcingDeciderImplTest {
         publisher: RecordingPublisher = RecordingPublisher(),
         loader: StubLoader = StubLoader(),
         eventStore: StubEventRepository = StubEventRepository(),
-    ) = S2AutomateSourcingDeciderImpl(StubEngine(), publisher, loader, eventStore)
+    ) = S2AutomateSourcingDeciderImpl(
+        automateExecutor = StubEngine(),
+        publisher = publisher,
+        projectionLoader = loader,
+        eventStore = eventStore,
+    )
 
     @Test
     suspend fun `init builds the event and publishes it`() {
@@ -124,9 +129,9 @@ class S2AutomateSourcingDeciderImplTest {
     @Test
     suspend fun `init fails when the projection of its event is null`() {
         val publisher = RecordingPublisher()
-        val decider = decider(publisher, loader = StubLoader(nullProjection = true))
+        val decider = decider(publisher, loader = StubLoader(isProjectionNull = true))
         val exception = assertThrows<IllegalStateException> {
-            decider.init(CreateCmd("1")) { CreatedEvt("1") }
+            val _ = decider.init(CreateCmd("1")) { CreatedEvt("1") }
         }
         assertEquals("The projection of an init event is null", exception.message)
         assertTrue(publisher.published.isEmpty())
@@ -135,9 +140,9 @@ class S2AutomateSourcingDeciderImplTest {
     @Test
     suspend fun `transition fails when the projection of its event is null`() {
         val publisher = RecordingPublisher()
-        val decider = decider(publisher, loader = StubLoader(nullProjection = true))
+        val decider = decider(publisher, loader = StubLoader(isProjectionNull = true))
         val exception = assertThrows<IllegalStateException> {
-            decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
+            val _ = decider.transition(DoCmd("7")) { DoneEvt(s2Id()) }
         }
         assertEquals("The projection of an event is null", exception.message)
         assertTrue(publisher.published.isEmpty())
@@ -176,6 +181,6 @@ class S2AutomateSourcingDeciderImplTest {
         val loader = StubLoader()
         val decider = decider(loader = loader)
         decider.replayHistory()
-        assertTrue(loader.reloadHistoryCalled)
+        assertTrue(loader.isReloadHistoryCalled)
     }
 }

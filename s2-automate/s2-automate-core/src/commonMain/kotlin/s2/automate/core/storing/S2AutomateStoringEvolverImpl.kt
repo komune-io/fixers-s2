@@ -28,6 +28,7 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 import s2.sourcing.dsl.Decide
 
+// Implements the deprecated evolve* as well as the preferred names, one function each.
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION", "TooManyFunctions")
 open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
     private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, Evt>,
@@ -79,30 +80,26 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
         return event.data
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd"),
-            { cmd ->
-                val (entity, event) = build(cmd.data)
-                entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).onEach { event ->
+        return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
+            val (entity, event) = build(cmd.data)
+            entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.onEach { event ->
             publisher.publish(event)
         }.map { it.data }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> {
-        return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd"),
-            { cmd, entity ->
-                val (evolved, event) = exec(cmd.data, entity)
-                evolved to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).map { it.data }.onEach {
+        return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd, entity ->
+            val (evolved, event) = exec(cmd.data, entity)
+            evolved to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.map { it.data }.onEach {
             publisher.publish(it)
         }
     }
@@ -123,30 +120,26 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
         }
     }
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> {
-        return automateExecutor.create(commands,
-            { cmd ->
-                val (entity, event) = build(cmd.data)
-                entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).onEach { event ->
+        return automateExecutor.create(commands) { cmd ->
+            val (entity, event) = build(cmd.data)
+            entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.onEach { event ->
             publisher.publish(event)
         }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> {
-        return automateExecutor.doTransition(commands,
-            { cmd, entity ->
-                val (updatedEntity, event) = exec(cmd.data, entity)
-                updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).onEach {
+        return automateExecutor.doTransition(commands) { cmd, entity ->
+            val (updatedEntity, event) = exec(cmd.data, entity)
+            updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.onEach {
             publisher.publish(it)
         }
     }
@@ -160,32 +153,29 @@ open class S2AutomateStoringEvolverImpl<STATE, ENTITY, ID : Any>(
      * event types (a Spring `@EventListener` on the domain event would never match an
      * envelope payload), and the sourcing decider publishes raw events the same way.
      */
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> {
-        return outcomeExecutor.createWithOutcomes(commands.mapToEnvelope(type = "Cmd", id = idOf),
-            { cmd ->
-                val (entity, event) = build(cmd.data)
-                entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).onEach { envelopedOutcome ->
+        return outcomeExecutor.createWithOutcomes(commands.mapToEnvelope(type = "Cmd", id = idOf)) { cmd ->
+            val (entity, event) = build(cmd.data)
+            entity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.onEach { envelopedOutcome ->
             publishOutcome(envelopedOutcome.data)
         }.map { it.data }
     }
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> {
-        return outcomeExecutor.doTransitionWithOutcomes(commands.mapToEnvelope(type = "Cmd", id = idOf),
-            { cmd, entity ->
-                val (updatedEntity, event) = exec(cmd.data, entity)
-                updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
-            }
-        ).onEach { envelopedOutcome ->
+        val envelopes = commands.mapToEnvelope(type = "Cmd", id = idOf)
+        return outcomeExecutor.doTransitionWithOutcomes(envelopes) { cmd, entity ->
+            val (updatedEntity, event) = exec(cmd.data, entity)
+            updatedEntity to cmd.mapEnvelopeWithType({ event }, type = "Evt")
+        }.onEach { envelopedOutcome ->
             publishOutcome(envelopedOutcome.data)
         }.map { it.data }
     }

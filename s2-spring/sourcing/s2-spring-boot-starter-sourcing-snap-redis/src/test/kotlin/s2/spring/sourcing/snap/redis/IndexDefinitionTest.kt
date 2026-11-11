@@ -1,148 +1,119 @@
 package s2.spring.sourcing.snap.redis
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 
 class IndexDefinitionTest {
 
-	private fun resp2(vararg attributes: List<Any?>) = mapOf(
-		"index_definition" to listOf("key_type", "JSON", "prefixes", listOf("Probe-"), "default_language", "english"),
-		"attributes" to attributes.toList(),
-		"stopwords_list" to emptyList<Any?>(),
-	)
+    private val fields = listOf(
+        RedisIndexField("id", RedisFieldType.TAG),
+        RedisIndexField("name", RedisFieldType.TEXT),
+        RedisIndexField("rank", RedisFieldType.NUMERIC),
+        RedisIndexField.array("labels", RedisFieldType.TAG),
+    )
 
-	private val name = listOf(RedisIndexField("name", RedisFieldType.TEXT))
+    @Test
+    fun `an index reads its model's keys, keeps every word unstemmed and sets each type's flags`() {
+        val definition = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
 
-	@Test
-	fun `a RESP2 attribute is read by position, even when a value repeats a key`() {
-		val read = IndexDefinition.read(
-			resp2(listOf("identifier", "$.type", "attribute", "type", "type", "TAG", "SEPARATOR", ",")),
-		)
+        assertThat(definition.fingerprint).isEqualTo(
+            "ON JSON PREFIX 1 Probe- STOPWORDS 0 SCHEMA " +
+                "$.id AS id TAG " +
+                "$.name AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE " +
+                "$.rank AS rank NUMERIC SORTABLE " +
+                "$.labels[*] AS labels TAG",
+        )
+        assertThat(definition.createArgs("Probe").toCommandString()).startsWith("Probe ON JSON")
+    }
 
-		assertThat(read?.attributes).containsExactly(IndexDefinition.Attribute("$.type", "type", "TAG", emptySet()))
-		assertThat(read?.language).isEqualTo("english")
-	}
+    @Test
+    fun `no language is sent, words being never stemmed`() {
+        assertThat(IndexDefinition.from("Probe", fields, IndexSettings(null)).fingerprint).doesNotContain("LANGUAGE")
+    }
 
-	@Test
-	fun `an index whose answer names no language is in RediSearch's default, English`() {
-		val read = IndexDefinition.read(
-			mapOf(
-				"index_definition" to listOf("key_type", "JSON", "prefixes", listOf("Probe-")),
-				"attributes" to emptyList<Any?>(),
-			),
-		)
+    @Test
+    fun `a change of phonetic matcher changes the definition`() {
+        val french = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.FRENCH))
+        val english = IndexDefinition.from("Probe", fields, IndexSettings(PhoneticMatcher.ENGLISH))
+        val none = IndexDefinition.from("Probe", fields, IndexSettings(null))
 
-		assertThat(read?.language).isEqualTo(IndexLanguage.ENGLISH.value)
-	}
+        assertThat(setOf(french.fingerprint, english.fingerprint, none.fingerprint)).hasSize(3)
+        // FT.INFO does not show the matcher: the marker attribute, which it shows, carries the difference.
+        assertThat(setOf(french.marker, english.marker, none.marker)).hasSize(3)
+        assertThat(none.fingerprint).doesNotContain("PHONETIC")
+    }
 
-	@Test
-	fun `an answer that cannot be read is no definition, not an empty one`() {
-		assertThat(IndexDefinition.read(mapOf("index_definition" to listOf("default_language", "english")))).isNull()
-		assertThat(IndexDefinition.read(mapOf("index_definition" to listOf("prefixes", "Probe-")))).isNull()
-		assertThat(IndexDefinition.read(mapOf("attributes" to emptyList<Any?>()))).isNull()
-		assertThat(IndexDefinition.read(resp2(listOf("attribute", "id", "identifier", "$.id")))).isNull()
-	}
+    @Test
+    fun `an index names each field once, and at least one`() {
+        val twice = fields + RedisIndexField("name", RedisFieldType.TAG)
 
-	@Test
-	fun `the creation sends the flags the definition holds, and only those`() {
-		val bare = IndexDefinition(
-			listOf("Probe-"),
-			"english",
-			false,
-			listOf(IndexDefinition.Attribute("$.n", "n", "TEXT", setOf("NOSTEM"))),
-			phonetic = null,
-		)
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", twice, IndexSettings(null)) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("names a field twice")
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", emptyList(), IndexSettings(null)) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("at least one field")
+    }
 
-		val sent = bare.createArgs("Probe").toCommandString()
+    @Test
+    fun `FT INFO is read in both protocols, and an index that reads otherwise is not this one`() {
+        val definition = IndexDefinition.from(
+            indexName = "Probe",
+            fields = listOf(RedisIndexField("id", RedisFieldType.TAG)),
+            settings = IndexSettings(null),
+        )
+        val resp2 = mapOf(
+            "index_definition" to listOf("key_type", "JSON", "prefixes", listOf("Probe-"), "default_score", "1"),
+            "attributes" to listOf(
+                listOf("identifier", "$.id", "attribute", "id", "type", "TAG", "SEPARATOR", ","),
+                listOf("identifier", MARKER_PATH, "attribute", definition.marker, "type", "TAG", "SEPARATOR", ","),
+            ),
+            "stopwords_list" to emptyList<Any?>(),
+        )
+        val resp3 = mapOf(
+            "index_definition" to mapOf("key_type" to "JSON", "prefixes" to listOf("Probe-")),
+            "attributes" to listOf(
+                mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG"),
+                mapOf("identifier" to MARKER_PATH, "attribute" to definition.marker, "type" to "TAG"),
+            ),
+            "stopwords_list" to emptyList<Any?>(),
+        )
 
-		assertThat(sent).contains("NOSTEM").doesNotContain("SORTABLE").doesNotContain("PHONETIC").contains("STOPWORDS 0")
-	}
+        assertThat(definition.isShownBy(resp2)).isTrue()
+        assertThat(definition.isShownBy(resp3)).isTrue()
+        assertThat(definition.isShownBy(resp3 + ("stopwords_list" to listOf("a")))).isFalse()
+        assertThat(definition.isShownBy(resp3 + ("attributes" to emptyList<Any?>()))).isFalse()
+        val unmarked = listOf(mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG"))
+        assertThat(definition.isShownBy(resp3 + ("attributes" to unmarked))).isFalse()
+        val french = mapOf("prefixes" to listOf("Probe-"), "default_language" to "french")
+        val otherPrefix = mapOf("prefixes" to listOf("Probe"))
 
-	@Test
-	fun `the language and the phonetic matcher are the settings' own`() {
-		val sent = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.SPANISH, PhoneticMatcher.SPANISH))
-			.createArgs("Probe").toCommandString()
+        assertThat(definition.isShownBy(resp3 + ("index_definition" to french))).isFalse()
+        assertThat(definition.isShownBy(resp3 + ("index_definition" to otherPrefix))).isFalse()
+    }
 
-		assertThat(sent).contains("LANGUAGE spanish").contains("PHONETIC dm:es")
-	}
+    @Test
+    fun `an FT INFO answer that cannot be read is an error, not an absent index`() {
+        val definition = IndexDefinition.from(
+            indexName = "Probe",
+            fields = listOf(RedisIndexField("id", RedisFieldType.TAG)),
+            settings = IndexSettings(null),
+        )
 
-	@Test
-	fun `no phonetic matcher sends none`() {
-		val sent = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, null))
-			.createArgs("Probe").toCommandString()
+        assertThat(asFields(listOf("odd"))).isNull()
+        val noDefinition = mapOf("attributes" to emptyList<Any?>())
+        val badAttribute = mapOf("index_definition" to emptyMap<String, Any?>(), "attributes" to listOf(listOf("x")))
 
-		assertThat(sent).contains("LANGUAGE english").doesNotContain("PHONETIC")
-	}
+        assertThat(runCatching { definition.isShownBy(noDefinition) }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("index_definition")
+        assertThat(runCatching { definition.isShownBy(badAttribute) }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("attribute unreadable")
+    }
 
-	@Test
-	fun `two definitions in different languages differ, so the index is made again`() {
-		val english = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, null))
-		val french = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.FRENCH, null))
-
-		assertThat(english).isNotEqualTo(french)
-	}
-
-	@Test
-	fun `the phonetic matcher, which FT INFO does not show, is not compared`() {
-		val with = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, PhoneticMatcher.ENGLISH))
-		val without = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, null))
-
-		assertThat(with).isEqualTo(without).hasSameHashCodeAs(without)
-	}
-
-	@Test
-	fun `an index reads its model's keys only, the dash keeping a longer model name out`() {
-		val definition = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, null))
-
-		assertThat(definition.prefixes).containsExactly("Probe-")
-		assertThat(definition.createArgs("Probe").toCommandString()).contains("PREFIX 1 Probe-")
-	}
-
-	@Test
-	fun `an index reading another prefix differs, so it is made again`() {
-		val wanted = IndexDefinition.of("Probe", name, IndexSettings(IndexLanguage.ENGLISH, null))
-
-		assertThat(wanted.copy(prefixes = listOf("Probe"))).isNotEqualTo(wanted)
-	}
-
-	@Test
-	fun `one prefix sent as a bare value reads as a list of one`() {
-		val read = IndexDefinition.read(
-			mapOf("index_definition" to mapOf("prefixes" to "Probe-"), "attributes" to emptyList<Any?>()),
-		)
-
-		assertThat(read?.prefixes).containsExactly("Probe-")
-	}
-
-	@Test
-	fun `a RESP3 attribute is read by name, its compared flags only`() {
-		val attribute = mapOf(
-			"identifier" to "$.n",
-			"attribute" to "n",
-			"type" to "TEXT",
-			"flags" to listOf("SORTABLE", "WEIGHT"),
-		)
-		val read = IndexDefinition.read(
-			mapOf("index_definition" to mapOf("prefixes" to listOf("P-")), "attributes" to listOf(attribute)),
-		)
-
-		assertThat(read?.attributes).containsExactly(IndexDefinition.Attribute("$.n", "n", "TEXT", setOf("SORTABLE")))
-	}
-
-	@Test
-	fun `each field type is created as its RediSearch type, an array member by member`() {
-		val fields = listOf(
-			RedisIndexField("at", RedisFieldType.GEO),
-			RedisIndexField("weight", RedisFieldType.NUMERIC),
-			RedisIndexField.array("tags", RedisFieldType.TAG),
-		)
-
-		val attributes = IndexDefinition.of("Probe", fields, IndexSettings(IndexLanguage.ENGLISH, null)).attributes
-
-		assertThat(attributes).containsExactly(
-			IndexDefinition.Attribute("$.at", "at", "GEO", emptySet()),
-			IndexDefinition.Attribute("$.weight", "weight", "NUMERIC", setOf("SORTABLE")),
-			IndexDefinition.Attribute("$.tags[*]", "tags", "TAG", emptySet()),
-		)
-	}
+    private companion object {
+        const val MARKER_PATH = "$.__s2_index_definition"
+    }
 }

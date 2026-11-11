@@ -14,21 +14,33 @@ class PersistOutcomeNewFieldsTest {
             event = "EVT",
             metadata = mapOf("transactionId" to "tx", "blockNumber" to "1"),
         )
-        assertEquals("tx", outcome.metadata["transactionId"])
-        assertEquals("1", outcome.metadata["blockNumber"])
+        assertEquals(expected = "tx", actual = outcome.metadata["transactionId"])
+        assertEquals(expected = "1", actual = outcome.metadata["blockNumber"])
     }
 
     @Test
     fun `Success metadata defaults to emptyMap for callers that don't provide it`() {
         val outcome = PersistOutcome.Success(msgId = "c", event = "EVT")
-        assertEquals(emptyMap(), outcome.metadata)
+        assertEquals(expected = emptyMap(), actual = outcome.metadata)
     }
 
     @Test
     fun `category member maps each Failure subtype to the correct ErrorCategory`() {
-        assertEquals(ErrorCategory.Rejected, PersistOutcome.Rejected<String>("c", s2error("X", "y")).category)
-        assertEquals(ErrorCategory.Transient, PersistOutcome.Transient<String>("c", s2error("X", "y")).category)
-        assertEquals(ErrorCategory.Indeterminate, PersistOutcome.Indeterminate<String>("c", s2error("X", "y")).category)
-        assertEquals(ErrorCategory.Conflict, PersistOutcome.Conflict<String>("c", s2error("X", "y")).category)
+        assertEquals(
+            expected = ErrorCategory.Rejected,
+            actual = PersistOutcome.Rejected<String>("c", s2error(code = "X", description = "y")).category,
+        )
+        assertEquals(
+            expected = ErrorCategory.Transient,
+            actual = PersistOutcome.Transient<String>("c", s2error(code = "X", description = "y")).category,
+        )
+        assertEquals(
+            expected = ErrorCategory.Indeterminate,
+            actual = PersistOutcome.Indeterminate<String>("c", s2error(code = "X", description = "y")).category,
+        )
+        assertEquals(
+            expected = ErrorCategory.Conflict,
+            actual = PersistOutcome.Conflict<String>("c", s2error(code = "X", description = "y")).category,
+        )
     }
 }

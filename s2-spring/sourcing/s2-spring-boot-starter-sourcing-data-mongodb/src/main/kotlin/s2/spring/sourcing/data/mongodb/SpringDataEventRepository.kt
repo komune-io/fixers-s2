@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository
 import s2.spring.sourcing.data.event.EventSourcing
 
 @Repository
-interface SpringDataEventRepository<EVENT, ID>: CoroutineCrudRepository<EventSourcing<ID>, String> {
-	fun findAllByObjId(objId: ID) : Flow<EventSourcing<ID>>
+interface SpringDataEventRepository<ID : Any> : CoroutineCrudRepository<EventSourcing<ID>, String> {
+    fun findAllByObjId(objId: ID) : Flow<EventSourcing<ID>>
 }

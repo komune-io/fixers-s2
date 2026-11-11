@@ -18,47 +18,52 @@ import s2.spring.core.S2SpringAdapterBase
 import s2.spring.core.publisher.SpringEventPublisher
 
 abstract class S2ConfigurerAdapter<STATE, ID : Any, ENTITY, out EXECUTER>
-	: InitializingBean, S2SpringAdapterBase<ENTITY, STATE, Evt, ID>() where
+    : InitializingBean, S2SpringAdapterBase<ENTITY, STATE, Evt, ID>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 EXECUTER : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-	@Suppress("VarCouldBeVal") // assigned by Spring field injection; a constructor parameter would break subclasses
-	@Autowired
-	private lateinit var eventPublisher: SpringEventPublisher
+    // Assigned by Spring field injection; a constructor parameter would break subclasses.
+    @Suppress("VarCouldBeVal", "LateinitUsage")
+    @Autowired
+    private lateinit var eventPublisher: SpringEventPublisher
 
-	open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> =
-		buildEngine(::S2AutomateEngineImpl)
+    open fun aggregate(): S2AutomateEngineImpl<STATE, ID, ENTITY, Evt> =
+        buildEngine(::S2AutomateEngineImpl)
 
-	open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> =
-		buildEngine(::S2AutomateOutcomeEngineImpl)
+    open fun outcomeAggregate(): S2AutomateOutcomeEngineImpl<STATE, ID, ENTITY, Evt> =
+        buildEngine(::S2AutomateOutcomeEngineImpl)
 
-	/** Assembles the engine parts (context, guards, persister, publisher) and hands them to [createEngine]. */
-	private fun <ENGINE> buildEngine(
-		createEngine: (
-			AutomateContext<S2Automate>,
-			GuardVerifier<STATE, ID, ENTITY, Evt, S2Automate>,
-			AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>,
-			AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
-		) -> ENGINE
-	): ENGINE {
-		val automateContext = automateContext()
-		val publisher = automateAppEventPublisher(eventPublisher)
-		val guardExecutor = guardExecutor(publisher)
-		val persister = aggregateRepository()
-		return createEngine(automateContext, guardExecutor, persister, publisher)
-	}
+    private fun <ENGINE> buildEngine(
+        createEngine: (
+            AutomateContext<S2Automate>,
+            GuardVerifier<STATE, ID, ENTITY, Evt, S2Automate>,
+            AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>,
+            AutomateEventPublisher<STATE, ID, ENTITY, S2Automate>,
+        ) -> ENGINE
+    ): ENGINE {
+        val automateContext = automateContext()
+        val publisher = automateAppEventPublisher(eventPublisher)
+        val guardExecutor = guardExecutor(publisher)
+        val persister = aggregateRepository()
+        return createEngine(automateContext, guardExecutor, persister, publisher)
+    }
 
-	override fun afterPropertiesSet() {
-		val automateExecutor = aggregate()
-		val outcomeExecutor = outcomeAggregate()
-		val listener = automateAppEventPublisher(eventPublisher)
-		val agg = executor()
-		agg.withContext(automateExecutor, outcomeExecutor, eventPublisher, listener)
-	}
+    override fun afterPropertiesSet() {
+        val automateExecutor = aggregate()
+        val outcomeExecutor = outcomeAggregate()
+        val listener = automateAppEventPublisher(eventPublisher)
+        val agg = executor()
+        agg.withContext(
+            automateExecutorFlow = automateExecutor,
+            outcomeExecutorFlow = outcomeExecutor,
+            publisher = eventPublisher,
+            listener = listener,
+        )
+    }
 
-	abstract override fun automate(): S2Automate
-	abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
-	abstract fun executor(): EXECUTER
+    abstract override fun automate(): S2Automate
+    abstract fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate>
+    abstract fun executor(): EXECUTER
 }

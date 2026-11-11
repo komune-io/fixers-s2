@@ -21,9 +21,8 @@ class S2Documenter(
     }
 }
 
-fun getDefaultOutputDirectory(): String {
-    return (if (File("pom.xml").exists()) "target" else "build") + "/s2-documenter"
-}
+fun getDefaultOutputDirectory(): String =
+    (if (File("pom.xml").exists()) "target" else "build") + "/s2-documenter"
 
 
 fun S2Documenter.writeS2Automate(s2: S2Automate): S2Documenter {

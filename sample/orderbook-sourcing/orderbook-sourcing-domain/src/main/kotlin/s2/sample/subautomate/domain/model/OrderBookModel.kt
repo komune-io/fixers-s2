@@ -7,10 +7,10 @@ import s2.sample.subautomate.domain.OrderBookState
 typealias OrderBookId = String
 
 data class OrderBook(
-	val id: OrderBookId,
-	val name: String,
-	val status: OrderBookState
+    val id: OrderBookId,
+    val name: String,
+    val status: OrderBookState
 ): WithS2Id<OrderBookId>, WithS2State<OrderBookState> {
-	override fun s2Id() = id
-	override fun s2State() = status
+    override fun s2Id() = id
+    override fun s2State() = status
 }

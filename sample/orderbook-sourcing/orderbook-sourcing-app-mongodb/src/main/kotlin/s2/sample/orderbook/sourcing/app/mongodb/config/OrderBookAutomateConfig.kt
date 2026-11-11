@@ -7,17 +7,17 @@ import s2.sample.orderbook.sourcing.core.config.OrderBookS2Aggregate
 import s2.sample.subautomate.domain.OrderBookState
 import s2.sample.subautomate.domain.model.OrderBook
 import s2.sample.subautomate.domain.model.OrderBookId
-import s2.sample.subautomate.domain.orderBook.OrderBookEvent
+import s2.sample.subautomate.domain.orderbook.OrderBookEvent
 import s2.sample.subautomate.domain.orderBookAutomate
 import s2.spring.sourcing.data.S2SourcingSpringDataAdapter
 
 @Configuration
 class OrderBookAutomateConfig(
-	orderBookS2Aggregate: OrderBookS2Aggregate,
-	orderBookSnapView: OrderBookSnapView
+    orderBookS2Aggregate: OrderBookS2Aggregate,
+    orderBookSnapView: OrderBookSnapView
 ): S2SourcingSpringDataAdapter<OrderBook, OrderBookState, OrderBookEvent, OrderBookId, OrderBookS2Aggregate>(
-	orderBookS2Aggregate, OrderBookModelView(), orderBookSnapView
+    orderBookS2Aggregate, OrderBookModelView(), orderBookSnapView
 ) {
-	override fun automate() = orderBookAutomate("sourcing-mongodb")
-	override fun entityType() = OrderBookEvent::class
+    override fun automate() = orderBookAutomate("sourcing-mongodb")
+    override fun entityType() = OrderBookEvent::class
 }

@@ -25,20 +25,20 @@ const val ROLE_AUTHORITY_PREFIX: String = "ROLE_"
  * adapter opts into `validateRoles()`.
  */
 suspend fun springSecurityRoles(): Set<S2RoleValue> {
-	val authentication = reactiveAuthentication() ?: threadBoundAuthentication()
-	return authentication.toS2Roles()
+    val authentication = reactiveAuthentication() ?: threadBoundAuthentication()
+    return authentication.toS2Roles()
 }
 
 private suspend fun reactiveAuthentication(): Authentication? =
-	ReactiveSecurityContextHolder.getContext().awaitFirstOrNull()?.authentication
+    ReactiveSecurityContextHolder.getContext().awaitFirstOrNull()?.authentication
 
 private fun threadBoundAuthentication(): Authentication? =
-	SecurityContextHolder.getContext().authentication
+    SecurityContextHolder.getContext().authentication
 
 private fun Authentication?.toS2Roles(): Set<S2RoleValue> {
-	if (this == null || !isAuthenticated) return emptySet()
-	return authorities
-		.mapNotNull { it.authority }
-		.map { S2RoleValue(it.removePrefix(ROLE_AUTHORITY_PREFIX)) }
-		.toSet()
+    if (this == null || !isAuthenticated) return emptySet()
+    return authorities
+        .mapNotNull { it.authority }
+        .map { S2RoleValue(it.removePrefix(ROLE_AUTHORITY_PREFIX)) }
+        .toSet()
 }

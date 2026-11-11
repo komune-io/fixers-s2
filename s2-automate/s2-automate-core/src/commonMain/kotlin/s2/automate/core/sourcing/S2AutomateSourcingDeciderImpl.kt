@@ -20,96 +20,95 @@ import s2.sourcing.dsl.Loader
 import s2.sourcing.dsl.event.EventRepository
 
 open class S2AutomateSourcingDeciderImpl<STATE, ENTITY, ID : Any, EVENT>(
-	private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
-	private val publisher: AppEventPublisher,
-	private val projectionLoader: Loader<EVENT, ENTITY, ID>,
-	private val eventStore: EventRepository<EVENT, ID>,
+    private val automateExecutor: S2AutomateEngine<STATE, ENTITY, ID, EVENT>,
+    private val publisher: AppEventPublisher,
+    private val projectionLoader: Loader<EVENT, ENTITY, ID>,
+    private val eventStore: EventRepository<EVENT, ID>,
 ) : S2AutomateSourcingDeciderFlow<ENTITY, STATE, EVENT, ID>,
-	S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
+    S2AutomateSourcingDecider<ENTITY, STATE, EVENT, ID> where
 STATE : S2State,
 EVENT : Evt,
 EVENT : WithS2Id<ID>,
 ENTITY : WithS2Id<ID>,
 ENTITY : WithS2State<STATE> {
 
-	//////////////////////////////////////////
-	// S2AutomateSourcingDeciderFlow
-	//////////////////////////////////////////
+    //////////////////////////////////////////
+    // S2AutomateSourcingDeciderFlow
+    //////////////////////////////////////////
 
-	override fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
-		fnc: suspend (t: COMMAND) -> EVENT_OUT
-	): Decide<COMMAND, EVENT_OUT> = Decide { messages ->
-			decide(messages) { msg ->
-				fnc(msg)
-			}
-		}
+    override fun <EVENT_OUT : EVENT, COMMAND: S2InitCommand> decide(
+        fnc: suspend (t: COMMAND) -> EVENT_OUT
+    ): Decide<COMMAND, EVENT_OUT> = Decide { messages ->
+            decide(messages) { msg ->
+                fnc(msg)
+            }
+        }
 
-	override suspend fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> decide(
-		commands: Flow<COMMAND>,
-		buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
-	): Flow<EVENT_OUT> {
-		return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
-			val event = buildEvent(cmd.data)
-			val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
-			val entity = checkNotNull(projectionLoader.evolve(flowOf(event))) { "The projection of an init event is null" }
-			entity to evl
-		}.mapAndPublishData()
-	}
+    override fun <COMMAND: S2InitCommand, EVENT_OUT : EVENT> decide(
+        commands: Flow<COMMAND>,
+        buildEvent: suspend (cmd: COMMAND) -> EVENT_OUT
+    ): Flow<EVENT_OUT> {
+        return automateExecutor.create(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { cmd ->
+            val event = buildEvent(cmd.data)
+            val evl = cmd.mapEnvelopeWithType({event}, type = "Evt")
+            val entity = checkNotNull(projectionLoader.evolve(flowOf(event))) {
+                "The projection of an init event is null"
+            }
+            entity to evl
+        }.mapAndPublishData()
+    }
 
-	override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decide(
-		fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
-	) : Decide<COMMAND, EVENT_OUT> = Decide { messages ->
-		decide(messages) { command, entity ->
-			fnc(command, entity)
-		}
-	}
+    override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT> decide(
+        fnc: suspend (t: COMMAND, entity: ENTITY) -> EVENT_OUT
+    ) : Decide<COMMAND, EVENT_OUT> = Decide { messages ->
+        decide(messages) { command, entity ->
+            fnc(command, entity)
+        }
+    }
 
-	suspend fun loadAll() = eventStore.loadAll()
-	suspend fun load(id: ID) = eventStore.load(id)
+    fun loadAll() = eventStore.loadAll()
+    fun load(id: ID) = eventStore.load(id)
 
-	override suspend fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> decide(
-		commands: Flow<COMMAND>,
-		exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
-	): Flow<EVENT_OUT> {
-		return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { command, entity ->
-			val event = exec(command.data, entity)
-			val entityUpdated = checkNotNull(projectionLoader.evolve(flowOf(event), entity)) {
-				"The projection of an event is null"
-			}
-			entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
-		}.mapAndPublishData()
-	}
+    override fun <COMMAND: S2Command<ID>, EVENT_OUT : EVENT,> decide(
+        commands: Flow<COMMAND>,
+        exec: suspend (COMMAND, ENTITY) -> EVENT_OUT
+    ): Flow<EVENT_OUT> {
+        return automateExecutor.doTransition(commands.mapToEnvelopeWithRandomId(type = "Cmd")) { command, entity ->
+            val event = exec(command.data, entity)
+            val entityUpdated = checkNotNull(projectionLoader.evolve(flowOf(event), entity)) {
+                "The projection of an event is null"
+            }
+            entityUpdated to command.mapEnvelopeWithType({ event }, type = "Evt")
+        }.mapAndPublishData()
+    }
 
-	private fun <EVENT_OUT : EVENT> Flow<Envelope<EVENT_OUT>>.mapAndPublishData(): Flow<EVENT_OUT> = map { evl ->
-		evl.data.also { data -> publisher.publish(data) }
-	}
+    private fun <EVENT_OUT : EVENT> Flow<Envelope<EVENT_OUT>>.mapAndPublishData(): Flow<EVENT_OUT> = map { evl ->
+        evl.data.also { data -> publisher.publish(data) }
+    }
 
-	override suspend fun replayHistory() {
-		projectionLoader.reloadHistory()
-	}
+    override suspend fun replayHistory() {
+        val _ = projectionLoader.reloadHistory()
+    }
 
-	//////////////////////////////////////////
-	// S2AutomateSourcingDecider
-	//////////////////////////////////////////
-	override suspend fun <EVENT_OUT : EVENT> init(
-		command: S2InitCommand,
-		buildEvent: suspend () -> EVENT_OUT
-	): EVENT_OUT {
-		return decide(flowOf(command)) { _ ->
-			buildEvent()
-		}.first()
-	}
+    //////////////////////////////////////////
+    // S2AutomateSourcingDecider
+    //////////////////////////////////////////
+    override suspend fun <EVENT_OUT : EVENT> init(
+        command: S2InitCommand,
+        buildEvent: suspend () -> EVENT_OUT
+    ): EVENT_OUT {
+        return decide(flowOf(command)) { _ ->
+            buildEvent()
+        }.first()
+    }
 
-	/**
-	 * S2AutomateSourcingDecider
-	 */
-	override suspend fun <EVENT_OUT : EVENT> transition(
-		command: S2Command<ID>,
-		exec: suspend ENTITY.() -> EVENT_OUT
-	): EVENT_OUT  {
-		return decide(flowOf(command)) { _, entity ->
-			entity.exec()
-		}.first()
-	}
+    override suspend fun <EVENT_OUT : EVENT> transition(
+        command: S2Command<ID>,
+        exec: suspend ENTITY.() -> EVENT_OUT
+    ): EVENT_OUT  {
+        return decide(flowOf(command)) { _, entity ->
+            entity.exec()
+        }.first()
+    }
 
 }

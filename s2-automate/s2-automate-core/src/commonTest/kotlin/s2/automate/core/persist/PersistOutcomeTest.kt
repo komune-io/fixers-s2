@@ -14,42 +14,45 @@ class PersistOutcomeTest {
             event = "EVT",
             metadata = mapOf("transactionId" to "tx-abc"),
         )
-        assertEquals("msg-1", outcome.msgId)
-        assertEquals("EVT", outcome.event)
-        assertEquals("tx-abc", outcome.metadata["transactionId"])
+        assertEquals(expected = "msg-1", actual = outcome.msgId)
+        assertEquals(expected = "EVT", actual = outcome.event)
+        assertEquals(expected = "tx-abc", actual = outcome.metadata["transactionId"])
     }
 
     @Test
     fun `Success metadata defaults to emptyMap`() {
         val outcome = PersistOutcome.Success(msgId = "msg-2", event = "EVT")
-        assertEquals(emptyMap(), outcome.metadata)
+        assertEquals(expected = emptyMap(), actual = outcome.metadata)
     }
 
     @Test
     fun `Rejected carries msgId, error and no event`() {
         val outcome = PersistOutcome.Rejected<String>(
             msgId = "msg-2",
-            error = s2error("SESSION_NOT_FOUND", "session abc missing"),
+            error = s2error(code = "SESSION_NOT_FOUND", description = "session abc missing"),
         )
-        assertEquals("msg-2", outcome.msgId)
-        assertEquals("SESSION_NOT_FOUND", outcome.error.type)
-        assertEquals("session abc missing", outcome.error.description)
+        assertEquals(expected = "msg-2", actual = outcome.msgId)
+        assertEquals(expected = "SESSION_NOT_FOUND", actual = outcome.error.type)
+        assertEquals(expected = "session abc missing", actual = outcome.error.description)
     }
 
     @Test
     fun `Transient and Conflict and Indeterminate distinguish from Rejected`() {
-        val transient = PersistOutcome.Transient<String>("c", s2error("GATEWAY_5XX", "boom"))
-        val conflict = PersistOutcome.Conflict<String>("c", s2error("MVCC_READ_CONFLICT", ""))
-        val indeterminate = PersistOutcome.Indeterminate<String>("c", s2error("POST_SUBMIT_TIMEOUT", ""))
-        assertEquals("GATEWAY_5XX", transient.error.type)
-        assertEquals("MVCC_READ_CONFLICT", conflict.error.type)
-        assertEquals("POST_SUBMIT_TIMEOUT", indeterminate.error.type)
+        val transient = PersistOutcome.Transient<String>("c", s2error(code = "GATEWAY_5XX", description = "boom"))
+        val conflict = PersistOutcome.Conflict<String>("c", s2error(code = "MVCC_READ_CONFLICT", description = ""))
+        val indeterminate = PersistOutcome.Indeterminate<String>(
+            "c",
+            s2error(code = "POST_SUBMIT_TIMEOUT", description = ""),
+        )
+        assertEquals(expected = "GATEWAY_5XX", actual = transient.error.type)
+        assertEquals(expected = "MVCC_READ_CONFLICT", actual = conflict.error.type)
+        assertEquals(expected = "POST_SUBMIT_TIMEOUT", actual = indeterminate.error.type)
     }
 
     @Test
     fun `successful event extraction returns null on failure variants`() {
-        val rejected: PersistOutcome<String> = PersistOutcome.Rejected("c", s2error("X", "Y"))
+        val rejected: PersistOutcome<String> = PersistOutcome.Rejected("c", s2error(code = "X", description = "Y"))
         assertNull(rejected.eventOrNull())
-        assertEquals("EVT", PersistOutcome.Success("c", "EVT").eventOrNull())
+        assertEquals(expected = "EVT", actual = PersistOutcome.Success(msgId = "c", event = "EVT").eventOrNull())
     }
 }

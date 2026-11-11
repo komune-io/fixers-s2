@@ -28,22 +28,24 @@ import s2.sourcing.dsl.Decide
  * @param ID The identifier type of the entity.
  * @param ENTITY The entity type.
  */
-// S6309: the suspend modifier is mandated by the S2AutomateStoringEvolver contracts (published API).
 // S6514: interface delegation with "by" is impossible, the engine is injected after construction.
-@Suppress("kotlin:S6309", "kotlin:S6514", "DEPRECATION", "OVERRIDE_DEPRECATION", "TooManyFunctions")
+@Suppress("kotlin:S6514", "DEPRECATION", "OVERRIDE_DEPRECATION", "TooManyFunctions")
 open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     S2AutomateStoringEvolver<STATE, ID, ENTITY, Evt>,
     S2AutomateStoringEvolverFlow<STATE, ID, ENTITY, Evt>
         where STATE : S2State, ENTITY : WithS2State<STATE>, ENTITY : WithS2Id<ID> {
 
+    // Set by withContext once Spring has built the engines; consumers subclass with their own constructors.
+    @Suppress("LateinitUsage")
     protected lateinit var engine: S2AutomateStoringEvolverImpl<STATE, ENTITY, ID>
 
     /**
      * Initializes the executor with the given context.
      *
-     * @param automateExecutor The synchronous automate executor.
-     * @param automateExecutorFlow The asynchronous automate executor.
+     * @param automateExecutorFlow The automate engine.
+     * @param outcomeExecutorFlow The automate engine reporting a per-command outcome.
      * @param publisher The event publisher.
+     * @param listener The listener notified of automate events.
      */
     fun withContext(
         automateExecutorFlow: S2AutomateEngineImpl<STATE, ID, ENTITY, Evt>,
@@ -51,12 +53,18 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
         publisher: AppEventPublisher,
         listener: AutomateListener<STATE, ID, ENTITY, S2Automate>,
     ) {
-        this.engine = S2AutomateStoringEvolverImpl(automateExecutorFlow, outcomeExecutorFlow, publisher, listener)
+        this.engine = S2AutomateStoringEvolverImpl(
+            automateExecutor = automateExecutorFlow,
+            outcomeExecutor = outcomeExecutorFlow,
+            publisher = publisher,
+            listener = listener,
+        )
     }
 
     /**
      * Creates an entity with an event.
      *
+     * @param EVENT_OUT The type of the produced event.
      * @param command The initialization command.
      * @param buildEvent The function to build the event.
      * @param buildEntity The function to build the entity.
@@ -71,6 +79,7 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     /**
      * Creates an entity with an event.
      *
+     * @param EVENT_OUT The type of the produced event.
      * @param command The initialization command.
      * @param build The function to build the entity and event.
      * @return The created event.
@@ -83,6 +92,7 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     /**
      * Performs a state transition with an event.
      *
+     * @param EVENT_OUT The type of the produced event.
      * @param command The command to execute.
      * @param exec The function to execute the transition.
      * @return The resulting event.
@@ -95,11 +105,13 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     /**
      * Creates entities with events from a flow of commands.
      *
+     * @param COMMAND The type of the commands.
+     * @param EVENT_OUT The type of the produced event.
      * @param commands The flow of initialization commands.
      * @param build The function to build the entity and event.
      * @return The flow of created events.
      */
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> = engine.evolve(commands, build)
@@ -107,11 +119,13 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
     /**
      * Performs state transitions with events from a flow of commands.
      *
+     * @param COMMAND The type of the commands.
+     * @param EVENT_OUT The type of the produced event.
      * @param commands The flow of commands to execute.
      * @param exec The function to execute the transitions.
      * @return The flow of resulting events.
      */
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolve(
         commands: Flow<COMMAND>,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<EVENT_OUT> = engine.evolve(commands, exec)
@@ -124,23 +138,23 @@ open class S2AutomateExecutorSpring<STATE, ID : Any, ENTITY> :
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Decide<COMMAND, EVENT_OUT> = engine.evolve(build)
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         build: S2EvolveInitFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, build)
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveEnvelope(
         commands: EnvelopedFlow<COMMAND>,
         exec: S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT>
     ): EnvelopedFlow<EVENT_OUT> = engine.evolveEnvelope(commands, exec)
 
-    override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         build: suspend (cmd: COMMAND) -> Pair<ENTITY, EVENT_OUT>
     ): Flow<PersistOutcome<EVENT_OUT>> = engine.evolveWithOutcomes(commands, idOf, build)
 
-    override suspend fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
+    override fun <COMMAND : S2Command<ID>, EVENT_OUT : Evt> evolveWithOutcomes(
         commands: Flow<COMMAND>,
         idOf: (COMMAND) -> String,
         exec: suspend (COMMAND, ENTITY) -> Pair<ENTITY, EVENT_OUT>

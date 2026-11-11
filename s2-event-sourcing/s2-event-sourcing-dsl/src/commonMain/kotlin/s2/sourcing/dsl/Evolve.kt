@@ -15,11 +15,11 @@ import s2.dsl.automate.Evt
  * future major release. Migrate to [s2.sourcing.dsl.view.View].
  */
 @Deprecated(
-	message = "Dead abstraction, never used by the sourcing engine. The real event fold is " +
-		"s2.sourcing.dsl.view.View, which also receives the current state. Will be removed " +
-		"in a future major release.",
-	replaceWith = ReplaceWith("View<EVENT, ENTITY>", "s2.sourcing.dsl.view.View"),
-	level = DeprecationLevel.WARNING,
+    message = "Dead abstraction, never used by the sourcing engine. The real event fold is " +
+        "s2.sourcing.dsl.view.View, which also receives the current state. Will be removed " +
+        "in a future major release.",
+    replaceWith = ReplaceWith("View<EVENT, ENTITY>", "s2.sourcing.dsl.view.View"),
+    level = DeprecationLevel.WARNING,
 )
 fun interface Evolve<EVENT, ENTITY> : F2Function<EVENT, ENTITY> where
 EVENT : Evt

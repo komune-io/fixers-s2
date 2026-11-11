@@ -65,10 +65,10 @@ class S2DocumenterTest {
         val written = tempDir.resolve("OrderAutomate.json")
         assertThat(written).exists()
         val content = Files.readString(written)
-        assertThat(content).contains("\"name\": \"OrderAutomate\"")
+        assertThat(content).contains(""""name": "OrderAutomate"""")
         assertThat(content).contains("OrderCreateCommand")
-        assertThat(content).contains("\"name\": \"Buyer\"")
-        assertThat(content).contains("\"name\": \"Created\"")
+        assertThat(content).contains(""""name": "Buyer"""")
+        assertThat(content).contains(""""name": "Created"""")
         assertThat(content).doesNotContain("OrderRole", "OrderState")
     }
 

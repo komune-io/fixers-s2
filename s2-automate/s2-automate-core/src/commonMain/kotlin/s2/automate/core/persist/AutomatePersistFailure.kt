@@ -11,9 +11,9 @@ import s2.dsl.automate.S2Error
  * AutomateInitTransitionEnded): one event per failed outcome so
  * observers can implement dead-letter, alerting, or metrics.
  *
- * @param msgId the message id that triggered the transition
- * @param category retry/remediation policy discriminator
- * @param error structured error carrying type, description, payload, and optional cause
+ * @property msgId the message id that triggered the transition
+ * @property category retry/remediation policy discriminator
+ * @property error structured error carrying type, description, payload, and optional cause
  */
 data class AutomatePersistFailure(
     val msgId: String,

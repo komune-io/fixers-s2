@@ -1,5 +1,6 @@
 package s2.dsl.automate.extention
 
+import kotlin.js.JsExport
 import s2.dsl.automate.Cmd
 import s2.dsl.automate.S2Automate
 import s2.dsl.automate.S2State
@@ -7,12 +8,9 @@ import s2.dsl.automate.isNamed
 import s2.dsl.automate.s2SimpleName
 import s2.dsl.automate.model.WithS2State
 
-
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionAnd(
     model: WithS2State<out S2State>, hasAccess: () -> Boolean
-): Boolean {
-    return isAvailableTransition(model, C::class.s2SimpleName()) && hasAccess()
-}
+): Boolean = isAvailableTransition(state = model, type = C::class.s2SimpleName()) && hasAccess()
 
 fun S2Automate.isAvailableTransition(state: WithS2State<out S2State>?, type: String): Boolean {
     return state != null && isAvailableTransition(
@@ -21,9 +19,8 @@ fun S2Automate.isAvailableTransition(state: WithS2State<out S2State>?, type: Str
     )
 }
 
-fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boolean {
-    return getAvailableTransitions(currentState).any { it.isNamed(type) }
-}
+fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boolean =
+    getAvailableTransitions(currentState).any { it.isNamed(type) }
 
 /**
  * Compares by name, so the state may be the string a JSON payload carries: in Kotlin/JS a
@@ -31,6 +28,7 @@ fun S2Automate.isAvailableTransition(currentState: S2State, type: String): Boole
  * object throws. [S2Automate] refuses two states sharing a name or a position, so this answers
  * as [isAvailableTransition] does for the same state.
  */
+@JsExport
 fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Boolean {
     return stateName != null && transitions.any {
         it.from?.name == stateName && it.isNamed(type)
@@ -43,6 +41,4 @@ fun S2Automate.isAvailableTransitionByName(stateName: String?, type: String): Bo
  */
 inline fun <reified C: Cmd> S2Automate.canExecuteTransitionByNameAnd(
     stateName: String?, hasAccess: () -> Boolean
-): Boolean {
-    return isAvailableTransitionByName(stateName, C::class.s2SimpleName()) && hasAccess()
-}
+): Boolean = isAvailableTransitionByName(stateName = stateName, type = C::class.s2SimpleName()) && hasAccess()

@@ -31,7 +31,7 @@ class AutomateEventPublisherTest {
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -40,8 +40,9 @@ class AutomateEventPublisherTest {
     private val entity = TestEntity("1", TestState.Created)
     private val cmd = CreateCmd("1")
 
-    /** Calls every listener callback once, each with its own event, and returns the events sent. */
-    private fun dispatchAll(listener: AutomateListener<TestState, String, TestEntity, S2Automate>): List<AppEvent> =
+    private fun sendOneEventThroughEachCallback(
+        listener: AutomateListener<TestState, String, TestEntity, S2Automate>,
+    ): List<AppEvent> =
         listOf(
             AutomateStateEntered(TestState.Created).also(listener::automateStateEntered),
             AutomateStateExited(TestState.Created).also(listener::automateStateExited),
@@ -49,13 +50,13 @@ class AutomateEventPublisherTest {
             AutomateInitTransitionStarted(cmd).also(listener::automateInitTransitionStarted),
             AutomateInitTransitionEnded(TestState.Created, cmd, entity).also(listener::automateInitTransitionEnded),
             AutomateTransitionStarted(TestState.Created, cmd).also(listener::automateTransitionStarted),
-            AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity)
+            AutomateTransitionEnded(from = TestState.Created, to = TestState.Active, msg = cmd, entity = entity)
                 .also(listener::automateTransitionEnded),
             AutomateTransitionError(cmd, IllegalStateException("boom")).also(listener::automateTransitionError),
             AutomateSessionStarted(automate).also(listener::automateSessionStarted),
             AutomateSessionStopped(automate).also(listener::automateSessionStopped),
             AutomateSessionError(automate, IllegalStateException("boom")).also(listener::automateSessionError),
-            AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error("ERR", "desc"))
+            AutomatePersistFailure("msg-1", ErrorCategory.Transient, s2error(code = "ERR", description = "desc"))
                 .also(listener::automatePersistFailure),
         )
 
@@ -63,7 +64,7 @@ class AutomateEventPublisherTest {
     fun `AutomateEventPublisher forwards every listener callback to the publisher`() {
         val publisher = RecordingPublisher()
         val automatePublisher = AutomateEventPublisher<TestState, String, TestEntity, S2Automate>(publisher)
-        val events = dispatchAll(automatePublisher)
+        val events = sendOneEventThroughEachCallback(automatePublisher)
         assertEquals(events.size, publisher.published.size)
         events.zip(publisher.published).forEach { (sent, received) ->
             assertSame(sent, received)
@@ -74,7 +75,7 @@ class AutomateEventPublisherTest {
     fun `AutomateListenerAdapter ignores every event by default`() {
         val adapter = AutomateListenerAdapter<TestState, String, TestEntity, S2Automate>()
         // Must not throw: every callback is an explicit no-op.
-        assertEquals(12, dispatchAll(adapter).size)
+        assertEquals(12, sendOneEventThroughEachCallback(adapter).size)
     }
 
     @Test
@@ -87,7 +88,7 @@ class AutomateEventPublisherTest {
         assertEquals(TestState.Created, initEnded.to)
         assertEquals(entity, initEnded.entity)
 
-        val ended = AutomateTransitionEnded(TestState.Created, TestState.Active, cmd, entity)
+        val ended = AutomateTransitionEnded(from = TestState.Created, to = TestState.Active, msg = cmd, entity = entity)
         assertEquals(TestState.Created, ended.from)
         assertEquals(TestState.Active, ended.to)
 

@@ -5,6 +5,7 @@ import io.cucumber.core.backend.CucumberInvocationTargetException
 import io.cucumber.datatable.CucumberDataTableException
 import io.komune.f2.spring.boot.auth.ROLE_PREFIX
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -21,6 +22,8 @@ import reactor.core.publisher.Mono
 import reactor.util.context.Context
 import s2.automate.core.error.AutomateException
 import s2.bdd.data.TestContext
+
+private const val STEP_FAILED = "Step execution failed"
 
 abstract class CucumberStepsDefinition {
     private val logger = LoggerFactory.getLogger(CucumberStepsDefinition::class.java)!!
@@ -48,27 +51,32 @@ abstract class CucumberStepsDefinition {
         }, block)
     }
 
-    @Suppress("ThrowsCount")
+    // Each Cucumber wrapper is unwrapped to the step's own failure; any other failure is recorded for the
+    // assertion steps that follow, then rethrown unless the step expects it.
+    @Suppress("ThrowsCount", "TooGenericExceptionCaught", "SwallowedException")
     @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
     protected open fun step(propagateException: (Exception) -> Boolean = { true }, block: suspend () -> Unit) {
         runBlocking(GlobalScope.newCoroutineContext(authedContext())) {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: CucumberDataTableException) {
                 val actualException = (e.cause as? CucumberInvocationTargetException)
                     ?.cause
                     ?: e
-                logger.error("Step execution failed", actualException)
+                logger.error(STEP_FAILED, actualException)
                 throw actualException
             } catch (e: CucumberInvocationTargetException) {
-                // Declared nullable: some Cucumber versions leave the cause unset.
-                val cause: Throwable? = e.cause
-                logger.error("Step execution failed", cause ?: e)
-                throw cause ?: e
+                // Read as a Throwable's: some Cucumber versions leave the cause unset.
+                val cause = (e as Throwable).cause ?: e
+                logger.error(STEP_FAILED, cause)
+                throw cause
             } catch (e: Exception) {
-                logger.error("Step execution failed", e)
-                if (e.cause is F2Exception) {
-                    context.errors.add(e.cause as F2Exception)
+                logger.error(STEP_FAILED, e)
+                val cause = e.cause
+                if (cause is F2Exception) {
+                    context.errors.add(cause)
                 } else {
                     context.errors.add(e)
                 }
@@ -83,17 +91,14 @@ abstract class CucumberStepsDefinition {
         val authedUser = context.authedUser
             ?: return ReactorContext(Context.of(SecurityContext::class.java, Mono.empty<SecurityContext>()))
 
-        val securityContext = buildMap<String, Any> {
-            put("realm_access", mapOf("roles" to authedUser.roles))
-            authedUser.memberOf?.let { put("memberOf", it) }
-            put("sub", authedUser.id)
-        }.let { claims -> Jwt("fake", null, null, mapOf("header" to "fake"), claims) }
-            .let { jwt ->
-                JwtAuthenticationToken(jwt, authedUser.roles.map {
-                    SimpleGrantedAuthority("${ROLE_PREFIX}$it")
-                })
-            }
-            .let(::SecurityContextImpl)
+        val claims = buildMap<String, Any> {
+            put(key = "realm_access", value = mapOf("roles" to authedUser.roles))
+            authedUser.memberOf?.let { put(key = "memberOf", value = it) }
+            put(key = "sub", value = authedUser.id)
+        }
+        val jwt = Jwt("fake", null, null, mapOf("header" to "fake"), claims)
+        val authorities = authedUser.roles.map { SimpleGrantedAuthority("${ROLE_PREFIX}$it") }
+        val securityContext = SecurityContextImpl(JwtAuthenticationToken(jwt, authorities))
         return ReactorContext(Context.of(SecurityContext::class.java, Mono.just(securityContext)))
     }
 }

@@ -13,21 +13,21 @@ import s2.sample.multiautomate.infiniteloop.InfiniteStepEvent
 
 @Service
 class InfiniteLoopService(
-	private val aggregate: InfiniteLoopS2Aggregate,
+    private val aggregate: InfiniteLoopS2Aggregate,
 ) {
 
-	@Bean
-	fun createInfinite() = f2Function<InfiniteCreateCommand, InfiniteCreatedEvent> { command ->
-		aggregate.init(command) {
-			val id = UUID.randomUUID().toString()
-			InfiniteCreatedEvent(id = id, type =  InfiniteLoopState.Running)
-		}
-	}
+    @Bean
+    fun createInfinite() = f2Function<InfiniteCreateCommand, InfiniteCreatedEvent> { command ->
+        aggregate.init(command) {
+            val id = UUID.randomUUID().toString()
+            InfiniteCreatedEvent(id = id, type =  InfiniteLoopState.Running)
+        }
+    }
 
-	@Bean
-	fun stepInfinite() = f2Function<InfiniteStepCommand, InfiniteStepEvent> { command ->
-		aggregate.transition(command) { entity ->
-			InfiniteStepEvent(id = entity.id, type = InfiniteLoopState.Running)
-		}
-	}
+    @Bean
+    fun stepInfinite() = f2Function<InfiniteStepCommand, InfiniteStepEvent> { command ->
+        aggregate.transition(command) { entity ->
+            InfiniteStepEvent(id = entity.id, type = InfiniteLoopState.Running)
+        }
+    }
 }

@@ -1,5 +1,7 @@
 package s2.spring.sourcing.snap.redis
 
+import f2.dsl.cqrs.error.F2ErrorDTO
+import f2.dsl.cqrs.exception.F2Exception
 import f2.dsl.cqrs.page.OffsetPagination
 import io.lettuce.core.RedisCommandExecutionException
 import java.nio.charset.Charset
@@ -15,94 +17,174 @@ import org.junit.jupiter.api.Test
 /** Searches through the index, on text that carries query syntax, stopwords and accents. */
 class RedisSnapViewSearchTest {
 
-	data class SearchProbeSnap(val id: String, val name: String)
+    data class SearchProbeSnap(val id: String, val name: String)
 
-	private val view = RedisStack.view()
+    private val view = RedisStack.view(
+        model = SearchProbeSnap::class,
+        fields = listOf(
+            RedisIndexField(SearchProbeSnap::id.name, RedisFieldType.TAG),
+            RedisIndexField(SearchProbeSnap::name.name, RedisFieldType.TEXT),
+        ),
+        idOf = SearchProbeSnap::id,
+    )
 
-	@BeforeEach
-	suspend fun prepare() {
-		view.deleteAll<SearchProbeSnap>()
-		view.createIndex<SearchProbeSnap>()
-	}
+    @BeforeEach
+    fun prepare() {
+        runBlocking {
+            val _ = view.deleteAll()
+            view.initIndex()
+        }
+    }
 
-	@AfterEach
-	suspend fun tidy() {
-		view.deleteAll<SearchProbeSnap>()
-		view.dropIndex<SearchProbeSnap>()
-	}
+    @AfterEach
+    fun tidy() {
+        runBlocking {
+            val _ = view.deleteAll()
+            view.dropIndex()
+        }
+    }
 
-	private suspend fun store(names: List<String>): List<String> =
-		names.map { name ->
-			"search-probe-${UUID.randomUUID()}".also { view.save(it, SearchProbeSnap(id = it, name = name)) }
-		}
+    private suspend fun store(names: List<String>): List<String> =
+        names.map { name ->
+            "search-probe-${UUID.randomUUID()}".also { id -> val _ = view.save(SearchProbeSnap(id = id, name = name)) }
+        }
 
-	private suspend fun found(term: String) =
-		view.search<SearchProbeSnap>(term.addWildcard(), null, null).items.map { it.id }
+    private suspend fun found(term: String) = view.search(term.addWildcard(), null, null).items.map { it.id }
 
-	@Test
-	fun `a search Redis refuses leaves the connection serving`() {
-		repeat(3) {
-			assertThatThrownBy { runBlocking { view.search<SearchProbeSnap>("Thônes* (74280)*", null, null) } }
-				.describedAs("failure ${it + 1}")
-				.isInstanceOf(RedisCommandExecutionException::class.java)
-		}
-		assertThat(runBlocking { view.get<SearchProbeSnap>("absent-${UUID.randomUUID()}") }).isNull()
-	}
+    private fun refusal(search: suspend () -> Any?): F2ErrorDTO {
+        try {
+            val _ = runBlocking { search() }
+        } catch (refused: F2Exception) {
+            return refused.error
+        }
+        error("The search was not refused")
+    }
 
-	@Test
-	suspend fun `a label carrying query syntax finds its document`() {
-		val names = listOf(
-			"Thônes (74280)",
-			"Saint-Égrève",
-			"L'Isle-d'Abeau",
-			"Mont@Saint|Martin",
-			"Les Écrins: \"Nord\"",
-			"Mont_du_Lac",
-		)
-		val ids = store(names)
+    @Test
+    fun `a search Redis refuses leaves the connection serving`() {
+        repeat(3) { attempt ->
+            assertThatThrownBy { runBlocking { val _ = view.search("Thônes* (74280)*", null, null) } }
+                .describedAs("failure ${attempt + 1}")
+                .isInstanceOf(RedisCommandExecutionException::class.java)
+        }
+        assertThat(runBlocking { view.get("absent-${UUID.randomUUID()}") }).isNull()
+    }
 
-		names.zip(ids).forEach { (name, id) -> assertThat(found(name)).describedAs("«$name»").contains(id) }
-	}
+    @Test
+    suspend fun `a label carrying query syntax finds its document, and only it`() {
+        val names = listOf(
+            "Thônes (74280)",
+            "Saint-Égrève",
+            "L'Isle-d'Abeau",
+            "Mont@Saint|Martin",
+            "Les Écrins: \"Nord\"",
+            "Mont_du_Lac",
+        )
+        val ids = store(names)
 
-	@Test
-	suspend fun `a word English takes for an empty one is still searched`() {
-		val ids = store(listOf("Silver - Or", "If", "Pont de pierre"))
+        names.zip(ids).forEach { (name, id) -> assertThat(found(name)).describedAs("«$name»").containsExactly(id) }
+    }
 
-		listOf("Or" to ids[0], "Silver - Or" to ids[0], "If" to ids[1], "de" to ids[2]).forEach { (term, id) ->
-			assertThat(found(term)).describedAs("«$term»").contains(id)
-		}
-	}
+    @Test
+    suspend fun `a word English takes for an empty one is still searched`() {
+        val ids = store(listOf("Silver - Or", "If", "Pont de pierre"))
 
-	@Test
-	suspend fun `a page is sorted and bounded, its total the whole match`() {
-		store(listOf("Charlie", "Alpha", "Bravo"))
+        listOf("Or" to ids[0], "Silver - Or" to ids[0], "If" to ids[1], "de" to ids[2]).forEach { (term, id) ->
+            assertThat(found(term)).describedAs("«$term»").containsExactly(id)
+        }
+    }
 
-		val page = view.search<SearchProbeSnap>(null, OffsetPagination(offset = 0, limit = 2), "name", descending = true)
+    @Test
+    suspend fun `a page is sorted and bounded, its total the whole match`() {
+        val _ = store(listOf("Charlie", "Alpha", "Bravo"))
 
-		assertThat(page.items.map { it.name }).containsExactly("Charlie", "Bravo")
-		assertThat(page.total).isEqualTo(3)
-		assertThat(view.count<SearchProbeSnap>()).isEqualTo(3)
-	}
+        val page = view.search(
+            query = null,
+            pagination = OffsetPagination(offset = 0, limit = 2),
+            sortBy = "name",
+            descending = true,
+        )
 
-	@Test
-	suspend fun `accented text is kept intact whatever the JVM default charset`() {
-		assertThat(Charset.defaultCharset())
-			.describedAs("test precondition: the test JVM must not default to UTF-8")
-			.isNotEqualTo(StandardCharsets.UTF_8)
-		val text = "Café du Mélézin — Saint-Égrève"
-		val id = store(listOf(text)).single()
+        assertThat(page.items.map { it.name }).containsExactly("Charlie", "Bravo")
+        assertThat(page.total).isEqualTo(3)
+        assertThat(view.count()).isEqualTo(3)
+    }
 
-		assertThat(view.get<SearchProbeSnap>(id)?.name).isEqualTo(text)
-		assertThat(view.getAll<SearchProbeSnap>(listOf(id)).getValue(id).name).isEqualTo(text)
-		assertThat(view.search<SearchProbeSnap>(null, null, null).items.single().name).isEqualTo(text)
-	}
+    @Test
+    fun `a page larger than one read answers is refused`() {
+        val error = refusal { view.search(null, OffsetPagination(offset = 0, limit = SEARCH_WINDOW + 1), null) }
 
-	open class Named(val name: String)
+        assertThat(error.refusal?.code).isEqualTo(SearchRefusal.PAGE_TOO_LARGE)
+        assertThat(error.code).isEqualTo(422)
+        assertThat(error.refusal?.parameters).containsExactlyInAnyOrderEntriesOf(
+            mapOf("limit" to "${SEARCH_WINDOW + 1}", "bound" to "$SEARCH_WINDOW"),
+        )
+    }
 
-	class Labelled(name: String, val label: String, val rank: Int) : Named(name)
+    // Two letters are a prefix RediSearch expands, to `MAXEXPANSIONS` terms at most, then it stops: the rest is cut.
+    @Test
+    suspend fun `a prefix expanding past MAXEXPANSIONS is refused where the store says so, cut silently before 7_4`() {
+        val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
 
-	@Test
-	fun `the TEXT index of a model takes its String properties, inherited ones included`() {
-		assertThat(view.textFields(Labelled::class).map { it.field }).containsExactlyInAnyOrder("label", "name")
-	}
+        if (RedisStack.isWarningOnCutExpansion) {
+            val error = refusal { view.search("ab".addWildcard(), OffsetPagination(offset = 0, limit = 1), null) }
+
+            assertThat(error.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
+            assertThat(error.refusal?.parameters).isEmpty()
+            assertThat(error.message).doesNotContain("SearchProbeSnap", EXPANSIONS_WARNING)
+        } else {
+            assertThat(view.search("ab".addWildcard(), null, null).items).hasSize(MAX_EXPANSIONS)
+        }
+        assertThat(found("ab0")).hasSize(100)
+    }
+
+    @Test
+    suspend fun `a view whose prefixes start later searches a short word whole, and is not refused`() {
+        val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
+        val later = RedisStack.view(
+            model = SearchProbeSnap::class,
+            fields = listOf(
+                RedisIndexField(SearchProbeSnap::id.name, RedisFieldType.TAG),
+                RedisIndexField(SearchProbeSnap::name.name, RedisFieldType.TEXT),
+            ),
+            idOf = SearchProbeSnap::id,
+            settings = RedisStack.settings.copy(wildcardMinPrefix = 3),
+        )
+
+        assertThat(later.wildcard("ab")).isEqualTo("ab")
+        assertThat(later.search(later.wildcard("ab"), null, null).items).isEmpty()
+        assertThat(later.search(later.wildcard("ab0"), null, null).items).hasSize(100)
+    }
+
+    @Test
+    fun `only a cut expansion is too broad, a timeout is worth another try, any other warning an error`() {
+        val tooBroad = refusalFor(indexName = "Probe", warning = EXPANSIONS_WARNING).error
+
+        assertThat(tooBroad.refusal?.code).isEqualTo(SearchRefusal.TOO_BROAD)
+        val timedOut = refusalFor(indexName = "Probe", warning = TIMEOUT_WARNING).error
+
+        assertThat(timedOut.refusal?.code).isEqualTo(SearchRefusal.TIMED_OUT)
+        assertThat(timedOut.code).isEqualTo(503)
+        assertThatThrownBy { val _ = refusalFor(indexName = "Probe", warning = "Something new") }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("Something new")
+    }
+
+    @Test
+    suspend fun `accented text is kept intact whatever the JVM default charset`() {
+        assertThat(Charset.defaultCharset())
+            .describedAs("test precondition: the test JVM must not default to UTF-8")
+            .isNotEqualTo(StandardCharsets.UTF_8)
+        val text = "Café du Mélézin — Saint-Égrève"
+        val id = store(listOf(text)).single()
+
+        assertThat(view.get(id)?.name).isEqualTo(text)
+        assertThat(view.getAll(listOf(id)).getValue(id).name).isEqualTo(text)
+        assertThat(view.search(null, null, null).items.single().name).isEqualTo(text)
+    }
+
+    private companion object {
+        /** RediSearch's default `MAXEXPANSIONS`, past which a prefix stops expanding. */
+        const val MAX_EXPANSIONS = 200
+    }
 }

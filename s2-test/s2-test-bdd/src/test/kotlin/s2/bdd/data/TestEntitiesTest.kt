@@ -22,7 +22,7 @@ class TestEntitiesTest {
     fun `lastUsedKey should throw when nothing was used`() {
         val entities = TestEntities<String, String>("order")
 
-        assertThatThrownBy { entities.lastUsedKey }
+        assertThatThrownBy { val _ = entities.lastUsedKey }
             .isInstanceOf(EntityNotInitializedException::class.java)
             .hasMessageContaining("order")
     }
@@ -33,7 +33,7 @@ class TestEntitiesTest {
         entities["a"] = null
 
         assertThat(entities.lastUsedOrNull).isNull()
-        assertThatThrownBy { entities.lastUsed }
+        assertThatThrownBy { val _ = entities.lastUsed }
             .isInstanceOf(EntityNotInitializedException::class.java)
     }
 
@@ -43,7 +43,7 @@ class TestEntitiesTest {
         entities["a"] = "entityA"
 
         assertThat(entities.safeGet("a")).isEqualTo("entityA")
-        assertThatThrownBy { entities.safeGet("missing") }
+        assertThatThrownBy { val _ = entities.safeGet("missing") }
             .isInstanceOf(EntityNotInitializedException::class.java)
             .hasMessageContaining("missing")
     }
@@ -93,7 +93,7 @@ class TestEntitiesTest {
 
         assertThat(entities.items).isEmpty()
         assertThat(entities.lastUsedOrNull).isNull()
-        assertThatThrownBy { entities.lastUsedKey }
+        assertThatThrownBy { val _ = entities.lastUsedKey }
             .isInstanceOf(EntityNotInitializedException::class.java)
     }
 }

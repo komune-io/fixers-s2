@@ -18,7 +18,7 @@ class AssertionApiEntityTest {
         override suspend fun findById(id: String): Entity? = store[id]
     }
 
-    private val assertion = ApiAssertion(mapOf("1" to Entity("1", "one")))
+    private val assertion = ApiAssertion(mapOf("1" to Entity(id = "1", name = "one")))
 
     @Test
     suspend fun `exists passes when the entity is found`() {
@@ -27,13 +27,13 @@ class AssertionApiEntityTest {
 
     @Test
     suspend fun `exists fails when the entity is missing`() {
-        var failed = false
+        var hasFailed = false
         try {
             assertion.exists("missing")
         } catch (expected: AssertionError) {
-            failed = true
+            hasFailed = true
         }
-        assertThat(failed).isTrue()
+        assertThat(hasFailed).isTrue()
     }
 
     @Test
@@ -43,17 +43,17 @@ class AssertionApiEntityTest {
 
     @Test
     suspend fun `notExists fails when the entity is found`() {
-        var failed = false
+        var hasFailed = false
         try {
             assertion.notExists("1")
         } catch (expected: AssertionError) {
-            failed = true
+            hasFailed = true
         }
-        assertThat(failed).isTrue()
+        assertThat(hasFailed).isTrue()
     }
 
     @Test
     suspend fun `assertThatId returns the entity asserter`() {
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 }

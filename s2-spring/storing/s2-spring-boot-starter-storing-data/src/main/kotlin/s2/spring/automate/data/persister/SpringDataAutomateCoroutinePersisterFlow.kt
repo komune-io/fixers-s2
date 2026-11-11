@@ -9,17 +9,17 @@ import s2.dsl.automate.model.WithS2Id
 import s2.dsl.automate.model.WithS2State
 
 class SpringDataAutomateCoroutinePersisterFlow<STATE, ID: Any, ENTITY, EVENT>(
-	private val repository: CoroutineCrudRepository<ENTITY, ID>,
-	batchParams: S2BatchProperties,
+    private val repository: CoroutineCrudRepository<ENTITY, ID>,
+    batchParams: S2BatchProperties,
 ) : BatchingSpringDataPersister<STATE, ID, ENTITY, EVENT>(batchParams) where
 STATE : S2State,
 ENTITY : Any,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID> {
 
-	override suspend fun findAllById(ids: List<ID>): List<ENTITY> = repository.findAllById(ids).toList()
+    override suspend fun findAllById(ids: List<ID>): List<ENTITY> = repository.findAllById(ids).toList()
 
-	override suspend fun saveAll(entities: List<ENTITY>) {
-		repository.saveAll(entities).collect()
-	}
+    override suspend fun saveAll(entities: List<ENTITY>) {
+        repository.saveAll(entities).collect()
+    }
 }

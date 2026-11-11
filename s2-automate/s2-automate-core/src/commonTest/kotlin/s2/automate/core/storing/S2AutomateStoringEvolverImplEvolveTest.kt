@@ -30,12 +30,12 @@ class S2AutomateStoringEvolverImplEvolveTest {
     private class RecordingEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
         val evolved = mutableListOf<TestEntity>()
 
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("not used in this test")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd ->
@@ -46,12 +46,12 @@ class S2AutomateStoringEvolverImplEvolveTest {
     }
 
     private class UnusedOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("not used in this test")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -73,8 +73,11 @@ class S2AutomateStoringEvolverImplEvolveTest {
             entity.copy(state = TestState.Active) to DoneEvt(cmd.id)
         }.toList()
 
-        assertEquals(listOf(DoneEvt("1"), DoneEvt("2")), events)
-        assertEquals(listOf(TestEntity("1", TestState.Active), TestEntity("2", TestState.Active)), engine.evolved)
-        assertEquals(listOf<Any>(DoneEvt("1"), DoneEvt("2")), publisher.published)
+        assertEquals(expected = listOf(DoneEvt("1"), DoneEvt("2")), actual = events)
+        assertEquals(
+            expected = listOf(TestEntity("1", TestState.Active), TestEntity("2", TestState.Active)),
+            actual = engine.evolved,
+        )
+        assertEquals(expected = listOf<Any>(DoneEvt("1"), DoneEvt("2")), actual = publisher.published)
     }
 }

@@ -12,12 +12,12 @@ import s2.spring.core.config.S2Properties
 @EnableConfigurationProperties(S2Properties::class)
 open class RetryTaskChannelConfiguration {
 
-	@Bean
-	open fun persistTaskChannel(s2Properties: S2Properties): RetryTaskChannel {
-		val retry = s2Properties.retry ?: S2RetryTaskProperties()
-		return RetryTaskChannel(
-			maxAttempts = retry.maxAttempts,
-			delayMillis = retry.delayMillis,
-			retryOn = OptimisticLockingFailureException::class)
-	}
+    @Bean
+    open fun persistTaskChannel(s2Properties: S2Properties): RetryTaskChannel {
+        val retry = s2Properties.retry ?: S2RetryTaskProperties()
+        return RetryTaskChannel(
+            maxAttempts = retry.maxAttempts,
+            delayMillis = retry.delayMillis,
+            retryOn = OptimisticLockingFailureException::class)
+    }
 }

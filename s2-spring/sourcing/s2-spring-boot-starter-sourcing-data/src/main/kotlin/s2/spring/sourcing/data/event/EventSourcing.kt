@@ -11,23 +11,31 @@ import org.springframework.data.annotation.LastModifiedBy
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.annotation.Version
 
+/** One persisted event: its row [id], the [objId] of the object it is about, and the [event] as encoded. */
+// A JPA entity: identity is its row, and data-class equality over mutable audit columns would break it.
+@Suppress("UseDataClass")
 @Entity
 @MappedSuperclass
 @EntityListeners
-@Suppress("LongParameterList") // mirrors the persisted event row and its audit columns
-class EventSourcing<ID>(
-	@Id
-	val id: String,
-	val objId: ID,
-	val event: String,
-	@CreatedBy
-	var createdBy: String? = null,
-	@CreatedDate
-	var createdDate: LocalDateTime? = null,
-	@LastModifiedBy
-	var lastModifiedBy: String? = null,
-	@LastModifiedDate
-	var lastModifiedDate: LocalDateTime? = null,
-	@Version
-	var version: Int? = null,
-)
+class EventSourcing<ID : Any>(
+    @Id
+    val id: String,
+    val objId: ID,
+    val event: String,
+) {
+    /** Audit columns, set by Spring Data auditing when enabled. */
+    @CreatedBy
+    var createdBy: String? = null
+
+    @CreatedDate
+    var createdDate: LocalDateTime? = null
+
+    @LastModifiedBy
+    var lastModifiedBy: String? = null
+
+    @LastModifiedDate
+    var lastModifiedDate: LocalDateTime? = null
+
+    @Version
+    var version: Int? = null
+}

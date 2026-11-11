@@ -16,11 +16,11 @@ import s2.spring.automate.sourcing.S2AutomateDeciderSpringAdapter
 import s2.spring.sourcing.data.event.EventRepositoryFactory
 
 abstract class S2SourcingSpringDataAdapter<ENTITY, STATE, EVENT, ID : Any, EXECUTOR>(
-	executor: EXECUTOR,
-	view: View<EVENT, ENTITY>,
-	snapRepository: SnapRepository<ENTITY, ID>? = null
+    executor: EXECUTOR,
+    view: View<EVENT, ENTITY>,
+    snapRepository: SnapRepository<ENTITY, ID>? = null
 ): S2AutomateDeciderSpringAdapter<ENTITY, STATE, EVENT, ID, EXECUTOR>(executor, view, snapRepository),
-	SmartInitializingSingleton where
+    SmartInitializingSingleton where
 STATE: S2State,
 ENTITY: WithS2State<STATE>,
 ENTITY: WithS2Id<ID>,
@@ -28,28 +28,30 @@ EVENT: Evt,
 EVENT: WithS2Id<ID>,
 EXECUTOR : S2AutomateDeciderSpring<ENTITY, STATE, EVENT, ID> {
 
-	@Autowired
-	lateinit var eventRepositoryFactory: EventRepositoryFactory
+    // Field-injected: consumers subclass this adapter with their own constructors.
+    @Suppress("LateinitUsage")
+    @Autowired
+    lateinit var eventRepositoryFactory: EventRepositoryFactory
 
-	private val eventStore = lazy<EventRepository<EVENT, ID>> {
-		LazyTableEventRepository(eventRepositoryFactory.create(entityType(), json()))
-	}
+    private val eventStore = lazy<EventRepository<EVENT, ID>> {
+        LazyTableEventRepository(eventRepositoryFactory.create(entityType(), json()))
+    }
 
-	override fun eventStore(): EventRepository<EVENT, ID> = eventStore.value
+    override fun eventStore(): EventRepository<EVENT, ID> = eventStore.value
 
-	/**
-	 * Creates the table on the startup thread, so it exists before the application runners
-	 * (database migrations among them) touch it. A lazily initialised bean never gets here:
-	 * the first operation on its store creates the table.
-	 */
-	override fun afterSingletonsInstantiated() {
-		if (eventStore.isInitialized()) {
-			runBlocking { eventStore.value.createTable() }
-		}
-	}
+    /**
+     * Creates the table on the startup thread, so it exists before the application runners
+     * (database migrations among them) touch it. A lazily initialised bean never gets here:
+     * the first operation on its store creates the table.
+     */
+    override fun afterSingletonsInstantiated() {
+        if (eventStore.isInitialized()) {
+            runBlocking { eventStore.value.createTable() }
+        }
+    }
 
 
-	open fun json(): Json = Json {
-		ignoreUnknownKeys = true
-	}
+    open fun json(): Json = Json {
+        ignoreUnknownKeys = true
+    }
 }

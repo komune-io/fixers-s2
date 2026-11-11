@@ -4,7 +4,6 @@ import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.toList
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import s2.automate.core.appevent.listener.AutomateListenerAdapter
@@ -56,12 +55,12 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- no-op legacy engine (never called in this test) ----
 
     private object NoOpLegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("should not be called")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = error("should not be called")
@@ -70,12 +69,12 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- no-op outcome engine (never called in this test) ----
 
     private object NoOpOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("should not be called")
 
-        override suspend fun <
+        override fun <
             COMMAND : S2Command<String>,
             ENTITY_OUT : TestEntity,
             EVENT_OUT : Evt,
@@ -86,7 +85,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     }
 
     private object NoOpPublisher : AppEventPublisher {
-        override fun <EVENT> publish(event: EVENT & Any) = Unit
+        override fun publish(event: Any) = Unit
     }
 
     // ---- stub evolver ----
@@ -101,20 +100,22 @@ class S2AutomateExecutorSpringPassthroughTest {
         publisher = NoOpPublisher,
         listener = AutomateListenerAdapter<TestState, String, TestEntity, S2Automate>(),
     ) {
-        override suspend fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2InitCommand, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             build: suspend (cmd: COMMAND) -> Pair<TestEntity, EVENT_OUT>
         ): Flow<PersistOutcome<EVENT_OUT>> {
+            // A stub engine answering its sentinel flow, typed by the caller.
             @Suppress("UNCHECKED_CAST")
             return sentinelInitFlow as Flow<PersistOutcome<EVENT_OUT>>
         }
 
-        override suspend fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
+        override fun <COMMAND : S2Command<String>, EVENT_OUT : Evt> evolveWithOutcomes(
             commands: Flow<COMMAND>,
             idOf: (COMMAND) -> String,
             exec: suspend (COMMAND, TestEntity) -> Pair<TestEntity, EVENT_OUT>
         ): Flow<PersistOutcome<EVENT_OUT>> {
+            // A stub engine answering its sentinel flow, typed by the caller.
             @Suppress("UNCHECKED_CAST")
             return sentinelTransFlow as Flow<PersistOutcome<EVENT_OUT>>
         }
@@ -136,7 +137,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     // ---- tests ----
 
     @Test
-    suspend fun `evolveWithOutcomes (init) delegates to engine evolveWithOutcomes (init)`() {
+    fun `evolveWithOutcomes (init) delegates to engine evolveWithOutcomes (init)`() {
         val executor = makeExecutor()
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(
@@ -150,7 +151,7 @@ class S2AutomateExecutorSpringPassthroughTest {
     }
 
     @Test
-    suspend fun `evolveWithOutcomes (transition) delegates to engine evolveWithOutcomes (transition)`() {
+    fun `evolveWithOutcomes (transition) delegates to engine evolveWithOutcomes (transition)`() {
         val executor = makeExecutor()
 
         val returned: Flow<PersistOutcome<TestEvt>> = executor.evolveWithOutcomes(

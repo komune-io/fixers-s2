@@ -17,21 +17,21 @@ import s2.dsl.automate.model.WithS2State
  * overriding `S2SpringAdapterBase.validateInitTransitions()` or by adding it to `guards()`.
  */
 class InitTransitionStateGuard<STATE, ID : Any, ENTITY, EVENT, AUTOMATE>
-	: GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
+    : GuardAdapter<STATE, ID, ENTITY, EVENT, AUTOMATE>() where
 STATE : S2State,
 ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AUTOMATE : Automate {
 
-	override suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>): GuardResult {
-		val command = context.msg
-		val isCmdValid = context.automateContext.automate.isAvailableInitTransition(command)
-		return if (isCmdValid) {
-			GuardResult.valid()
-		} else {
-			GuardResult.error(
-				invalidInitTransitionError("$command")
-			)
-		}
-	}
+    override suspend fun evaluateInit(context: InitTransitionContext<AUTOMATE>): GuardResult {
+        val command = context.msg
+        val isCmdValid = context.automateContext.automate.isAvailableInitTransition(command)
+        return if (isCmdValid) {
+            GuardResult.valid()
+        } else {
+            GuardResult.error(
+                invalidInitTransitionError("$command")
+            )
+        }
+    }
 }

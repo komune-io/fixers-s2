@@ -15,31 +15,31 @@ import s2.sample.multiautomate.endable.EndableStepEvent
 
 @Service
 class EndableLoopService(
-	private val endableLoopS2Aggregate: EndableLoopS2Aggregate,
+    private val endableLoopS2Aggregate: EndableLoopS2Aggregate,
 ) {
 
-	@Bean
-	fun createEndable() = f2Function<EndableCreateCommand, EndableCreatedEvent> { command ->
-		endableLoopS2Aggregate.init(command) {
-			EndableCreatedEvent(
-				id = UUID.randomUUID().toString(),
-				type = EndableLoopState.Running,
-				tt = command.tt
-			)
-		}
-	}
+    @Bean
+    fun createEndable() = f2Function<EndableCreateCommand, EndableCreatedEvent> { command ->
+        endableLoopS2Aggregate.init(command) {
+            EndableCreatedEvent(
+                id = UUID.randomUUID().toString(),
+                type = EndableLoopState.Running,
+                tt = command.tt
+            )
+        }
+    }
 
-	@Bean
-	fun stepEndable() = f2Function<EndableStepCommand, EndableStepEvent> { command ->
-		endableLoopS2Aggregate.transition(command) { entity ->
-			EndableStepEvent(id = entity.id, type = entity.s2State())
-		}
-	}
+    @Bean
+    fun stepEndable() = f2Function<EndableStepCommand, EndableStepEvent> { command ->
+        endableLoopS2Aggregate.transition(command) { entity ->
+            EndableStepEvent(id = entity.id, type = entity.s2State())
+        }
+    }
 
-	@Bean
-	fun endEndable() = f2Function<EndableEndCommand, EndableEndedEvent> { command ->
-		endableLoopS2Aggregate.transition(command) { entity ->
-			EndableEndedEvent(id = entity.id, type = entity.s2State())
-		}
-	}
+    @Bean
+    fun endEndable() = f2Function<EndableEndCommand, EndableEndedEvent> { command ->
+        endableLoopS2Aggregate.transition(command) { entity ->
+            EndableEndedEvent(id = entity.id, type = entity.s2State())
+        }
+    }
 }

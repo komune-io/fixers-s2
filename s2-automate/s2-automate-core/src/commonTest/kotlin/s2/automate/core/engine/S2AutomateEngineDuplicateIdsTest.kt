@@ -4,6 +4,8 @@ import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.fnc.operators.mapToEnvelope
 import f2.dsl.fnc.operators.mapToEnvelopeWithRandomId
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -27,7 +29,7 @@ import s2.automate.core.persist.PersistOutcome
 import s2.dsl.automate.S2Automate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -55,20 +57,20 @@ class S2AutomateEngineDuplicateIdsTest {
             id: String,
         ): TestEntity? = entities[id]
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
-        ): Flow<TestEntity?> = ids.toList().distinct().mapNotNull { entities[it] }.asFlow()
+        ): Flow<TestEntity?> = flow { emitAll(ids.toList().distinct().mapNotNull { entities[it] }.asFlow()) }
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = transitionContexts.map { it.event }
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
-        ): Flow<TestEvent> = transitionContexts.map {
-            persistedIds.add(it.entity.id)
-            it.event
+        ): Flow<TestEvent> = transitionContexts.map { context ->
+            persistedIds.add(context.entity.id)
+            context.event
         }
     }
 
@@ -94,17 +96,17 @@ class S2AutomateEngineDuplicateIdsTest {
         val persister = DedupingPersister(entities)
         val commands = flowOf(DoCmd("1"), DoCmd("1")).mapToEnvelopeWithRandomId(type = "Cmd")
 
-        val exception = kotlin.runCatching {
+        val exception = assertFailsWith<AutomateException> {
             engine(persister).doTransition(commands) { cmd, entity ->
                 TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
             }.toList()
-        }.exceptionOrNull()
+        }
 
-        assertIs<AutomateException>(exception)
-        assertEquals("ERROR_DUPLICATE_COMMAND_IDS", exception.errors.single().type)
-        assertTrue(exception.errors.single().payload.getValue("ids").contains("1"))
+        assertEquals(expected = "ERROR_DUPLICATE_COMMAND_IDS", actual = exception.errors.single().type)
+        val reportedIds = exception.errors.single().payload.getValue("ids")
+        assertTrue(reportedIds.contains("1"))
         // nothing was persisted: the batch is refused as a whole
-        assertEquals(emptyList(), persister.persistedIds)
+        assertEquals(expected = emptyList(), actual = persister.persistedIds)
     }
 
     @Test
@@ -113,14 +115,13 @@ class S2AutomateEngineDuplicateIdsTest {
         val commands = flowOf(DoCmd("1"), DoCmd("2"), DoCmd("1"), DoCmd("2"))
             .mapToEnvelopeWithRandomId(type = "Cmd")
 
-        val exception = kotlin.runCatching {
+        val exception = assertFailsWith<AutomateException> {
             engine(persister).doTransition(commands) { cmd, entity ->
                 TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
             }.toList()
-        }.exceptionOrNull()
+        }
 
-        assertIs<AutomateException>(exception)
-        assertEquals("1, 2", exception.errors.single().payload["ids"])
+        assertEquals(expected = "1, 2", actual = exception.errors.single().payload["ids"])
     }
 
     @Test
@@ -132,7 +133,7 @@ class S2AutomateEngineDuplicateIdsTest {
             TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(listOf("1", "2"), events.map { it.data.entityId })
+        assertEquals(expected = listOf("1", "2"), actual = events.map { it.data.entityId })
     }
 
     @Test
@@ -145,7 +146,7 @@ class S2AutomateEngineDuplicateIdsTest {
             TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(listOf("1", "1"), events.map { it.data.entityId })
+        assertEquals(expected = listOf("1", "1"), actual = events.map { it.data.entityId })
     }
 
     // ---- doTransitionWithOutcomes: per-command rejection ----
@@ -163,11 +164,11 @@ class S2AutomateEngineDuplicateIdsTest {
         val successes = outcomes.filterIsInstance<PersistOutcome.Success<DoneEvt>>()
         val rejected = outcomes.filterIsInstance<PersistOutcome.Rejected<DoneEvt>>()
 
-        assertEquals(listOf("1", "2"), successes.map { it.event.entityId }.sorted())
-        assertEquals(1, rejected.size)
-        assertEquals("ERROR_DUPLICATE_COMMAND_IDS", rejected.single().error.type)
+        assertEquals(expected = listOf("1", "2"), actual = successes.map { it.event.entityId }.sorted())
+        assertEquals(expected = 1, actual = rejected.size)
+        assertEquals(expected = "ERROR_DUPLICATE_COMMAND_IDS", actual = rejected.single().error.type)
         // the winner is persisted exactly once, the loser never reaches persist
-        assertEquals(listOf("1", "2"), persister.persistedIds.sorted())
+        assertEquals(expected = listOf("1", "2"), actual = persister.persistedIds.sorted())
     }
 
     @Test
@@ -180,7 +181,7 @@ class S2AutomateEngineDuplicateIdsTest {
             TestEntity(entity.id, TestState.Active) to DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList().map { it.data }
 
-        assertEquals(2, outcomes.filterIsInstance<PersistOutcome.Success<DoneEvt>>().size)
+        assertEquals(expected = 2, actual = outcomes.filterIsInstance<PersistOutcome.Success<DoneEvt>>().size)
         assertTrue(outcomes.none { it is PersistOutcome.Rejected })
     }
 }

@@ -1,7 +1,6 @@
 package s2.automate.core.storing.snap
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.fold
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -32,12 +31,12 @@ class SnapPersisterTest {
     }
 
     private class StubLoader(
-        private val found: Boolean = true,
+        private val isFound: Boolean = true,
     ) : Loader<TestEvent, TestEntity, String> {
-        override suspend fun load(id: String): TestEntity? = if (found) TestEntity(id) else null
+        override suspend fun load(id: String): TestEntity? = if (isFound) TestEntity(id) else null
         override suspend fun load(events: Flow<TestEvent>): TestEntity? = evolve(events)
         override suspend fun loadAndEvolve(id: String, news: Flow<TestEvent>): TestEntity? =
-            if (found) news.fold(TestEntity(id)) { entity, _ -> entity } else null
+            if (isFound) news.fold(TestEntity(id)) { entity, _ -> entity } else null
 
         override suspend fun evolve(events: Flow<TestEvent>, entity: TestEntity?): TestEntity? =
             events.fold(entity) { _, event -> TestEntity(event.s2Id()) }
@@ -99,12 +98,12 @@ class SnapPersisterTest {
     @Test
     suspend fun `persist throws when the projection cannot be loaded`() {
         val persister = SnapPersister<TestState, String, TestEntity, TestEvent>(
-            projectionLoader = StubLoader(found = false),
+            projectionLoader = StubLoader(isFound = false),
             snapRepository = null,
             retryTaskChannel = null,
         )
         val exception = assertThrows<AutomateException> {
-            persister.persist(TestEvent("4"))
+            val _ = persister.persist(TestEvent("4"))
         }
         assertTrue(exception.errors.single().type == "ERROR_ENTITY_NOT_FOUND")
     }

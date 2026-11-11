@@ -31,24 +31,24 @@ class S2AutomateStoringEvolverImplMissingEntityTest {
 
     /** Engine that emits no event at all, as when no entity matched the command. */
     private class EmptyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = emptyFlow()
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = emptyFlow()
     }
 
     private class UnusedOutcomeEngine : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<PersistOutcome<EVENT_OUT>> = error("not used in this test")
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -70,7 +70,7 @@ class S2AutomateStoringEvolverImplMissingEntityTest {
             }
         }
         val error = exception.errors.single()
-        assertEquals("ERROR_ENTITY_NOT_FOUND", error.type)
-        assertEquals("missing", error.payload["id"])
+        assertEquals(expected = "ERROR_ENTITY_NOT_FOUND", actual = error.type)
+        assertEquals(expected = "missing", actual = error.payload["id"])
     }
 }

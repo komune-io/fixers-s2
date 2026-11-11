@@ -78,26 +78,26 @@ class AssertionCrudEntityTest {
         override suspend fun assertThat(entity: Entity) = EntityAsserter(entity)
     }
 
-    private val store = mapOf("1" to Entity("1", "one"))
+    private val store = mapOf("1" to Entity(id = "1", name = "one"))
 
     @Test
     suspend fun `reactive assertion checks existence and asserts by id`() {
         val assertion = ReactiveAssertion(InMemoryReactiveRepository(store))
         assertion.exists("1")
         assertion.notExists("missing")
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 
     @Test
     suspend fun `reactive assertion fails when existence does not match`() {
         val assertion = ReactiveAssertion(InMemoryReactiveRepository(store))
-        var failed = false
+        var hasFailed = false
         try {
             assertion.exists("missing")
         } catch (expected: AssertionError) {
-            failed = true
+            hasFailed = true
         }
-        assertThat(failed).isTrue()
+        assertThat(hasFailed).isTrue()
     }
 
     @Test
@@ -105,18 +105,18 @@ class AssertionCrudEntityTest {
         val assertion = BlockingAssertion(InMemoryBlockingRepository(store))
         assertion.exists("1")
         assertion.notExists("missing")
-        assertion.assertThatId("1").hasName("one")
+        val _ = assertion.assertThatId("1").hasName("one")
     }
 
     @Test
     suspend fun `blocking assertion fails when existence does not match`() {
         val assertion = BlockingAssertion(InMemoryBlockingRepository(store))
-        var failed = false
+        var hasFailed = false
         try {
             assertion.notExists("1")
         } catch (expected: AssertionError) {
-            failed = true
+            hasFailed = true
         }
-        assertThat(failed).isTrue()
+        assertThat(hasFailed).isTrue()
     }
 }

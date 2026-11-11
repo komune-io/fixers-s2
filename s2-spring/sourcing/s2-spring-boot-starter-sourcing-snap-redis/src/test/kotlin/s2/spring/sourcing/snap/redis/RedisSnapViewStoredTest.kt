@@ -1,164 +1,167 @@
 package s2.spring.sourcing.snap.redis
 
+import io.lettuce.core.LettuceFutures
 import io.lettuce.core.ScanArgs
 import io.lettuce.core.ScanIterator
 import io.lettuce.core.json.JsonPath
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-/** Reads by key, past what the search index holds or answers, and the batch reads' strictness. */
+/** Reads by key, past what the search index answers, and the batch reads' strictness. */
 class RedisSnapViewStoredTest {
 
-	data class UnindexedProbeSnap(val id: String, val weight: Any?)
-	data class WindowProbeSnap(val id: String)
+    data class WindowProbeSnap(val id: String)
 
-	private companion object {
-		const val BEYOND_WINDOW = SEARCH_WINDOW + 1
-		const val SCAN_BATCH = 1_000L
-	}
+    private val view = RedisStack.view(
+        model = WindowProbeSnap::class,
+        fields = listOf(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG)),
+        idOf = WindowProbeSnap::id,
+    )
+    private val sync = RedisStack.connection.sync()
 
-	private val view = RedisStack.view()
-	private val sync = RedisStack.connection.sync()
+    @BeforeEach
+    fun clean() {
+        dropAll()
+    }
 
-	@BeforeEach
-	fun clean() = dropAll()
+    @AfterEach
+    fun tidy() {
+        dropAll()
+    }
 
-	@AfterEach
-	fun tidy() = dropAll()
+    private fun storeRaw(ids: List<String>) {
+        val async = RedisStack.connection.async()
+        val writes = ids.map { id -> async.jsonSet(view.key(id), JsonPath.ROOT_PATH, """{"id":"$id"}""") }
+        check(LettuceFutures.awaitAll(1, TimeUnit.MINUTES, *writes.toTypedArray())) { "Raw writes still running" }
+    }
 
-	@Test
-	suspend fun `a snapshot the search index dropped is still read from the store`() {
-		view.createIndex<UnindexedProbeSnap>(
-			RedisIndexField(UnindexedProbeSnap::id.name, RedisFieldType.TAG),
-			RedisIndexField(UnindexedProbeSnap::weight.name, RedisFieldType.NUMERIC),
-		)
-		view.save("light", UnindexedProbeSnap(id = "light", weight = 1))
-		view.save("heavy", UnindexedProbeSnap(id = "heavy", weight = 2))
-		view.save("unreadable", UnindexedProbeSnap(id = "unreadable", weight = "not a number"))
+    @Test
+    suspend fun `every snapshot of the model is deleted, readable or not, and no other model's`() {
+        sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
+        sync.jsonSet(view.key("readable"), JsonPath.ROOT_PATH, """{"id":"readable"}""")
+        sync.jsonSet(view.key("former"), JsonPath.ROOT_PATH, """{"formerId":"x"}""")
 
-		assertThat(view.count<UnindexedProbeSnap>())
-			.describedAs("test precondition: RediSearch drops a document whose numeric field holds text")
-			.isEqualTo(2)
-		assertThat(view.stored<UnindexedProbeSnap>().map { it.id })
-			.containsExactlyInAnyOrder("light", "heavy", "unreadable")
-		assertThat(view.all<UnindexedProbeSnap>().toList().map { it.id })
-			.containsExactlyInAnyOrder("light", "heavy", "unreadable")
-	}
+        assertThat(view.deleteAll()).isEqualTo(2)
+        assertThat(sync.exists("WindowProbeSnap-readable", "WindowProbeSnap-former")).isZero()
+        assertThat(sync.exists("WindowProbeSnapshot-x")).isEqualTo(1)
+    }
 
-	@Test
-	suspend fun `every snapshot of the model is deleted, readable or not, and no other model's`() {
-		view.createIndex<WindowProbeSnap>(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG))
-		sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
-		sync.jsonSet(view.buildId<WindowProbeSnap>("readable"), JsonPath.ROOT_PATH, """{"id":"readable"}""")
-		sync.jsonSet(view.buildId<WindowProbeSnap>("former"), JsonPath.ROOT_PATH, """{"formerId":"x"}""")
+    @Test
+    suspend fun `more snapshots than one batch holds are deleted`() {
+        storeRaw((1..STORE_BATCH * 2 + 1).map { "d$it" })
 
-		assertThat(view.deleteAll<WindowProbeSnap>()).isEqualTo(2)
-		assertThat(sync.exists("WindowProbeSnap-readable", "WindowProbeSnap-former")).isZero()
-		assertThat(sync.exists("WindowProbeSnapshot-x")).isEqualTo(1)
-	}
+        assertThat(view.deleteAll()).isEqualTo(STORE_BATCH * 2 + 1)
+        assertThat(view.isEmpty()).isTrue()
+    }
 
-	@Test
-	suspend fun `every snapshot is read past the search window`() {
-		view.createIndex<WindowProbeSnap>(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG))
-		val async = RedisStack.connection.async()
-		(1..BEYOND_WINDOW).map { n ->
-			async.jsonSet(view.buildId<WindowProbeSnap>("w$n"), JsonPath.ROOT_PATH, """{"id":"w$n","type":"WindowProbeSnap"}""")
-		}.forEach { it.get(1, TimeUnit.MINUTES) }
+    @Test
+    suspend fun `every snapshot is read past the search window, each once`() {
+        storeRaw((1..BEYOND_WINDOW).map { "w$it" })
 
-		val ids = view.stored<WindowProbeSnap>().map { it.id }
+        val ids = view.stored().map { it.id }.toList()
 
-		assertThat(ids).hasSize(BEYOND_WINDOW).doesNotHaveDuplicates().contains("w1", "w$BEYOND_WINDOW")
-	}
+        assertThat(ids).hasSize(BEYOND_WINDOW).doesNotHaveDuplicates().contains("w1", "w$BEYOND_WINDOW")
+    }
 
-	@Test
-	suspend fun `a snapshot of another model sharing the name's first letters is not read`() {
-		sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
-		sync.jsonSet(view.buildId<WindowProbeSnap>("own"), JsonPath.ROOT_PATH, """{"id":"own"}""")
+    @Test
+    suspend fun `the store is read as the flow is collected, batch by batch`() {
+        storeRaw((1..STORE_BATCH * 3).map { "s$it" })
 
-		assertThat(view.stored<WindowProbeSnap>().map { it.id }).containsExactly("own")
-	}
+        assertThat(view.stored().take(2).toList()).hasSize(2)
+    }
 
-	@Test
-	fun `a snapshot the reader cannot read stops the read and names its key`() {
-		sync.jsonSet(view.buildId<WindowProbeSnap>("readable"), JsonPath.ROOT_PATH, """{"id":"readable"}""")
-		sync.jsonSet(view.buildId<WindowProbeSnap>("former"), JsonPath.ROOT_PATH, """{"formerId":"x"}""")
+    @Test
+    suspend fun `a snapshot of another model sharing the name's first letters is not read`() {
+        sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
+        sync.jsonSet(view.key("own"), JsonPath.ROOT_PATH, """{"id":"own"}""")
 
-		assertThatThrownBy { runBlocking { view.stored<WindowProbeSnap>() } }
-			.isInstanceOf(IllegalStateException::class.java)
-			.hasMessageContaining("[WindowProbeSnap-former]")
-	}
+        assertThat(view.stored().toList().map { it.id }).containsExactly("own")
+        assertThat(view.isEmpty()).isFalse()
+    }
 
-	@Test
-	suspend fun `a model with nothing stored reads empty`() {
-		assertThat(view.stored<WindowProbeSnap>()).isEmpty()
-	}
+    @Test
+    fun `a snapshot the reader cannot read stops every read and names its key`() {
+        sync.jsonSet(view.key("former"), JsonPath.ROOT_PATH, """{"formerId":"x"}""")
+        val reads = listOf<suspend () -> Any?>(
+            { view.stored().toList() },
+            { view.getAll(listOf("former")) },
+            { view.get("former") },
+        )
 
-	@Test
-	suspend fun `many ids are read in one batch, an unknown or repeated id answered once or not at all`() {
-		view.save("a", WindowProbeSnap("a"))
-		view.save("b", WindowProbeSnap("b"))
+        reads.forEach { read ->
+            assertThat(runCatching { runBlocking { read() } }.exceptionOrNull())
+                .isInstanceOf(IllegalStateException::class.java)
+                .hasMessage("Snapshot [WindowProbeSnap-former] is not a readable WindowProbeSnap")
+        }
+    }
 
-		val read = view.getAll<WindowProbeSnap>(listOf("a", "b", "a", "unknown"))
+    @Test
+    suspend fun `a model with nothing stored reads empty`() {
+        assertThat(view.stored().toList()).isEmpty()
+        assertThat(view.isEmpty()).isTrue()
+    }
 
-		assertThat(read).containsOnlyKeys("a", "b")
-		assertThat(view.getAll<WindowProbeSnap>(emptyList())).isEmpty()
-	}
+    @Test
+    suspend fun `many ids are read in one batch, an unknown or repeated id answered once or not at all`() {
+        val _ = view.save(WindowProbeSnap("a"))
+        val _ = view.save(WindowProbeSnap("b"))
 
-	@Test
-	suspend fun `a snapshot is written, read back and deleted by its id`() {
-		val saved = view.save("one", WindowProbeSnap("one"))
+        val read = view.getAll(listOf("a", "b", "a", "unknown"))
 
-		assertThat(saved).isEqualTo(WindowProbeSnap("one"))
-		assertThat(view.get<WindowProbeSnap>("one")).isEqualTo(WindowProbeSnap("one"))
-		assertThat(sync.jsonGet("WindowProbeSnap-one", JsonPath.of("$.type")).toString()).contains("WindowProbeSnap")
-		assertThat(view.delete<WindowProbeSnap>("one")).isEqualTo("one")
-		assertThat(view.get<WindowProbeSnap>("one")).isNull()
-	}
+        assertThat(read)
+            .containsExactlyInAnyOrderEntriesOf(mapOf("a" to WindowProbeSnap("a"), "b" to WindowProbeSnap("b")))
+        assertThat(view.getAll(emptyList())).isEmpty()
+    }
 
-	@Test
-	suspend fun `an index reads its own model's keys only, not a model whose name starts the same`() {
-		sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
-		view.save("own", WindowProbeSnap("own"))
+    @Test
+    suspend fun `a snapshot is written, read back and removed by its id`() {
+        val saved = view.save(WindowProbeSnap("one"))
 
-		view.createIndex<WindowProbeSnap>(RedisIndexField(WindowProbeSnap::id.name, RedisFieldType.TAG))
+        assertThat(saved).isEqualTo(WindowProbeSnap("one"))
+        assertThat(view.get("one")).isEqualTo(WindowProbeSnap("one"))
+        assertThat(sync.jsonGet("WindowProbeSnap-one", JsonPath.of("$.type")).toString()).contains("WindowProbeSnap")
+        assertThat(view.remove("one")).isTrue()
+        assertThat(view.remove("one")).isFalse()
+        assertThat(view.get("one")).isNull()
+    }
 
-		assertThat(view.count<WindowProbeSnap>()).isEqualTo(1)
-		assertThat(view.search<WindowProbeSnap>(null, null, null).items).containsExactly(WindowProbeSnap("own"))
-	}
+    @Test
+    suspend fun `an index reads its own model's keys only, not a model whose name starts the same`() {
+        sync.jsonSet("WindowProbeSnapshot-x", JsonPath.ROOT_PATH, """{"id":"x"}""")
+        val _ = view.save(WindowProbeSnap("own"))
 
-	@Test
-	suspend fun `stored snapshots are counted by key, those the index dropped included`() {
-		view.createIndex<UnindexedProbeSnap>(RedisIndexField(UnindexedProbeSnap::weight.name, RedisFieldType.NUMERIC))
-		view.save("light", UnindexedProbeSnap(id = "light", weight = 1))
-		view.save("unreadable", UnindexedProbeSnap(id = "unreadable", weight = "not a number"))
+        view.initIndex()
 
-		assertThat(view.count<UnindexedProbeSnap>()).isEqualTo(1)
-		assertThat(view.storedCount<UnindexedProbeSnap>()).isEqualTo(2)
-	}
+        assertThat(view.count()).isEqualTo(1)
+        assertThat(view.search(null, null, null).items).containsExactly(WindowProbeSnap("own"))
+    }
 
-	@Test
-	suspend fun `more ids than one batch holds are all read`() {
-		val async = RedisStack.connection.async()
-		val ids = (1..STORE_BATCH + 1).map { "b$it" }
-		ids.map { async.jsonSet(view.buildId<WindowProbeSnap>(it), JsonPath.ROOT_PATH, """{"id":"$it"}""") }
-			.forEach { it.get(1, TimeUnit.MINUTES) }
+    @Test
+    suspend fun `more ids than one batch holds are all read`() {
+        val ids = (1..STORE_BATCH + 1).map { "b$it" }
+        storeRaw(ids)
 
-		assertThat(view.getAll<WindowProbeSnap>(ids)).hasSize(STORE_BATCH + 1)
-	}
+        assertThat(view.getAll(ids)).hasSize(STORE_BATCH + 1)
+    }
 
-	private fun dropAll() = runBlocking {
-		view.dropIndex<UnindexedProbeSnap>()
-		view.dropIndex<WindowProbeSnap>()
-		listOf("UnindexedProbeSnap-*", "WindowProbeSnap-*", "WindowProbeSnapshot-*").forEach { pattern ->
-			val keys = mutableListOf<String>()
-			ScanIterator.scan(sync, ScanArgs.Builder.matches(pattern).limit(SCAN_BATCH)).forEach { keys += it }
-			keys.chunked(SCAN_BATCH.toInt()).forEach { sync.unlink(*it.toTypedArray()) }
-		}
-	}
+    private fun dropAll() = runBlocking {
+        view.dropIndex()
+        listOf("WindowProbeSnap-*", "WindowProbeSnapshot-*").forEach { pattern ->
+            val keys = mutableListOf<String>()
+            ScanIterator.scan(sync, ScanArgs.Builder.matches(pattern).limit(SCAN_BATCH)).forEach { keys += it }
+            keys.chunked(SCAN_BATCH.toInt()).forEach { sync.unlink(*it.toTypedArray()) }
+        }
+    }
+
+    private companion object {
+        const val BEYOND_WINDOW = SEARCH_WINDOW + 1
+        const val SCAN_BATCH = 1_000L
+    }
 }

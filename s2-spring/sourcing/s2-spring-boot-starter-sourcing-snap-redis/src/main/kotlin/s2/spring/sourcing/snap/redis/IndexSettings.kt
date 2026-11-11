@@ -1,52 +1,30 @@
 package s2.spring.sourcing.snap.redis
 
 /**
- * How every index of a [RedisSnapView] reads text. Both are chosen by the consumer, none is assumed: a
- * language stems the words of one language only, and a phonetic matcher hears one language only.
+ * How every index of a [RedisSnapView] reads text. Words are never stemmed (`NOSTEM`), so no language is set; the
+ * phonetic matcher, chosen by the consumer, hears one language only.
  */
-class IndexSettings(
-	val language: IndexLanguage,
-	/** The phonetic matcher of every TEXT attribute; `null` for none. */
-	val phonetic: PhoneticMatcher?,
-)
-
-/** RediSearch's stemming languages, as `FT.CREATE … LANGUAGE` takes them and `FT.INFO` reads them back. */
-enum class IndexLanguage(val value: String) {
-	ARABIC("arabic"),
-	ARMENIAN("armenian"),
-	BASQUE("basque"),
-	CATALAN("catalan"),
-	CHINESE("chinese"),
-	DANISH("danish"),
-	DUTCH("dutch"),
-	ENGLISH("english"),
-	FINNISH("finnish"),
-	FRENCH("french"),
-	GERMAN("german"),
-	GREEK("greek"),
-	HINDI("hindi"),
-	HUNGARIAN("hungarian"),
-	INDONESIAN("indonesian"),
-	IRISH("irish"),
-	ITALIAN("italian"),
-	LITHUANIAN("lithuanian"),
-	NEPALI("nepali"),
-	NORWEGIAN("norwegian"),
-	PORTUGUESE("portuguese"),
-	ROMANIAN("romanian"),
-	RUSSIAN("russian"),
-	SERBIAN("serbian"),
-	SPANISH("spanish"),
-	SWEDISH("swedish"),
-	TAMIL("tamil"),
-	TURKISH("turkish"),
-	YIDDISH("yiddish"),
+data class IndexSettings(
+    /** The phonetic matcher of every TEXT attribute; `null` for none. */
+    val phonetic: PhoneticMatcher?,
+    /**
+     * The letters from which a typed word is searched as a prefix ([RedisSnapView.wildcard]); a shorter word is
+     * searched whole. Two by default, RediSearch's own floor; an index holding many terms raises it, so that a short
+     * prefix does not expand past `MAXEXPANSIONS` and get the search refused.
+     */
+    val wildcardMinPrefix: Int = MIN_PREFIX,
+) {
+    init {
+        require(wildcardMinPrefix >= MIN_PREFIX) {
+            "RediSearch expands no prefix under $MIN_PREFIX letters: $wildcardMinPrefix"
+        }
+    }
 }
 
 /** RediSearch's Double Metaphone matchers, as `FT.CREATE … PHONETIC` takes them. */
 enum class PhoneticMatcher(val value: String) {
-	ENGLISH("dm:en"),
-	FRENCH("dm:fr"),
-	PORTUGUESE("dm:pt"),
-	SPANISH("dm:es"),
+    ENGLISH("dm:en"),
+    FRENCH("dm:fr"),
+    PORTUGUESE("dm:pt"),
+    SPANISH("dm:es"),
 }

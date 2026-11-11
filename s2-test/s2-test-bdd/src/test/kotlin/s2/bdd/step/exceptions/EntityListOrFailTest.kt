@@ -20,7 +20,7 @@ class EntityListOrFailTest {
     @Test
     fun `entityListOrFail fails with a clear message for unknown lists`() {
         val context = TestContext()
-        assertThatThrownBy { context.entityListOrFail("unknown") }
+        assertThatThrownBy { val _ = context.entityListOrFail("unknown") }
             .isInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("unknown")
     }

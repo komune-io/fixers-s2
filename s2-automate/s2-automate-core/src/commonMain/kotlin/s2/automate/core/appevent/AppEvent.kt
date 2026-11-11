@@ -9,111 +9,100 @@ interface AppEvent
 
 /**
  * Notification when state is entered.
- *
- * @param state the state
  */
-class AutomateStateEntered(
-	val state: S2State,
+data class AutomateStateEntered(
+    val state: S2State,
 ) : AppEvent
 
 /**
  * Notification when state is exited.
- *
- * @param state the state
  */
-class AutomateStateExited(
-	val state: S2State,
+data class AutomateStateExited(
+    val state: S2State,
 ) : AppEvent
 
 /**
  * Notification when command was not accepted.
- *
- * @param event the event
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateTransitionNotAccepted(
-	val from: S2State?,
-	val msg: Msg,
+    val from: S2State?,
+    val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when init transition started.
- *
- * @param transition the transition
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateInitTransitionStarted(
-	val msg: Msg,
+    val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when init transition ended.
- *
- * @param transition the transition
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateInitTransitionEnded<STATE, ENTITY>(
-	val to: STATE,
-	val msg: Msg,
-	val entity: ENTITY,
+    val to: STATE,
+    val msg: Msg,
+    val entity: ENTITY,
 ) : AppEvent
-		where STATE : S2State, ENTITY : WithS2State<STATE>
+        where STATE : S2State, ENTITY : WithS2State<STATE>
 
 /**
  * Notification when transition started.
- *
- * @param transition the transition
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateTransitionStarted(
-	val from: S2State,
-	val msg: Msg,
+    val from: S2State,
+    val msg: Msg,
 ) : AppEvent
 
 /**
  * Notification when transition ended.
- *
- * @param transition the transition
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateTransitionEnded<STATE, ENTITY>(
-	val from: STATE,
-	val to: STATE,
-	val msg: Msg,
-	val entity: ENTITY,
+    val from: STATE,
+    val to: STATE,
+    val msg: Msg,
+    val entity: ENTITY,
 ) : AppEvent
-		where STATE : S2State, ENTITY : WithS2State<STATE>
+        where STATE : S2State, ENTITY : WithS2State<STATE>
 
 /**
  * Notification when transition happened.
- *
- * @param transition the transition
  */
+// Not a data class: printing an event must not print the command or the entity it carries.
+@Suppress("UseDataClass")
 class AutomateTransitionError(
-	val msg: Msg,
-	val exception: Exception,
+    val msg: Msg,
+    val exception: Exception,
 ) : AppEvent
 
 /**
- * Notification when automate starts
- *
- * @param automate the automate
+ * Notification when automate starts.
  */
-class AutomateSessionStarted<AUTOMATE>(
-	val automate: AUTOMATE,
+data class AutomateSessionStarted<AUTOMATE>(
+    val automate: AUTOMATE,
 ) : AppEvent
 
 /**
- * Notification when automate stops
- *
- * @param automate the automate
+ * Notification when automate stops.
  */
-class AutomateSessionStopped<AUTOMATE>(
-	val automate: AUTOMATE,
+data class AutomateSessionStopped<AUTOMATE>(
+    val automate: AUTOMATE,
 ) : AppEvent
 
 /**
  * Notification when automate enters error.
- *
- * @param automate the automate
- * @param exception the exception
  */
-class AutomateSessionError(
-	val automate: S2Automate,
-	val exception: Exception,
+data class AutomateSessionError(
+    val automate: S2Automate,
+    val exception: Exception,
 ) : AppEvent

@@ -9,12 +9,6 @@ import s2.bdd.exception.NullDataTableParamException
 
 class EntryParserTest {
 
-    companion object {
-        init {
-            registerPrimitiveParsers()
-        }
-    }
-
     private val intParser = EntryParserDirectory.select(Int::class)
 
     @Test
@@ -29,7 +23,7 @@ class EntryParserTest {
 
     @Test
     fun `singleOrNull should throw IllegalDataTableParamException on unparseable value`() {
-        assertThatThrownBy { intParser.singleOrNull(mapOf("age" to "abc"), "age") }
+        assertThatThrownBy { val _ = intParser.singleOrNull(mapOf("age" to "abc"), "age") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
             .hasMessageContaining("age")
             .hasMessageContaining("Expected Int value")
@@ -42,7 +36,7 @@ class EntryParserTest {
 
     @Test
     fun `single should throw NullDataTableParamException when key is absent`() {
-        assertThatThrownBy { intParser.single(emptyMap(), "age") }
+        assertThatThrownBy { val _ = intParser.single(emptyMap(), "age") }
             .isInstanceOf(NullDataTableParamException::class.java)
             .hasMessageContaining("age")
     }
@@ -60,7 +54,7 @@ class EntryParserTest {
 
     @Test
     fun `listOrNull should throw IllegalDataTableParamException on unparseable element`() {
-        assertThatThrownBy { intParser.listOrNull(mapOf("ids" to "1,x"), "ids") }
+        assertThatThrownBy { val _ = intParser.listOrNull(mapOf("ids" to "1,x"), "ids") }
             .isInstanceOf(IllegalDataTableParamException::class.java)
     }
 
@@ -71,14 +65,14 @@ class EntryParserTest {
 
     @Test
     fun `list should throw NullDataTableParamException when key is absent`() {
-        assertThatThrownBy { intParser.list(emptyMap(), "ids") }
+        assertThatThrownBy { val _ = intParser.list(emptyMap(), "ids") }
             .isInstanceOf(NullDataTableParamException::class.java)
     }
 
     @Test
     fun `directory select should throw NoParserFoundException for unregistered type`() {
         class Unregistered
-        assertThatThrownBy { EntryParserDirectory.select(Unregistered::class) }
+        assertThatThrownBy { val _ = EntryParserDirectory.select(Unregistered::class) }
             .isInstanceOf(NoParserFoundException::class.java)
             .hasMessageContaining("Unregistered")
     }
@@ -90,13 +84,19 @@ class EntryParserTest {
         assertThat(EntryParserDirectory.select(Custom::class)).isSameAs(parser)
         assertThat(parser.single(mapOf("c" to "v"), "c")).isEqualTo(Custom("v"))
     }
+
+    companion object {
+        init {
+            registerPrimitiveParsers()
+        }
+    }
 }
 
 internal fun registerPrimitiveParsers() {
-    StringParser()
-    IntParser()
-    LongParser()
-    FloatParser()
-    DoubleParser()
-    BooleanParser()
+    val _ = StringParser()
+    val _ = IntParser()
+    val _ = LongParser()
+    val _ = FloatParser()
+    val _ = DoubleParser()
+    val _ = BooleanParser()
 }

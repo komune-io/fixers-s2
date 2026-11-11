@@ -12,7 +12,7 @@ import s2.spring.automate.data.persister.SpringDataAutomatePersisterFlow
 import s2.spring.automate.executor.S2AutomateExecutorSpring
 
 abstract class S2SpringDataConfigurerAdapter<STATE, ID: Any, ENTITY, AGGREGATE>(
-	private val aggregateRepository: CrudRepository<ENTITY, ID>,
+    private val aggregateRepository: CrudRepository<ENTITY, ID>,
 ) : S2ConfigurerAdapter<STATE, ID, ENTITY, AGGREGATE>() where
 STATE : S2State,
 ENTITY : Any,
@@ -20,10 +20,10 @@ ENTITY : WithS2State<STATE>,
 ENTITY : WithS2Id<ID>,
 AGGREGATE : S2AutomateExecutorSpring<STATE, ID, ENTITY> {
 
-	override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
-		return SpringDataAutomatePersisterFlow(
-			aggregateRepository
-		)
-	}
+    override fun aggregateRepository(): AutomatePersister<STATE, ID, ENTITY, Evt, S2Automate> {
+        return SpringDataAutomatePersisterFlow(
+            aggregateRepository
+        )
+    }
 
 }

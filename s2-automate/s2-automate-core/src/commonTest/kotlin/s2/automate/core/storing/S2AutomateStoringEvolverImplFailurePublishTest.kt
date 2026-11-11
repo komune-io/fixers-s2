@@ -3,7 +3,6 @@ package s2.automate.core.storing
 import f2.dsl.cqrs.envelope.Envelope
 import f2.dsl.cqrs.envelope.asEnvelopeWithType
 import f2.dsl.cqrs.enveloped.EnvelopedFlow
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -46,7 +45,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         val errorEvents get() = published.filterIsInstance<AutomatePersistFailure>()
         val successEvents get() = published.filter { it !is AutomatePersistFailure }
 
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -54,12 +53,12 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
     /** Legacy engine stub (create / doTransition only — no outcome methods). */
     private class LegacyEngine : S2AutomateEngine<TestState, TestEntity, String, Evt> {
 
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> create(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd -> decide(cmd).second }
 
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt> doTransition(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
         ): EnvelopedFlow<EVENT_OUT> = commands.map { cmd ->
@@ -71,7 +70,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
      * Outcome engine stub that returns a scripted sequence of [PersistOutcome] values.
      * Cycles through [outcomes] for both init and transition paths.
      */
-    private inner class ScriptedOutcomeEngine(
+    private class ScriptedOutcomeEngine(
         private val outcomes: List<PersistOutcome<Evt>>,
     ) : S2AutomateOutcomeEngine<TestState, TestEntity, String, Evt> {
 
@@ -79,8 +78,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
         private fun nextOutcome(): PersistOutcome<Evt> = outcomes[idx++ % outcomes.size]
 
+        // A stub engine: the outcome it answers is the one the caller types.
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2InitCommand, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         createWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             decide: suspend (cmd: Envelope<COMMAND>) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -89,8 +89,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             nextOutcome().asEnvelopeWithType("Evt") as Envelope<PersistOutcome<EVENT_OUT>>
         }
 
+        // A stub engine: the outcome it answers is the one the caller types.
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
+        override fun <COMMAND : S2Command<String>, ENTITY_OUT : TestEntity, EVENT_OUT : Evt>
         doTransitionWithOutcomes(
             commands: EnvelopedFlow<COMMAND>,
             exec: suspend (Envelope<out COMMAND>, TestEntity) -> Pair<ENTITY_OUT, Envelope<EVENT_OUT>>
@@ -114,7 +115,7 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
 
     private fun rejected(msgId: String = "c1") = PersistOutcome.Rejected<Evt>(
         msgId = msgId,
-        error = s2error("ENDORSE_POLICY", "policy not met"),
+        error = s2error(code = "ENDORSE_POLICY", description = "policy not met"),
     )
 
     private fun success() = PersistOutcome.Success<Evt>(
@@ -137,12 +138,12 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             }
         ).toList()
 
-        assertEquals(1, pub.errorEvents.size)
+        assertEquals(expected = 1, actual = pub.errorEvents.size)
         val err = pub.errorEvents.single()
-        assertEquals("c1", err.msgId)
-        assertEquals(ErrorCategory.Rejected, err.category)
-        assertEquals("ENDORSE_POLICY", err.error.type)
-        assertEquals("policy not met", err.error.description)
+        assertEquals(expected = "c1", actual = err.msgId)
+        assertEquals(expected = ErrorCategory.Rejected, actual = err.category)
+        assertEquals(expected = "ENDORSE_POLICY", actual = err.error.type)
+        assertEquals(expected = "policy not met", actual = err.error.description)
     }
 
     @Test
@@ -158,7 +159,11 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             }
         ).toList()
 
-        assertEquals(0, pub.errorEvents.size, "success must not produce AutomatePersistFailure")
+        assertEquals(
+            expected = 0,
+            actual = pub.errorEvents.size,
+            message = "success must not produce AutomatePersistFailure",
+        )
     }
 
     @Test
@@ -175,9 +180,9 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         ).toList()
 
         assertEquals(
-            listOf<Any>(CreatedEvt("e1")),
-            pub.successEvents,
-            "init path must publish the raw domain event, not its envelope",
+            expected = listOf<Any>(CreatedEvt("e1")),
+            actual = pub.successEvents,
+            message = "init path must publish the raw domain event, not its envelope",
         )
     }
 
@@ -195,19 +200,19 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
         ).toList()
 
         assertEquals(
-            listOf<Any>(CreatedEvt("e1")),
-            pub.successEvents,
-            "transition path must publish the raw domain event, not its envelope",
+            expected = listOf<Any>(CreatedEvt("e1")),
+            actual = pub.successEvents,
+            message = "transition path must publish the raw domain event, not its envelope",
         )
     }
 
     @Test
     fun `all 4 Failure categories publish AutomatePersistFailure with their category on init path`() = runTest {
         val outcomes: List<PersistOutcome<Evt>> = listOf(
-            PersistOutcome.Rejected("r", s2error("RC", "msg")),
-            PersistOutcome.Transient("t", s2error("TC", "msg")),
-            PersistOutcome.Indeterminate("i", s2error("IC", "msg")),
-            PersistOutcome.Conflict("c", s2error("CC", "msg")),
+            PersistOutcome.Rejected("r", s2error(code = "RC", description = "msg")),
+            PersistOutcome.Transient("t", s2error(code = "TC", description = "msg")),
+            PersistOutcome.Indeterminate("i", s2error(code = "IC", description = "msg")),
+            PersistOutcome.Conflict("c", s2error(code = "CC", description = "msg")),
         )
         val pub = RecordingPublisher()
         val evolver = makeEvolver(outcomes, pub)
@@ -220,16 +225,16 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             }
         ).toList()
 
-        assertEquals(4, pub.errorEvents.size)
+        assertEquals(expected = 4, actual = pub.errorEvents.size)
         val categories = pub.errorEvents.map { it.category }
         assertEquals(
-            listOf(
+            expected = listOf(
                 ErrorCategory.Rejected,
                 ErrorCategory.Transient,
                 ErrorCategory.Indeterminate,
                 ErrorCategory.Conflict,
             ),
-            categories
+            actual = categories
         )
     }
 
@@ -248,10 +253,10 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             }
         ).toList()
 
-        assertEquals(1, pub.errorEvents.size)
+        assertEquals(expected = 1, actual = pub.errorEvents.size)
         val err = pub.errorEvents.single()
-        assertEquals("c1", err.msgId)
-        assertEquals(ErrorCategory.Rejected, err.category)
+        assertEquals(expected = "c1", actual = err.msgId)
+        assertEquals(expected = ErrorCategory.Rejected, actual = err.category)
     }
 
     @Test
@@ -267,17 +272,21 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
             }
         ).toList()
 
-        assertEquals(0, pub.errorEvents.size, "success must not produce AutomatePersistFailure")
+        assertEquals(
+            expected = 0,
+            actual = pub.errorEvents.size,
+            message = "success must not produce AutomatePersistFailure",
+        )
     }
 
     @Test
     fun `all 4 Failure categories produce AutomatePersistFailure with correct category string on transition path`() =
         runTest {
             val outcomes: List<PersistOutcome<Evt>> = listOf(
-                PersistOutcome.Rejected("r", s2error("RC", "msg")),
-                PersistOutcome.Transient("t", s2error("TC", "msg")),
-                PersistOutcome.Indeterminate("i", s2error("IC", "msg")),
-                PersistOutcome.Conflict("c", s2error("CC", "msg")),
+                PersistOutcome.Rejected("r", s2error(code = "RC", description = "msg")),
+                PersistOutcome.Transient("t", s2error(code = "TC", description = "msg")),
+                PersistOutcome.Indeterminate("i", s2error(code = "IC", description = "msg")),
+                PersistOutcome.Conflict("c", s2error(code = "CC", description = "msg")),
             )
             val pub = RecordingPublisher()
             val evolver = makeEvolver(outcomes, pub)
@@ -290,14 +299,14 @@ class S2AutomateStoringEvolverImplFailurePublishTest {
                 }
             ).toList()
 
-            assertEquals(4, pub.errorEvents.size)
+            assertEquals(expected = 4, actual = pub.errorEvents.size)
             val categories = pub.errorEvents.map { it.category }
             assertEquals(
-                listOf(
+                expected = listOf(
                     ErrorCategory.Rejected, ErrorCategory.Transient,
                     ErrorCategory.Indeterminate, ErrorCategory.Conflict,
                 ),
-                categories
+                actual = categories
             )
         }
 }

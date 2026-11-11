@@ -54,15 +54,15 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
         private val script: Map<String, LoadOutcome<String, TestEntity>>,
     ) : AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = error("legacy load should not be called when loadWithOutcomes is overridden")
@@ -72,14 +72,14 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
             id: String,
         ): TestEntity? = error("legacy load should not be called")
 
-        override suspend fun loadWithOutcomes(
+        override fun loadWithOutcomes(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<LoadOutcome<String, TestEntity>> = ids.map { id ->
             script[id] ?: error("no script entry for id=$id")
         }
 
-        override suspend fun persistWithOutcomes(
+        override fun persistWithOutcomes(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<PersistOutcome<TestEvent>> = transitionContexts.map { ctx ->
             PersistOutcome.Success(msgId = ctx.msgId, event = ctx.event)
@@ -94,15 +94,15 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
     private class LegacyThrowingPersister(private val cause: Throwable) :
         AutomatePersister<TestState, String, TestEntity, TestEvent, S2Automate> {
 
-        override suspend fun persistInit(
+        override fun persistInit(
             transitionContexts: Flow<InitTransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun persist(
+        override fun persist(
             transitionContexts: Flow<TransitionAppliedContext<TestState, String, TestEntity, TestEvent, S2Automate>>
         ): Flow<TestEvent> = error("not used")
 
-        override suspend fun load(
+        override fun load(
             automateContexts: AutomateContext<S2Automate>,
             ids: Flow<String>,
         ): Flow<TestEntity?> = flow { throw cause }
@@ -137,44 +137,48 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size)
+        assertEquals(expected = 1, actual = results.size)
         val outcome = results.single().data
         assertIs<PersistOutcome.Success<TestEvent>>(outcome,
-            "Loaded must proceed to persist, got ${outcome::class.simpleName}")
-        assertEquals("id-1", outcome.msgId)
+            "Loaded must proceed to persist, got ${outcome::class.simpleName.orEmpty()}")
+        assertEquals(expected = "id-1", actual = outcome.msgId)
     }
 
     @Test
     fun `LoadOutcome Rejected surfaces as PersistOutcome Rejected without calling exec`() = runTest {
-        val customError = s2error("SESSION_NOT_FOUND", "no such session on chain", mapOf("id" to "id-1"))
+        val customError = s2error(
+            code = "SESSION_NOT_FOUND",
+            description = "no such session on chain",
+            payload = mapOf("id" to "id-1"),
+        )
         val persister = ScriptedPersister(
             script = mapOf("id-1" to LoadOutcome.Rejected("id-1", customError)),
         )
         val engine = makeEngine(persister)
 
-        var execCalled = false
+        var isExecCalled = false
         val results = engine.doTransitionWithOutcomes(flowOfCmds("id-1")) { cmd, entity ->
-            execCalled = true
+            isExecCalled = true
             entity.copy(state = TestState.Active) to
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size)
+        assertEquals(expected = 1, actual = results.size)
         val outcome = results.single().data
         val rejected = assertIs<PersistOutcome.Rejected<TestEvent>>(outcome,
-            "LoadOutcome.Rejected must map to PersistOutcome.Rejected, got ${outcome::class.simpleName}")
-        assertEquals("id-1", rejected.msgId, "msgId must be the envelope/correlation id")
-        assertEquals("SESSION_NOT_FOUND", rejected.error.type,
-            "the original S2Error.type must propagate from LoadOutcome to PersistOutcome")
-        assertEquals("no such session on chain", rejected.error.description)
-        assertEquals(ErrorCategory.Rejected, rejected.category)
-        assertEquals(false, execCalled,
-            "the decide/exec lambda must NOT run for a load-rejected item")
+            "LoadOutcome.Rejected must map to PersistOutcome.Rejected, got ${outcome::class.simpleName.orEmpty()}")
+        assertEquals(expected = "id-1", actual = rejected.msgId, message = "msgId must be the envelope/correlation id")
+        assertEquals(expected = "SESSION_NOT_FOUND", actual = rejected.error.type,
+            message = "the original S2Error.type must propagate from LoadOutcome to PersistOutcome")
+        assertEquals(expected = "no such session on chain", actual = rejected.error.description)
+        assertEquals(expected = ErrorCategory.Rejected, actual = rejected.category)
+        assertEquals(expected = false, actual = isExecCalled,
+            message = "the decide/exec lambda must NOT run for a load-rejected item")
     }
 
     @Test
     fun `LoadOutcome Transient surfaces as PersistOutcome Transient (retryable)`() = runTest {
-        val customError = s2error("CHAINCODE_QUERY_FAILED", "peer unreachable")
+        val customError = s2error(code = "CHAINCODE_QUERY_FAILED", description = "peer unreachable")
         val persister = ScriptedPersister(
             script = mapOf("id-1" to LoadOutcome.Transient("id-1", customError)),
         )
@@ -185,13 +189,13 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(1, results.size)
+        assertEquals(expected = 1, actual = results.size)
         val outcome = results.single().data
         val transient = assertIs<PersistOutcome.Transient<TestEvent>>(outcome,
-            "LoadOutcome.Transient must map to PersistOutcome.Transient, got ${outcome::class.simpleName}")
-        assertEquals("CHAINCODE_QUERY_FAILED", transient.error.type)
-        assertEquals(ErrorCategory.Transient, transient.category,
-            "category must propagate so plateform-style retry policies still see 'retryable'")
+            "LoadOutcome.Transient must map to PersistOutcome.Transient, got ${outcome::class.simpleName.orEmpty()}")
+        assertEquals(expected = "CHAINCODE_QUERY_FAILED", actual = transient.error.type)
+        assertEquals(expected = ErrorCategory.Transient, actual = transient.category,
+            message = "category must propagate so plateform-style retry policies still see 'retryable'")
     }
 
     @Test
@@ -203,7 +207,7 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
             script = mapOf(
                 "id-1" to LoadOutcome.Loaded("id-1", TestEntity("id-1", TestState.Created)),
                 "id-2" to LoadOutcome.Rejected("id-2",
-                    s2error("SESSION_NOT_INITIALIZED", "no logs for id-2")),
+                    s2error(code = "SESSION_NOT_INITIALIZED", description = "no logs for id-2")),
                 "id-3" to LoadOutcome.Loaded("id-3", TestEntity("id-3", TestState.Created)),
             ),
         )
@@ -214,7 +218,7 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(3, results.size, "every input cmd must produce exactly one outcome")
+        assertEquals(expected = 3, actual = results.size, message = "every input cmd must produce exactly one outcome")
         val byMsgId = results.associate { it.data.msgId to it.data }
 
         assertIs<PersistOutcome.Success<TestEvent>>(byMsgId.getValue("id-1"),
@@ -224,8 +228,8 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
 
         val rejected = assertIs<PersistOutcome.Rejected<TestEvent>>(byMsgId.getValue("id-2"),
             "id-2 should fail with Rejected — load classified it as Rejected")
-        assertEquals("SESSION_NOT_INITIALIZED", rejected.error.type,
-            "the persister's specific errorCode must reach plateform unchanged")
+        assertEquals(expected = "SESSION_NOT_INITIALIZED", actual = rejected.error.type,
+            message = "the persister's specific errorCode must reach plateform unchanged")
     }
 
     @Test
@@ -242,15 +246,15 @@ class S2AutomateOutcomeEngineImplLoadOutcomesTest {
                 DoneEvt(cmd.data.id).asEnvelopeWithType("Evt")
         }.toList()
 
-        assertEquals(3, results.size,
-            "every input cmd must surface as a Transient — no chunk-abort exception")
+        assertEquals(expected = 3, actual = results.size,
+            message = "every input cmd must surface as a Transient — no chunk-abort exception")
         results.forEach { envelope ->
             val outcome = envelope.data
             val transient = assertIs<PersistOutcome.Transient<TestEvent>>(outcome,
                 "legacy-load throw must surface as Transient (retryable) via default impl, " +
-                    "got ${outcome::class.simpleName}")
-            assertEquals("ERROR_PERSIST_LAMBDA_THROW", transient.error.type,
-                "the default impl wraps the throwable in ERROR_PERSIST_LAMBDA_THROW")
+                    "got ${outcome::class.simpleName.orEmpty()}")
+            assertEquals(expected = "ERROR_PERSIST_LAMBDA_THROW", actual = transient.error.type,
+                message = "the default impl wraps the throwable in ERROR_PERSIST_LAMBDA_THROW")
         }
         val msgIds = results.map { it.data.msgId }.toSet()
         assertTrue(msgIds.containsAll(setOf("id-1", "id-2", "id-3")),

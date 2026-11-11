@@ -71,9 +71,9 @@ class S2SourcingAutomateBuilderTest {
     fun `selfTransaction defaults its result to the reified event type`() {
         val selfs = automate.transitions.filter { it.action.name == UpdateDraft::class.simpleName }
         assertThat(selfs).hasSize(2)
-        selfs.forEach {
-            assertThat(it.result?.name).isEqualTo(DraftUpdated::class.simpleName)
-            assertThat(it.from?.position).isEqualTo(it.to.position)
+        selfs.forEach { transition ->
+            assertThat(transition.result?.name).isEqualTo(DraftUpdated::class.simpleName)
+            assertThat(transition.from?.position).isEqualTo(transition.to.position)
         }
     }
 

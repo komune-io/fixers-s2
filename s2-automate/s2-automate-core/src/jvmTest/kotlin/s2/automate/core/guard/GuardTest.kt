@@ -62,7 +62,7 @@ class GuardTest {
 
     private class RecordingPublisher : AppEventPublisher {
         val published = mutableListOf<Any>()
-        override fun <EVENT> publish(event: EVENT & Any) {
+        override fun publish(event: Any) {
             published.add(event)
         }
     }
@@ -89,9 +89,9 @@ class GuardTest {
 
     @Test
     fun `GuardResult error from vararg and list is invalid`() {
-        val error = s2error("E1", "first")
+        val error = s2error(code = "E1", description = "first")
         assertFalse(GuardResult.error(error).isValid())
-        val fromList = GuardResult.error(listOf(error, s2error("E2", "second")))
+        val fromList = GuardResult.error(listOf(error, s2error(code = "E2", description = "second")))
         assertFalse(fromList.isValid())
         assertEquals(2, fromList.errors.size)
     }
@@ -106,12 +106,25 @@ class GuardTest {
         assertTrue(adapter.evaluateTransition(transitionContext(entity, DoCmd("1"))).isValid())
         assertTrue(
             adapter.verifyInitTransition(
-                InitTransitionAppliedContext(automateContext, "msg", CreateCmd("1"), "EVT", entity)
+                InitTransitionAppliedContext(
+                    automateContext = automateContext,
+                    msgId = "msg",
+                    msg = CreateCmd("1"),
+                    event = "EVT",
+                    entity = entity,
+                )
             ).isValid()
         )
         assertTrue(
             adapter.verifyTransition(
-                TransitionAppliedContext(automateContext, "msg", TestState.Created, DoCmd("1"), "EVT", entity)
+                TransitionAppliedContext(
+                    automateContext = automateContext,
+                    msgId = "msg",
+                    from = TestState.Created,
+                    msg = DoCmd("1"),
+                    event = "EVT",
+                    entity = entity,
+                )
             ).isValid()
         )
     }
@@ -231,7 +244,7 @@ class GuardTest {
         val publisher = RecordingPublisher()
         val entity = TestEntity("1", TestState.Created)
         val context = InitTransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>(
-            automateContext, "msg", CreateCmd("1"), "EVT", entity
+            automateContext = automateContext, msgId = "msg", msg = CreateCmd("1"), event = "EVT", entity = entity
         )
         val returned = verifier(publisher).verifyInitTransition(context)
         assertSame(context, returned)
@@ -243,14 +256,19 @@ class GuardTest {
         val failingGuard = object : GuardAdapter<TestState, String, TestEntity, String, S2Automate>() {
             override suspend fun verifyTransition(
                 context: TransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>
-            ) = GuardResult.error(s2error("E1", "one"), s2error("E2", "two"))
+            ) = GuardResult.error(s2error(code = "E1", description = "one"), s2error(code = "E2", description = "two"))
         }
         val entity = TestEntity("1", TestState.Created)
         val context = TransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>(
-            automateContext, "msg", TestState.Created, DoCmd("1"), "EVT", entity
+            automateContext = automateContext,
+            msgId = "msg",
+            from = TestState.Created,
+            msg = DoCmd("1"),
+            event = "EVT",
+            entity = entity
         )
         val exception = assertThrows<AutomateException> {
-            verifier(publisher, listOf(failingGuard)).verifyTransition(context)
+            val _ = verifier(publisher, listOf(failingGuard)).verifyTransition(context)
         }
         assertEquals(listOf("E1", "E2"), exception.errors.map { it.type })
         assertEquals(1, publisher.published.size)
@@ -261,7 +279,12 @@ class GuardTest {
         val publisher = RecordingPublisher()
         val entity = TestEntity("1", TestState.Created)
         val context = TransitionAppliedContext<TestState, String, TestEntity, String, S2Automate>(
-            automateContext, "msg", TestState.Created, DoCmd("1"), "EVT", entity
+            automateContext = automateContext,
+            msgId = "msg",
+            from = TestState.Created,
+            msg = DoCmd("1"),
+            event = "EVT",
+            entity = entity
         )
         val returned = verifier(publisher).verifyTransition(context)
         assertSame(context, returned)

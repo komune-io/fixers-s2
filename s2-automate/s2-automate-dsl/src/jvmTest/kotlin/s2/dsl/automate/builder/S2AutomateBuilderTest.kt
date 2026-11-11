@@ -142,9 +142,9 @@ class S2AutomateBuilderTest {
 
     @Test
     fun `isSameState compares positions and handles null`() {
-        assertThat(automate.isSameState(OrderState.Created, OrderState.Created)).isTrue()
-        assertThat(automate.isSameState(OrderState.Created, OrderState.Approved)).isFalse()
-        assertThat(automate.isSameState(null, OrderState.Created)).isFalse()
+        assertThat(automate.isSameState(from = OrderState.Created, to = OrderState.Created)).isTrue()
+        assertThat(automate.isSameState(from = OrderState.Created, to = OrderState.Approved)).isFalse()
+        assertThat(automate.isSameState(from = null, to = OrderState.Created)).isFalse()
     }
 
     @Test
