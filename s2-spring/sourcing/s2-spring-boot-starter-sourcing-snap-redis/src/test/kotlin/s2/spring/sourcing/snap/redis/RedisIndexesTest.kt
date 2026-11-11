@@ -97,4 +97,24 @@ class RedisIndexesTest {
             assertThat(it).getBean(RedisIndexes::class.java).isSameAs(own)
         }
     }
+
+    @Test
+    fun `the index settings come from s2_snap_redis properties, and yield to the application's own`() {
+        val runner = ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(RedisSnapAutoConfiguration::class.java))
+
+        val properties = arrayOf("s2.snap.redis.phonetic=FRENCH", "s2.snap.redis.wildcard-min-prefix=3")
+
+        runner.withPropertyValues(*properties).run { context ->
+            assertThat(context.getBean(IndexSettings::class.java))
+                .isEqualTo(IndexSettings(phonetic = PhoneticMatcher.FRENCH, wildcardMinPrefix = 3))
+        }
+        runner.run {
+            assertThat(it.getBean(IndexSettings::class.java)).isEqualTo(IndexSettings(phonetic = null))
+        }
+        val own = IndexSettings(phonetic = PhoneticMatcher.ENGLISH, wildcardMinPrefix = 4)
+        runner.withBean(IndexSettings::class.java, Supplier { own }).run {
+            assertThat(it).getBean(IndexSettings::class.java).isSameAs(own)
+        }
+    }
 }

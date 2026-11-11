@@ -39,14 +39,18 @@ private val FIELD = Regex("[A-Za-z_][A-Za-z0-9_]*")
 private val TAG_SYNTAX = Regex("""[^\p{L}\p{M}\p{N}_]""")
 
 /**
- * The words of a typed text, each one a prefix from [MIN_PREFIX] letters on: whatever query syntax the text
- * holds is read as a word separator, so no text can break or widen the query. A prefix that expands to more terms
- * than the server's `MAXEXPANSIONS` makes the search refused as [SearchRefusal.TOO_BROAD], never cut.
+ * The words of a typed text, each one a prefix from [minPrefix] letters on — a shorter word is searched whole:
+ * whatever query syntax the text holds is read as a word separator, so no text can break or widen the query. A
+ * prefix that expands to more terms than the server's `MAXEXPANSIONS` makes the search refused as
+ * [SearchRefusal.TOO_BROAD], never cut: an application whose index holds many terms raises [minPrefix] (see
+ * [IndexSettings.wildcardMinPrefix]).
  */
-fun String?.addWildcard(): String =
-    orEmpty()
+fun String?.addWildcard(minPrefix: Int = MIN_PREFIX): String {
+    require(minPrefix >= MIN_PREFIX) { "RediSearch expands no prefix under $MIN_PREFIX letters: $minPrefix" }
+    return orEmpty()
         .split(QUERY_WORD_SEPARATOR)
         .filter { it.isNotEmpty() }
-        .joinToString(" ") { if (it.length < MIN_PREFIX) it else "$it*" }
+        .joinToString(" ") { if (it.length < minPrefix) it else "$it*" }
+}
 
 private val QUERY_WORD_SEPARATOR = Regex("""[^\p{L}\p{M}\p{N}_]+""")

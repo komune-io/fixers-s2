@@ -93,4 +93,13 @@ class QueryTextTest {
                 .isInstanceOf(IllegalArgumentException::class.java)
         }
     }
+
+    @Test
+    fun `an application may start prefixes later, never earlier than RediSearch expands them`() {
+        assertThat("ab abc Saint".addWildcard(minPrefix = 3)).isEqualTo("ab abc* Saint*")
+        assertThatThrownBy { val _ = "ab".addWildcard(minPrefix = 1) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThatThrownBy { val _ = IndexSettings(phonetic = null, wildcardMinPrefix = 1) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+    }
 }

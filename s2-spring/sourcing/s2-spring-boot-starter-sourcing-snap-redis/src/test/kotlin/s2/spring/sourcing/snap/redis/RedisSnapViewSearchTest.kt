@@ -139,6 +139,24 @@ class RedisSnapViewSearchTest {
     }
 
     @Test
+    suspend fun `a view whose prefixes start later searches a short word whole, and is not refused`() {
+        val _ = store((0..MAX_EXPANSIONS).map { "ab${"$it".padStart(3, '0')}x" })
+        val later = RedisStack.view(
+            model = SearchProbeSnap::class,
+            fields = listOf(
+                RedisIndexField(SearchProbeSnap::id.name, RedisFieldType.TAG),
+                RedisIndexField(SearchProbeSnap::name.name, RedisFieldType.TEXT),
+            ),
+            idOf = SearchProbeSnap::id,
+            settings = RedisStack.settings.copy(wildcardMinPrefix = 3),
+        )
+
+        assertThat(later.wildcard("ab")).isEqualTo("ab")
+        assertThat(later.search(later.wildcard("ab"), null, null).items).isEmpty()
+        assertThat(later.search(later.wildcard("ab0"), null, null).items).hasSize(100)
+    }
+
+    @Test
     fun `only a cut expansion is too broad, a timeout is worth another try, any other warning an error`() {
         val tooBroad = refusalFor(indexName = "Probe", warning = EXPANSIONS_WARNING).error
 

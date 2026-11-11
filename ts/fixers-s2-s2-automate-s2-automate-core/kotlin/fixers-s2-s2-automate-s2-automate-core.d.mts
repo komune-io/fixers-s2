@@ -54,14 +54,10 @@ export declare interface F2ErrorDTO extends Problem {
 }
 export declare interface F2RefusalDTO {
     readonly code: string;
-    readonly parameters: Record<string, string>;
-    readonly citers: string[];
 }
 export declare class F2Refusal implements F2RefusalDTO {
     constructor(code: string, parameters?: Record<string, string>, citers?: string[]);
     get code(): string;
-    get parameters(): Record<string, string>;
-    get citers(): string[];
     copy(code?: string, parameters?: Record<string, string>, citers?: string[]): F2Refusal;
     toString(): string;
     hashCode(): number;
@@ -258,8 +254,8 @@ export declare interface Match<T> {
 }
 export declare interface SortDTO {
     readonly property: string;
-    readonly isAscending: boolean;
-    readonly areNullsFirst?: boolean | null;
+    readonly ascending: boolean;
+    readonly nullsFirst?: boolean | null;
 }
 export declare interface PageDTO<out OBJECT> {
     readonly total: number;
@@ -358,6 +354,8 @@ export declare namespace PagePagination {
         const constructor: abstract new () => PagePagination;
     }
 }
+export declare function refusalParameters(refusal: F2RefusalDTO): ReadonlyMap<string, string>;
+export declare function refusalCiters(refusal: F2RefusalDTO): ReadonlyArray<string>;
 export declare interface F2Consumer<T> {
 }
 export declare interface F2Function<in T, out R> {

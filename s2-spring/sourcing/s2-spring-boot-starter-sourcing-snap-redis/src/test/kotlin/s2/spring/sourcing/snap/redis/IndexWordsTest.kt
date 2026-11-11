@@ -25,4 +25,10 @@ class IndexWordsTest {
     fun `a term without a word holds nothing`() {
         assertThat(IndexWords.holds(name = "Atelier Lac", term = " - ")).isFalse()
     }
+
+    @Test
+    fun `a later prefix start reads a short word whole`() {
+        assertThat(IndexWords.holds(name = "Atelier Lac", term = "at", minPrefix = 3)).isFalse()
+        assertThat(IndexWords.holds(name = "Atelier Lac", term = "ate", minPrefix = 3)).isTrue()
+    }
 }

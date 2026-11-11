@@ -32,7 +32,8 @@ import tools.jackson.module.kotlin.kotlinModule
  */
 open class RedisSnapView<MODEL : Any>(
     connection: StatefulRedisConnection<String, String>,
-    settings: IndexSettings,
+    /** How the view's index reads text, and from how many letters its typed words are prefixes. */
+    val settings: IndexSettings,
     model: KClass<MODEL>,
     fields: List<RedisIndexField>,
     private val idOf: (MODEL) -> String,
@@ -229,3 +230,6 @@ private fun <MODEL> everyRowOrRefusal(indexName: String, total: Int, missing: In
         .warn("Index[{}]: whole read refused, {} entries, {} read, {} missing", indexName, total, read.size, missing)
     throw refusal
 }
+
+/** The words of [text] as this view's searches take them: prefixes from [IndexSettings.wildcardMinPrefix] letters. */
+fun RedisSnapView<*>.wildcard(text: String?): String = text.addWildcard(minPrefix = settings.wildcardMinPrefix)
