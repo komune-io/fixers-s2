@@ -45,7 +45,9 @@ internal class RedisIndex(
         check(left == 0L) { "Index[$name]: ${unindexed(left)}" }
     }
 
-    private fun unindexed(count: Long) = "$count stored documents could not be indexed"
+    // `hash_indexing_failures` counts failed attempts, not documents: the initial scan may visit a key twice (Redis
+    // SCAN repeats keys while the keyspace rehashes), and every rewrite of a refused document counts once more.
+    private fun unindexed(failures: Long) = "stored documents could not be indexed (failed attempts: $failures)"
 
     // Kept only when FT.INFO shows this definition, marker included: another writer — an older version of the view,
     // a hand-made FT.CREATE, a replica starting at the same time — may have made the index, and is compared like any.

@@ -192,7 +192,7 @@ class RedisSnapViewIndexTest {
 
         assertThatThrownBy { runBlocking { weighted.initIndex() } }
             .isInstanceOf(IllegalStateException::class.java)
-            .hasMessage("Index[IndexProbeSnap]: 1 stored documents could not be indexed")
+            .hasMessageStartingWith("Index[IndexProbeSnap]: stored documents could not be indexed (failed attempts: ")
     }
 
     @Test
@@ -205,10 +205,25 @@ class RedisSnapViewIndexTest {
 
         weighted.initIndex()
 
-        // The store counts every failed attempt, not the documents left unindexed.
         assertThat(messages().map { it.formattedMessage })
-            .anyMatch { it.startsWith("Index[IndexProbeSnap] made again: ") }
-            .anyMatch { it.endsWith(" stored documents could not be indexed") }
+            .anyMatch { it.startsWith("Index[IndexProbeSnap] made again: stored documents could not be indexed") }
+    }
+
+    @Test
+    fun `one document refused twice is reported as failed attempts, not as two documents`() {
+        val weighted = probeView(ID, WEIGHT)
+        runBlocking {
+            weighted.initIndex()
+            // Two writes of the same unreadable document: the store counts two failed attempts for one document.
+            repeat(2) { val _ = weighted.save(IndexProbeSnap("unreadable", weight = "not a number")) }
+        }
+        logged.list.clear()
+
+        assertThatThrownBy { runBlocking { weighted.initIndex() } }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageStartingWith("Index[IndexProbeSnap]: stored documents could not be indexed (failed attempts: ")
+        assertThat(messages().map { it.formattedMessage })
+            .contains("Index[IndexProbeSnap] made again: stored documents could not be indexed (failed attempts: 2)")
     }
 
     @Test
