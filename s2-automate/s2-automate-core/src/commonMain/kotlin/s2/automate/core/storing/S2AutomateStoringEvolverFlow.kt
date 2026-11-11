@@ -29,8 +29,9 @@ typealias S2EvolveFnc<COMMAND, ENTITY, EVENT_OUT> = suspend (COMMAND, ENTITY) ->
  * `evolve*` methods, so existing implementations keep working untouched; the `evolve*` methods
  * are deprecated and will be removed in a future major release.
  */
-// Each deprecated evolve* has its preferred name, delegating to it until it is removed: sixteen functions.
-@Suppress("DEPRECATION", "TooManyFunctions", "ComplexInterface")
+// Each deprecated evolve* has its preferred name, delegating to it until it is removed: sixteen functions. They
+// stay while consumers still call them; S1133 only reminds of that removal.
+@Suppress("DEPRECATION", "TooManyFunctions", "ComplexInterface", "kotlin:S1133")
 interface S2AutomateStoringEvolverFlow<STATE : S2State, ID : Any, ENTITY : WithS2State<STATE>, EVENT: Evt> {
 
     @Deprecated(
