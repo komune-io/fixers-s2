@@ -13,6 +13,7 @@ import io.lettuce.core.protocol.CommandArgs
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -96,7 +97,7 @@ class RedisSnapViewIndexTest {
         val wider = probeView(ID, NAME)
         wider.initIndex()
 
-        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
+        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("another definition") }
         assertThat(wider.search("Égrève".addWildcard(), null, null).items.map { it.id }).containsExactly("kept")
     }
 
@@ -107,12 +108,13 @@ class RedisSnapViewIndexTest {
 
         probeView(ID, NAME, settings = IndexSettings(PhoneticMatcher.FRENCH)).initIndex()
 
-        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
-        assertThat(sync["IndexProbeSnap:definition"]).contains("PHONETIC dm:fr")
+        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("another definition") }
+        val french = IndexDefinition.from("IndexProbeSnap", listOf(ID, NAME), IndexSettings(PhoneticMatcher.FRENCH))
+        assertThat(french.isShownBy(checkNotNull(view.index.info()))).isTrue()
     }
 
     @Test
-    suspend fun `an index another writer replaced is made again, though its written definition is this one`() {
+    suspend fun `an index another writer replaced is made again`() {
         view.initIndex()
         view.index.dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add("IndexProbeSnap"))
         sync.dispatch(
@@ -124,23 +126,27 @@ class RedisSnapViewIndexTest {
 
         view.initIndex()
 
-        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs") }
+        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("another definition") }
         assertThat(IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).isShownBy(
             checkNotNull(view.index.info()),
         )).isTrue()
     }
 
     @Test
-    suspend fun `an index made without its definition written next to it is made again`() {
+    suspend fun `an index made by hand with the same schema but no marker is made again`() {
+        val byHand = "IndexProbeSnap ON JSON PREFIX 1 IndexProbeSnap- STOPWORDS 0 SCHEMA $.id AS id TAG".split(" ")
         sync.dispatch(
             SearchCommand.FT_CREATE,
             StatusOutput(StringCodec.UTF8),
-            IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).createArgs("IndexProbeSnap"),
+            byHand.fold(CommandArgs(StringCodec.UTF8)) { args, argument -> args.add(argument) },
         )
 
         view.initIndex()
 
-        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("definition differs from [null]") }
+        assertThat(messages().map { it.formattedMessage }).anyMatch { it.contains("another definition") }
+        assertThat(IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings).isShownBy(
+            checkNotNull(view.index.info()),
+        )).isTrue()
     }
 
     @Test
@@ -155,9 +161,8 @@ class RedisSnapViewIndexTest {
     @Test
     suspend fun `an index kept as it is has also read the stored documents when creation returns`() {
         storeMany()
-        // Created behind the view's back with its definition written, so the view keeps it while it still reads.
+        // Created behind the view's back with this definition, so the view keeps it while it still reads.
         val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
-        sync["IndexProbeSnap:definition"] = definition.fingerprint
         sync.dispatch(SearchCommand.FT_CREATE, StatusOutput(StringCodec.UTF8), definition.createArgs("IndexProbeSnap"))
 
         view.initIndex()
@@ -177,7 +182,7 @@ class RedisSnapViewIndexTest {
 
         assertThatThrownBy { runBlocking { val _ = view.index.awaitIndexed(1.milliseconds) } }
             .isInstanceOf(IllegalStateException::class.java)
-            .hasMessage("Index[IndexProbeSnap] still indexing after 1ms")
+            .hasMessage("Index[IndexProbeSnap] absent or still indexing after 1ms")
     }
 
     @Test
@@ -243,12 +248,49 @@ class RedisSnapViewIndexTest {
                 startTogether(view, replica)
 
                 val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
-                assertThat(sync["IndexProbeSnap:definition"]).isEqualTo(definition.fingerprint)
                 assertThat(definition.isShownBy(checkNotNull(view.index.info()))).isTrue()
             }
         } finally {
             other.close()
         }
+    }
+
+    @Test
+    suspend fun `two replicas remaking an index of another definition together both start, on an index of theirs`() {
+        storeMany()
+        val other = RedisStack.client.connect()
+        try {
+            val replica = RedisStack.view(
+                model = IndexProbeSnap::class,
+                fields = listOf(ID),
+                idOf = IndexProbeSnap::id,
+                connection = other,
+            )
+            repeat(RACES) {
+                view.dropIndex()
+                probeView(ID, NAME).initIndex()
+
+                startTogether(view, replica)
+
+                val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
+                assertThat(definition.isShownBy(checkNotNull(view.index.info()))).isTrue()
+                assertThat(view.count()).isEqualTo(STORED.toLong())
+            }
+        } finally {
+            other.close()
+        }
+    }
+
+    @Test
+    suspend fun `an index another replica drops and re-creates while this one waits for it does not fail this one`() {
+        storeMany()
+        val definition = IndexDefinition.from("IndexProbeSnap", listOf(ID), RedisStack.settings)
+
+        val isIndexing = startWhileAnotherReplicaRemakes(definition)
+
+        assertThat(isIndexing).describedAs("the index still read the stored documents when it was dropped").isTrue()
+        assertThat(definition.isShownBy(checkNotNull(view.index.info()))).isTrue()
+        assertThat(view.count()).isEqualTo(STORED.toLong())
     }
 
     @Test
@@ -267,6 +309,31 @@ class RedisSnapViewIndexTest {
     }
 
 
+    // The other replica's remake while this one starts: its drop held long enough for this one's wait to read the
+    // index as absent. Answers whether the index still read the stored documents when it was dropped.
+    private suspend fun startWhileAnotherReplicaRemakes(
+        definition: IndexDefinition,
+        dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    ): Boolean = withContext(dispatcher) {
+        val start = async { view.initIndex() }
+        val isIndexing = awaitIndexing()
+        view.dropIndex()
+        delay(ABSENT_FOR)
+        sync.dispatch(SearchCommand.FT_CREATE, StatusOutput(StringCodec.UTF8), definition.createArgs("IndexProbeSnap"))
+        start.await()
+        isIndexing
+    }
+
+    // Whether the index, once it shows, is still reading the stored documents.
+    private suspend fun awaitIndexing(): Boolean {
+        var info = view.index.info()
+        while (info == null) {
+            delay(1.milliseconds)
+            info = view.index.info()
+        }
+        return info["indexing"]?.run { toString().toDoubleOrNull() } != 0.0
+    }
+
     private suspend fun startTogether(
         vararg replicas: RedisSnapView<*>,
         dispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -278,6 +345,7 @@ class RedisSnapViewIndexTest {
         const val ALIAS = "IndexProbeSnapAlias"
         const val STORED = 5_000
         const val RACES = 20
+        val ABSENT_FOR = 300.milliseconds
         val ID = RedisIndexField(IndexProbeSnap::id.name, RedisFieldType.TAG)
         val NAME = RedisIndexField(IndexProbeSnap::name.name, RedisFieldType.TEXT)
         val WEIGHT = RedisIndexField(IndexProbeSnap::weight.name, RedisFieldType.NUMERIC)

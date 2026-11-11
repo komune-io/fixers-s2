@@ -39,6 +39,8 @@ class IndexDefinitionTest {
         val none = IndexDefinition.from("Probe", fields, IndexSettings(null))
 
         assertThat(setOf(french.fingerprint, english.fingerprint, none.fingerprint)).hasSize(3)
+        // FT.INFO does not show the matcher: the marker attribute, which it shows, carries the difference.
+        assertThat(setOf(french.marker, english.marker, none.marker)).hasSize(3)
         assertThat(none.fingerprint).doesNotContain("PHONETIC")
     }
 
@@ -65,12 +67,16 @@ class IndexDefinitionTest {
             "index_definition" to listOf("key_type", "JSON", "prefixes", listOf("Probe-"), "default_score", "1"),
             "attributes" to listOf(
                 listOf("identifier", "$.id", "attribute", "id", "type", "TAG", "SEPARATOR", ","),
+                listOf("identifier", MARKER_PATH, "attribute", definition.marker, "type", "TAG", "SEPARATOR", ","),
             ),
             "stopwords_list" to emptyList<Any?>(),
         )
         val resp3 = mapOf(
             "index_definition" to mapOf("key_type" to "JSON", "prefixes" to listOf("Probe-")),
-            "attributes" to listOf(mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG")),
+            "attributes" to listOf(
+                mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG"),
+                mapOf("identifier" to MARKER_PATH, "attribute" to definition.marker, "type" to "TAG"),
+            ),
             "stopwords_list" to emptyList<Any?>(),
         )
 
@@ -78,6 +84,8 @@ class IndexDefinitionTest {
         assertThat(definition.isShownBy(resp3)).isTrue()
         assertThat(definition.isShownBy(resp3 + ("stopwords_list" to listOf("a")))).isFalse()
         assertThat(definition.isShownBy(resp3 + ("attributes" to emptyList<Any?>()))).isFalse()
+        val unmarked = listOf(mapOf("identifier" to "$.id", "attribute" to "id", "type" to "TAG"))
+        assertThat(definition.isShownBy(resp3 + ("attributes" to unmarked))).isFalse()
         val french = mapOf("prefixes" to listOf("Probe-"), "default_language" to "french")
         val otherPrefix = mapOf("prefixes" to listOf("Probe"))
 
@@ -103,5 +111,9 @@ class IndexDefinitionTest {
         assertThat(runCatching { definition.isShownBy(badAttribute) }.exceptionOrNull())
             .isInstanceOf(IllegalStateException::class.java)
             .hasMessageContaining("attribute unreadable")
+    }
+
+    private companion object {
+        const val MARKER_PATH = "$.__s2_index_definition"
     }
 }

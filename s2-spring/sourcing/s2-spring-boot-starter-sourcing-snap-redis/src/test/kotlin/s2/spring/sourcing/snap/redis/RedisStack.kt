@@ -54,12 +54,11 @@ object RedisStack {
     )
 }
 
-/** Drops a probe index and the definition written next to it, never its documents; an absent index is no error. */
+/** Drops a probe index, never its documents; an absent index is no error. */
 internal suspend fun RedisSnapView<*>.dropIndex() {
     try {
         index.dispatch(SearchCommand.FT_DROPINDEX, CommandArgs(StringCodec.UTF8).add(indexName))
     } catch (e: RedisCommandExecutionException) {
         if (!e.isIndexAbsent()) throw e
     }
-    RedisStack.connection.sync().del("$indexName:definition")
 }

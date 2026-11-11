@@ -4,12 +4,16 @@ import io.lettuce.core.codec.StringCodec
 import io.lettuce.core.output.ComplexData
 import io.lettuce.core.protocol.CommandArgs
 import java.nio.ByteBuffer
+import java.security.MessageDigest
+import java.util.HexFormat
 
 /**
  * An index as `FT.CREATE` makes it: the keys `<index>-…` it reads — the dash keeps out a model whose name starts
  * with this one's — every word kept, stopwords included, and per attribute its JSON path, name, type and flags.
- * Its [fingerprint] names all of it, the phonetic matcher included, which `FT.INFO` does not show; what `FT.INFO`
- * does show — prefix, attributes, language, stopwords — is checked against the index with [isShownBy].
+ * Its [fingerprint] names all of it, the phonetic matcher included, which `FT.INFO` does not show. So that the index
+ * itself shows all of it, the fingerprint's digest is the name of one more attribute, [marker], on a path no
+ * document holds: [isShownBy] then reads the whole definition — prefix, attributes, marker, language, stopwords —
+ * from `FT.INFO` alone, with nothing written beside the index that a concurrent writer could leave out of step.
  */
 internal class IndexDefinition private constructor(
     private val arguments: List<String>,
@@ -19,14 +23,19 @@ internal class IndexDefinition private constructor(
     /** One attribute as `FT.INFO` shows it: its JSON path, the name queries use, and its type. */
     data class Attribute(val identifier: String, val name: String, val type: String)
 
+    /** The `FT.CREATE` arguments that make the index, its [marker] aside. */
     val fingerprint: String get() = arguments.joinToString(" ")
 
+    /** The attribute name that carries [fingerprint]'s digest into `FT.INFO`. */
+    val marker: String get() = MARKER_PREFIX + digest(fingerprint)
+
     fun createArgs(indexName: String): CommandArgs<String, String> =
-        arguments.fold(CommandArgs(StringCodec.UTF8).add(indexName)) { args, argument -> args.add(argument) }
+        (arguments + listOf(MARKER_PATH, "AS", marker, MARKER_TYPE))
+            .fold(CommandArgs(StringCodec.UTF8).add(indexName)) { args, argument -> args.add(argument) }
 
     /**
-     * Whether the index [info] describes reads what this definition reads: its one prefix, its attributes in order,
-     * RediSearch's default language and no stopwords. A reply that cannot be read that way fails.
+     * Whether the index [info] describes reads what this definition reads: its one prefix, its attributes in order
+     * then its [marker], RediSearch's default language and no stopwords. A reply that cannot be read that way fails.
      */
     fun isShownBy(info: Map<String, Any?>): Boolean {
         val definition = checkNotNull(asFields(info["index_definition"])) { "FT.INFO carries no index_definition" }
@@ -36,12 +45,17 @@ internal class IndexDefinition private constructor(
         val stopwords = info["stopwords_list"]
         // FT.INFO leaves RediSearch's own default language out of its answer.
         val language = definition["default_language"]?.toString() ?: DEFAULT_LANGUAGE
-        return prefixes == listOf(prefix) && shown == attributes && language == DEFAULT_LANGUAGE &&
+        val expected = attributes + Attribute(identifier = MARKER_PATH, name = marker, type = MARKER_TYPE)
+        return prefixes == listOf(prefix) && shown == expected && language == DEFAULT_LANGUAGE &&
             stopwords is List<*> && stopwords.isEmpty()
     }
 
     companion object {
         private const val DEFAULT_LANGUAGE = "english"
+        private const val MARKER_PATH = "$.__s2_index_definition"
+        private const val MARKER_PREFIX = "__s2_definition_"
+        private const val MARKER_TYPE = "TAG"
+        private const val MARKER_DIGEST_LENGTH = 16
         private val HEAD = listOf("identifier", "attribute", "type")
 
         fun from(indexName: String, fields: List<RedisIndexField>, settings: IndexSettings): IndexDefinition {
@@ -67,6 +81,11 @@ internal class IndexDefinition private constructor(
             }
             return IndexDefinition(arguments = arguments, prefix = prefix, attributes = attributes)
         }
+
+        // A digest short enough for an attribute name; 64 bits tell apart every definition one index will ever have.
+        private fun digest(text: String): String =
+            HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)))
+                .take(MARKER_DIGEST_LENGTH)
 
         // RESP3 names each value; RESP2 lists `identifier`, `attribute`, `type` at 0, 2, 4, their values at 1, 3, 5.
         private fun attribute(entry: Any?): Attribute {
