@@ -41,6 +41,10 @@ tasks.withType<Test>().configureEach {
         "Test task '$name' names no Redis Stack: add it to redisStacks (${redisStacks.keys.joinToString()})"
     }
     systemProperty("s2.redis.image", image)
+    // A failure prints its message and cause: CI logs are the only trace of a timing failure on one Redis Stack.
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 tasks.check {
