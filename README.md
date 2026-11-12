@@ -311,8 +311,11 @@ Each state transition in a Signing State Machine is a tuple of a role and an act
 
 ## Modules not published
 
-Since 0.47.0 this module is no longer published. No Komune or Bois Local repository depends on it: code search over
-the Komune and Bois Local repositories, and the resolved classpaths of fixers-c2, connect-im and the Bois Local platform.
+Since 0.47.0 this module is no longer published. None of the repositories searched depends on it. The search covered
+the source of the komune-io and BoisLocal GitHub organizations and of local Komune and Kosmio clones, and the resolved
+classpaths of fixers-c2, connect-im, connect-fs, the Bois Local platform and colisactiv's ssm. A consumer outside them
+is not ruled out. Inside this repository, only the `orderbook-sourcing-app-mongodb` sample uses it, and that sample is
+not published.
 
 | Coordinate | Since |
 |---|---|
@@ -320,5 +323,5 @@ the Komune and Bois Local repositories, and the resolved classpaths of fixers-c2
 
 Releases up to 0.46 stay on Maven Central. To use it with 0.47.0 or later, open an issue, or build it from this
 repository: add `alias(catalogue.plugins.fixers.gradle.publish)` back to its build file, then
-`./gradlew :s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb:publishToMavenLocal`. It still builds and
-runs in the `orderbook-sourcing-app-mongodb` sample.
+`./gradlew :s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb:publishToMavenLocal`. It still builds, and
+runs in that sample.
