@@ -309,3 +309,16 @@ In the Signing State Machines framework, every agent participating in the smart 
 
 Each state transition in a Signing State Machine is a tuple of a role and an action. An agent performs a transition by signing the update with its private key. The smart contract validates the transaction by checking the state's signature with the public key of the agent assigned to the corresponding role, and then updates the state of the Signing State Machine.
 
+## Modules not published
+
+Since 0.47.0 this module is no longer published. No Komune or Bois Local repository depends on it: code search over
+the Komune and Bois Local repositories, and the resolved classpaths of fixers-c2, connect-im and the Bois Local platform.
+
+| Coordinate | Since |
+|---|---|
+| `io.komune.s2:s2-spring-boot-starter-sourcing-data-mongodb` | 0.47.0 |
+
+Releases up to 0.46 stay on Maven Central. To use it with 0.47.0 or later, open an issue, or build it from this
+repository: add `alias(catalogue.plugins.fixers.gradle.publish)` back to its build file, then
+`./gradlew :s2-spring:sourcing:s2-spring-boot-starter-sourcing-data-mongodb:publishToMavenLocal`. It still builds and
+runs in the `orderbook-sourcing-app-mongodb` sample.

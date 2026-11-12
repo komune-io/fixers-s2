@@ -33,7 +33,7 @@ VERSION=$(cat VERSION) ./gradlew clean build publishToMavenLocal -x test
 - `s2-spring/storing/s2-spring-boot-starter-storing`: State-stored approach (persist entity state directly)
 - `s2-spring/storing/s2-spring-boot-starter-storing-data`: Spring Data integration for state storing
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing`: Event-sourced approach (persist events, rebuild state)
-- `s2-spring/sourcing/s2-spring-boot-starter-sourcing-data-mongodb`: MongoDB event store
+- `s2-spring/sourcing/s2-spring-boot-starter-sourcing-data-mongodb`: MongoDB event store (not published since 0.47.0)
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing-data-r2dbc`: R2DBC event store
 - `s2-spring/sourcing/s2-spring-boot-starter-sourcing-snap-redis`: snapshot views in Redis (RedisJSON + RediSearch), `ReloadView` to replay them
 
