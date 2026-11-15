@@ -3,10 +3,15 @@ package s2.spring.sourcing.snap.redis
 import f2.dsl.cqrs.page.OffsetPagination
 import io.lettuce.core.api.reactive.RedisReactiveCommands
 import io.lettuce.core.json.JsonPath
-import io.lettuce.core.search.arguments.SearchArgs
-import io.lettuce.core.search.arguments.SortByArgs
+import io.lettuce.core.codec.StringCodec
+import io.lettuce.core.output.StatusOutput
+import io.lettuce.core.output.ValueOutput
+import io.lettuce.core.protocol.CommandArgs
 import java.util.UUID
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
@@ -19,15 +24,13 @@ class RedisSnapViewSortTest {
 
     data class SortProbeSnap(val id: String, val name: String? = null, val rank: Int? = null)
 
-    private val view = RedisStack.view(
-        model = SortProbeSnap::class,
-        fields = listOf(
-            RedisIndexField(SortProbeSnap::id.name, RedisFieldType.TAG),
-            RedisIndexField(SortProbeSnap::name.name, RedisFieldType.TEXT),
-            RedisIndexField(SortProbeSnap::rank.name, RedisFieldType.NUMERIC),
-        ),
-        idOf = SortProbeSnap::id,
+    private val fields = listOf(
+        RedisIndexField(SortProbeSnap::id.name, RedisFieldType.TAG),
+        RedisIndexField(SortProbeSnap::name.name, RedisFieldType.TEXT),
+        RedisIndexField(SortProbeSnap::rank.name, RedisFieldType.NUMERIC),
     )
+
+    private val view = RedisStack.view(model = SortProbeSnap::class, fields = fields, idOf = SortProbeSnap::id)
 
     private val commands = RedisStack.connection.commands(RedisReactiveCommands.factory())
 
@@ -113,17 +116,60 @@ class RedisSnapViewSortTest {
     }
 
     @Test
-    suspend fun `a snapshot without the field takes the place the store gives a missing value`() {
-        val ids = store("Bravo", null, "alpha")
+    suspend fun `a snapshot without the text sorts last, first when descending, on every page`() {
+        val ids = store("Bravo", null, "alpha", null)
+        val missing = listOf(ids[1], ids[3]).sorted()
 
-        listOf(false, true).forEach { descending ->
-            val raw = rawSortedIds(descending)
-
-            assertThat(sorted(descending).map { it.id }.indexOf(ids[1]))
-                .describedAs("descending: $descending, store order $raw")
-                .isEqualTo(raw.indexOf(ids[1]))
+        val pages = listOf(0, 3).flatMap { offset ->
+            view.search(
+                query = null,
+                pagination = OffsetPagination(offset = offset, limit = 3),
+                sortBy = "name",
+                descending = false,
+            ).items.map { it.id }
         }
-        assertThat(sortedNames().filterNotNull()).containsExactly("alpha", "Bravo")
+
+        assertThat(pages).containsExactlyElementsOf(listOf(ids[2], ids[0]) + missing)
+        assertThat(sorted(descending = true).map { it.id })
+            .containsExactlyElementsOf(missing.reversed() + listOf(ids[0], ids[2]))
+    }
+
+    @Test
+    suspend fun `descending pages follow one another`() {
+        val _ = store("Zèbre", "COFOR", "Érable", "Client", "Charpentier")
+
+        val pages = listOf(0, 2, 4).flatMap { offset ->
+            sorted(descending = true, pagination = OffsetPagination(offset = offset, limit = 2)).map { it.name }
+        }
+
+        assertThat(pages).containsExactly("Zèbre", "Érable", "COFOR", "Client", "Charpentier")
+    }
+
+    @Test
+    suspend fun `a text query is sorted too`() {
+        val _ = store("Érable rouge", "érable blanc", "Chêne", "Érable argenté")
+
+        val names = view.search(query = "érable", pagination = null, sortBy = "name").items.map { it.name }
+
+        assertThat(names).containsExactly("Érable argenté", "érable blanc", "Érable rouge")
+    }
+
+    @Test
+    suspend fun `equal names sort by the bytes of their ids, whatever their length or case`() {
+        val ids = listOf("b", "B", "aa", "a", "A-1", "ab")
+        ids.forEach { id -> val _ = view.save(SortProbeSnap(id = id, name = "Même")) }
+
+        assertThat(sorted().map { it.id }).containsExactly("A-1", "B", "a", "aa", "ab", "b")
+    }
+
+    @Test
+    suspend fun `texts equal over their sorted length sort by id`() {
+        val head = "x".repeat(SortKeys.SORTED_LENGTH)
+        val _ = view.save(SortProbeSnap(id = "b", name = head + "a"))
+        val _ = view.save(SortProbeSnap(id = "a", name = head + "z"))
+        val _ = view.save(SortProbeSnap(id = "c", name = "x".repeat(SortKeys.SORTED_LENGTH - 1)))
+
+        assertThat(sorted().map { it.id }).containsExactly("c", "a", "b")
     }
 
     @Test
@@ -166,37 +212,102 @@ class RedisSnapViewSortTest {
     }
 
     @Test
-    suspend fun `a snapshot written without its sort key sorts as a missing value until it is saved again`() {
-        val ids = store("Bravo", "Charlie")
-        val legacy = "sort-probe-${UUID.randomUUID()}"
-        val answer = commands.jsonSet(
-            view.key(legacy),
-            JsonPath.of("$"),
-            """{"id":"$legacy","name":"Alpha","type":"${view.indexName}"}""",
-        ).awaitSingle()
-        assertThat(answer).isEqualTo("OK")
-        val _ = view.index.awaitIndexed()
+    suspend fun `snapshots stored under the previous index get their sort keys at the next start, without a reload`() {
+        view.dropIndex()
+        val created = commands.dispatch<String>(
+            SearchCommand.FT_CREATE,
+            StatusOutput(StringCodec.UTF8),
+            PREVIOUS_DEFINITION.split(" ").fold(CommandArgs(StringCodec.UTF8).add(view.indexName)) { args, argument ->
+                args.add(argument)
+            },
+        ).awaitFirst()
+        assertThat(created).isEqualTo("OK")
+        val ids = listOf("Zèbre", "COFOR", "Érable", "Client", "Charpentier").map { name -> storeUnkeyed(name) }
+        assertThat(ids).hasSize(5)
 
-        assertThat(sorted().map { it.id }.indexOf(legacy)).isIn(0, 2)
-        assertThat(sorted().map { it.id }.filter { it in ids }).containsExactlyElementsOf(ids)
+        view.initIndex()
 
-        val _ = view.save(checkNotNull(view.get(legacy)))
+        assertThat(sortedNames()).containsExactly("Charpentier", "Client", "COFOR", "Érable", "Zèbre")
+    }
+
+    @Test
+    suspend fun `a snapshot written without its sort key gets it at the next start`() {
+        val _ = store("Bravo", "Charlie")
+        val _ = storeUnkeyed("Alpha")
+
+        view.initIndex()
+        view.initIndex()
 
         assertThat(sortedNames()).containsExactly("Alpha", "Bravo", "Charlie")
     }
 
-    private suspend fun rawSortedIds(descending: Boolean): List<String> {
-        val order = SortByArgs.builder().attribute("name")
-        val args = SearchArgs.builder<String>()
-            .sortBy((if (descending) order.descending() else order).build())
-            .limit(0, SEARCH_WINDOW.toLong())
-            .build()
-        return commands.ftSearch(view.indexName, "*", args).awaitSingle()
-            .results
-            .map { it.id.removePrefix("${view.indexName}-") }
+    @Test
+    suspend fun `a sort key is not written over a snapshot saved since it was read`() {
+        val id = storeUnkeyed("Alpha")
+        val read = checkNotNull(rawDocument(id))
+        val _ = view.save(SortProbeSnap(id = id, name = "Zulu"))
+        val backfill = SortKeyBackfill(
+            connection = RedisStack.connection,
+            indexName = view.indexName,
+            keys = SnapshotKeys(
+                connection = RedisStack.connection,
+                prefix = view.indexName,
+                model = SortProbeSnap::class,
+                objectMapper = RedisSnapView.defaultObjectMapper(),
+            ),
+            sortKeys = IndexDefinition.from(view.indexName, fields, RedisStack.settings).sortKeys,
+            objectMapper = RedisSnapView.defaultObjectMapper(),
+        )
+
+        val isWritten = backfill.writeIfUnchanged(key = view.key(id), read = read, sortKeys = """{"name":"stale"}""")
+
+        assertThat(isWritten).isFalse()
+        assertThat(sortKeyOf(id)).isEqualTo(SortKeys.key(text = "Zulu", id = id))
+        assertThat(backfill.key(view.key(id))).isEqualTo(SortKeyBackfill.Outcome.CURRENT)
     }
+
+    @Test
+    fun `saves running while the start keys the stored snapshots keep the keys of what they saved`(): Unit =
+        runBlocking {
+            val ids = (1..CONCURRENT).map { storeUnkeyed("before $it") }
+
+            coroutineScope {
+                launch { view.initIndex() }
+                ids.forEachIndexed { i, id -> launch { val _ = view.save(SortProbeSnap(id = id, name = "after $i")) } }
+            }
+
+            ids.forEach { id ->
+                val name = checkNotNull(view.get(id)?.name)
+                assertThat(sortKeyOf(id)).describedAs(id).isEqualTo(SortKeys.key(text = name, id = id))
+            }
+        }
+
+    private suspend fun storeUnkeyed(name: String): String {
+        val id = "sort-probe-${UUID.randomUUID()}"
+        val answer = commands.jsonSet(
+            view.key(id),
+            JsonPath.of("$"),
+            """{"id":"$id","name":"$name","type":"${view.indexName}"}""",
+        ).awaitSingle()
+        assertThat(answer).isEqualTo("OK")
+        return id
+    }
+
+    private suspend fun rawDocument(id: String): String? = commands.dispatch<String>(
+        SearchCommand.cmd("JSON.GET"),
+        ValueOutput(StringCodec.UTF8),
+        CommandArgs(StringCodec.UTF8).addKey(view.key(id)),
+    ).awaitFirstOrNull()
+
+    private suspend fun sortKeyOf(id: String): String =
+        commands.jsonGet(view.key(id), JsonPath.of("$.__s2_sort.name")).awaitFirst().toString().trim('[', ']', '"')
 
     private companion object {
         const val KEPT_ALIAS = "SortProbeSnapKept"
+        const val CONCURRENT = 50
+
+        // The definition views wrote before sort keys: no key attribute, no marker.
+        const val PREVIOUS_DEFINITION = "ON JSON PREFIX 1 SortProbeSnap- STOPWORDS 0 SCHEMA " +
+            "$.id AS id TAG $.name AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE $.rank AS rank NUMERIC SORTABLE"
     }
 }

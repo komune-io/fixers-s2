@@ -64,6 +64,59 @@ class IndexDefinitionTest {
     }
 
     @Test
+    fun `a collation key is pinned, so that a JVM sorting otherwise fails the build`() {
+        val golden = mapOf(
+            "" to "00000000",
+            "a" to "00530000000100000001",
+            "A" to "00530000000100000002",
+            "é" to "005800000001008900000001",
+            "Érable" to "0058006500530054005f0058000000010089000100010001000100010000000200010001000100010001",
+            "日本" to "800065e68000672d0000000100010001000100000001000100010001",
+            "\uD83C\uDF32" to "8000d83ddf3300000001000100010000000100010001",
+        )
+
+        golden.forEach { (text, hex) -> assertThat(SortKeys.collationHex(text)).describedAs("«$text»").isEqualTo(hex) }
+    }
+
+    @Test
+    fun `a missing or non-text value gets the key sorting after every text`() {
+        val sortKeys = IndexDefinition.from("Probe", fields, IndexSettings(null)).sortKeys
+        val document = JsonMapper.builder().build().readTree("""{"id":"a","name":12}""") as ObjectNode
+
+        assertThat(sortKeys.keysOf(document = document, id = "a").get("name").stringValue()).isEqualTo("~ a")
+        assertThat(SortKeys.missing("a")).isGreaterThan(SortKeys.key(text = "\uFFFF".repeat(3), id = "a"))
+    }
+
+    @Test
+    fun `an attribute or a path that is not a plain dotted name keeps the store's sort`() {
+        assertThat(SortKeys.sorted(attribute = "wood-species", path = "woodSpecies")).isNull()
+        assertThat(SortKeys.sorted(attribute = "name\"]", path = "name")).isNull()
+        assertThat(SortKeys.sorted(attribute = "aliases", path = "aliases[*]")).isNull()
+        assertThat(SortKeys.sorted(attribute = "city", path = "address.city")?.pointer).isEqualTo("/address/city")
+    }
+
+    @Test
+    fun `a field under the sort keys' own name is refused, and a quote in an attribute name gives no key`() {
+        val reading = listOf(RedisIndexField("__s2_sort.name", RedisFieldType.TEXT, name = "sorted"))
+        val quoted = listOf(RedisIndexField("city", RedisFieldType.TEXT, name = "city\"label"))
+
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", reading, IndexSettings(null)) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("__s2_sort")
+        assertThat(IndexDefinition.from("Probe", quoted, IndexSettings(null)).fingerprint).doesNotContain("__s2_sort")
+    }
+
+    @Test
+    fun `a snapshot holding the sort keys' own field is refused before it is written`() {
+        val sortKeys = IndexDefinition.from("Probe", fields, IndexSettings(null)).sortKeys
+        val document = JsonMapper.builder().build().readTree("""{"id":"a","name":"x","__s2_sort":1}""") as ObjectNode
+
+        assertThatThrownBy { sortKeys.write(document = document, id = "a") }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("__s2_sort")
+    }
+
+    @Test
     fun `no language is sent, words being never stemmed`() {
         assertThat(IndexDefinition.from("Probe", fields, IndexSettings(null)).fingerprint).doesNotContain("LANGUAGE")
     }

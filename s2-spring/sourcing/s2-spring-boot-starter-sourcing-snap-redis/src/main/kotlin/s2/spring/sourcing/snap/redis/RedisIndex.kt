@@ -150,7 +150,7 @@ internal object SearchCommand {
     val FT_DROPINDEX = cmd("FT.DROPINDEX")
     val FT_INFO = cmd("FT.INFO")
 
-    private fun cmd(name: String): ProtocolKeyword {
+    fun cmd(name: String): ProtocolKeyword {
         val bytes = name.toByteArray(Charsets.US_ASCII)
         return object : ProtocolKeyword {
             override fun getBytes() = bytes

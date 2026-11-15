@@ -6,6 +6,7 @@ import io.lettuce.core.protocol.CommandArgs
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.HexFormat
+import org.slf4j.LoggerFactory
 
 /**
  * An index as `FT.CREATE` makes it: the keys `<index>-…` it reads — the dash keeps out a model whose name starts
@@ -52,6 +53,7 @@ internal class IndexDefinition private constructor(
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(RedisSnapView::class.java)
         private const val DEFAULT_LANGUAGE = "english"
         private const val MARKER_PATH = "$.__s2_index_definition"
         private const val MARKER_PREFIX = "__s2_definition_"
@@ -69,6 +71,9 @@ internal class IndexDefinition private constructor(
             require(fields.isNotEmpty()) { "Index[$indexName] needs at least one field" }
             val names = fields.map { it.name ?: it.field }
             require(names.distinct().size == names.size) { "Index[$indexName] names a field twice: $names" }
+            require(fields.none { it.field.substringBefore('.').substringBefore('[') == SortKeys.DOCUMENT_FIELD }) {
+                "Index[$indexName] reads ${SortKeys.DOCUMENT_FIELD}, kept for sort keys"
+            }
             val prefix = "$indexName-"
             // RediSearch's default list leaves English words out of the index, so a name holding « Or » or « If »
             // could not be found by that word.
@@ -83,8 +88,7 @@ internal class IndexDefinition private constructor(
                     RedisFieldType.GEO, RedisFieldType.TAG -> emptyList()
                 }
             }
-            val sorted = fields.filter { it.type == RedisFieldType.TEXT }
-                .mapNotNull { SortKeys.sorted(attribute = it.name ?: it.field, path = it.field) }
+            val sorted = fields.filter { it.type == RedisFieldType.TEXT }.mapNotNull { sortedOrWarn(indexName, it) }
             sorted.forEach { arguments += listOf(SortKeys.path(it), "AS", it.key) + SORT_KEY_FLAGS }
             val attributes = fields.map {
                 Attribute(identifier = "$.${it.field}", name = it.name ?: it.field, type = it.type.name)
@@ -95,6 +99,20 @@ internal class IndexDefinition private constructor(
                 attributes = attributes,
                 sortKeys = SortKeys(sorted),
             )
+        }
+
+        private fun sortedOrWarn(indexName: String, field: RedisIndexField): SortKeys.Sorted? {
+            val attribute = field.name ?: field.field
+            val sorted = SortKeys.sorted(attribute = attribute, path = field.field)
+            if (sorted == null) {
+                logger.warn(
+                    "Index[{}]: text {} at {} sorts in the store's byte order: not a plain dotted name",
+                    indexName,
+                    attribute,
+                    field.field,
+                )
+            }
+            return sorted
         }
 
         // A digest short enough for an attribute name; 64 bits tell apart every definition one index will ever have.

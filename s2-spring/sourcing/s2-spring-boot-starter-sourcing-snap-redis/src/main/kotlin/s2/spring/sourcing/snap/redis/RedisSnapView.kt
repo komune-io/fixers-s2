@@ -53,8 +53,19 @@ open class RedisSnapView<MODEL : Any>(
         objectMapper = objectMapper,
     )
 
+    private val backfill = SortKeyBackfill(
+        connection = connection,
+        indexName = indexName,
+        keys = keys,
+        sortKeys = definition.sortKeys,
+        objectMapper = objectMapper,
+    )
+
     // The connection caches its reactive commands, so one fetched here stays the connection's.
     private val commands: RedisReactiveCommands<String, String> = connection.commands(RedisReactiveCommands.factory())
+
+    /** The attribute a search of the store sorts by to sort by an attribute as [search] does. */
+    protected val sortAttribute: (attribute: String) -> String = definition.sortKeys::sortAttribute
 
     /** The key of the snapshot [id]: `<Model>-<id>`. */
     fun key(id: String) = keys.key(id)
@@ -123,9 +134,10 @@ open class RedisSnapView<MODEL : Any>(
      * row: refused past [SEARCH_WINDOW] or on a short read, never cut. A page larger than [SEARCH_WINDOW], or a
      * search RediSearch answers with a warning, is refused too.
      *
-     * A text attribute sorts in collation order, accents then case after the letters, equal texts by id, through the
-     * sort key [save] writes: a snapshot saved before this key existed sorts as a missing value until it is saved
-     * again, so a view upgraded to it is reloaded once ([ReloadView.reload] forced).
+     * A text attribute on a plain dotted path sorts in collation order, accents then case after the letters, over its
+     * first [SortKeys.SORTED_LENGTH] characters, equal texts by id, a missing text last ascending: through the sort
+     * key [save] writes and [initIndex] gives every stored document that lacks it. Any other attribute sorts as the
+     * store sorts it.
      */
     suspend fun search(
         query: String?,
@@ -159,10 +171,12 @@ open class RedisSnapView<MODEL : Any>(
     /**
      * Makes the index match its fields and settings and waits until it has read the stored documents: see
      * [RedisIndexInitializer.initIndex]. A store that cannot answer, a wait past [RedisIndex.INDEXING_CEILING] or a
-     * stored document the index cannot read fails it.
+     * stored document the index cannot read fails it. Then every stored document lacking the sort keys of its texts
+     * gets them — one written before them, or before an attribute was added — so no reload is needed for sorting.
      */
     override suspend fun initIndex() {
         index.init()
+        val _ = backfill.run()
     }
 
     companion object {
