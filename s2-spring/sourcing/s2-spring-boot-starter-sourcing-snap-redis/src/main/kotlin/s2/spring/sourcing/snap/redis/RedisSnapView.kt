@@ -53,11 +53,11 @@ open class RedisSnapView<MODEL : Any>(
         objectMapper = objectMapper,
     )
 
-    private val backfill = SortKeyBackfill(
+    private val backfill = DerivedFieldBackfill(
         connection = connection,
         indexName = indexName,
         keys = keys,
-        sortKeys = definition.sortKeys,
+        derived = definition.derived,
         objectMapper = objectMapper,
     )
 
@@ -91,12 +91,15 @@ open class RedisSnapView<MODEL : Any>(
         return snapshots
     }
 
-    /** Stores [entity] under its id, marked with its model's name and the sort key of each text, and answers it. */
+    /**
+     * Stores [entity] under its id, marked with its model's name, the sort key and the folded copy of each text, and
+     * answers it.
+     */
     override suspend fun save(entity: MODEL): MODEL {
         val id = idOf(entity)
         val key = key(id)
         val document = objectMapper.valueToTree<ObjectNode>(entity).apply { put(TYPE, indexName) }
-        definition.sortKeys.write(document = document, id = id)
+        definition.derived.forEach { it.write(document = document, id = id) }
         val json = document.toString()
         // The String overload is sent as UTF-8, while the JsonValue overload encodes with the JVM default charset.
         val answer = commands.jsonSet(key, JsonPath.of("$"), json).awaitSingle<String>()
@@ -130,7 +133,8 @@ open class RedisSnapView<MODEL : Any>(
         commands.ftSearch(indexName, "*", SearchArgs.builder<String>().limit(0, 0).build()).awaitSingle().count
 
     /**
-     * One page of the documents [query] matches, sorted by [sortBy] when given. A null [pagination] asks for every
+     * One page of the documents [query] matches, its words folded ([foldQuery]) as the index folds every text, so that
+     * accents and case of neither count; sorted by [sortBy] when given. A null [pagination] asks for every
      * row: refused past [SEARCH_WINDOW] or on a short read, never cut. A page larger than [SEARCH_WINDOW], or a
      * search RediSearch answers with a warning, is refused too.
      *
@@ -154,7 +158,7 @@ open class RedisSnapView<MODEL : Any>(
             val order = SortByArgs.builder().attribute(definition.sortKeys.sortAttribute(attribute))
             args.sortBy((if (descending) order.descending() else order).build())
         }
-        val reply = commands.ftSearch(indexName, query.orWildcard(), args.build()).awaitSingle()
+        val reply = commands.ftSearch(indexName, foldQuery(query.orWildcard()), args.build()).awaitSingle()
         reply.warnings.firstOrNull()?.let { warning ->
             logger.warn("Index[{}]: search refused, the store warned: {}", indexName, warning)
             throw refusalFor(indexName = indexName, warning = warning)
@@ -171,8 +175,9 @@ open class RedisSnapView<MODEL : Any>(
     /**
      * Makes the index match its fields and settings and waits until it has read the stored documents: see
      * [RedisIndexInitializer.initIndex]. A store that cannot answer, a wait past [RedisIndex.INDEXING_CEILING] or a
-     * stored document the index cannot read fails it. Then every stored document lacking the sort keys of its texts
-     * gets them — one written before them, or before an attribute was added — so no reload is needed for sorting.
+     * stored document the index cannot read fails it. Then every stored document lacking the sort keys or the folded
+     * copies of its texts gets them — one written before them, or before an attribute was added — so no reload is
+     * needed for sorting or searching.
      */
     override suspend fun initIndex() {
         index.init()

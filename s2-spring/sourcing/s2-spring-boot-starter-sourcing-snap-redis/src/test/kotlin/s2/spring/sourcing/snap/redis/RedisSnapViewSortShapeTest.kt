@@ -62,7 +62,7 @@ class RedisSnapViewSortShapeTest {
     }
 
     @Test
-    suspend fun `a text array of several values is indexed and found on every Redis Stack, sorted on its folded text`() {
+    suspend fun `a text array of several values is indexed and found on every Redis Stack, sorted on its text`() {
         val _ = view.save(ShapeProbeSnap(id = "1", aliases = listOf("beta", "Érable")))
         val _ = view.save(ShapeProbeSnap(id = "2", aliases = listOf("alpha")))
         val _ = view.save(ShapeProbeSnap(id = "3", aliases = listOf("Gamma", "delta", "Epsilon")))
@@ -70,7 +70,8 @@ class RedisSnapViewSortShapeTest {
         assertThat(view.count()).isEqualTo(3)
         assertThat(ids("aliases")).containsExactly("2", "1", "3")
         assertThat(view.search("erable", null, null).items.map { it.id }).containsExactly("1")
-        assertThat(view.search("@aliases:(beta|delta)", null, null).items.map { it.id }).containsExactlyInAnyOrder("1", "3")
+        assertThat(view.search("@aliases:(beta|delta)", null, null).items.map { it.id })
+            .containsExactlyInAnyOrder("1", "3")
         assertThat(view.search("@aliases:epsilon", null, null).items.map { it.id }).containsExactly("3")
     }
 
@@ -97,7 +98,9 @@ class RedisSnapViewSortShapeTest {
         assertThatThrownBy {
             val _ = RedisStack.view(
                 model = ShapeProbeSnap::class,
-                fields = listOf(RedisIndexField(ShapeProbeSnap::status.name, RedisFieldType.TEXT, name = "status\"label")),
+                fields = listOf(
+                    RedisIndexField(ShapeProbeSnap::status.name, RedisFieldType.TEXT, name = "status\"label"),
+                ),
                 idOf = ShapeProbeSnap::id,
             )
         }.isInstanceOf(IllegalArgumentException::class.java).hasMessageContaining("status\"label")

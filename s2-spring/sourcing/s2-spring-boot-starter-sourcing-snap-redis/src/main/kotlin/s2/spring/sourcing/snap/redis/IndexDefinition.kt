@@ -10,7 +10,8 @@ import org.slf4j.LoggerFactory
 
 /**
  * An index as `FT.CREATE` makes it: the keys `<index>-…` it reads — the dash keeps out a model whose name starts
- * with this one's — every word kept, stopwords included, and per attribute its JSON path, name, type and flags.
+ * with this one's — every word kept, stopwords included, and per attribute its JSON path, name, type and flags; a
+ * text attribute reads the text folded ([FoldedTexts]), never the model's own.
  * Its [fingerprint] names all of it, the phonetic matcher included, which `FT.INFO` does not show. So that the index
  * itself shows all of it, the fingerprint's digest is the name of one more attribute, [marker], on a path no
  * document holds: [isShownBy] then reads the whole definition — prefix, attributes, marker, language, stopwords —
@@ -21,7 +22,11 @@ internal class IndexDefinition private constructor(
     private val prefix: String,
     private val attributes: List<Attribute>,
     val sortKeys: SortKeys,
+    val foldedTexts: FoldedTexts,
 ) {
+    /** What a view writes into each document it stores, besides the model's own fields. */
+    val derived: List<DerivedField> get() = listOf(sortKeys, foldedTexts)
+
     /** One attribute as `FT.INFO` shows it: its JSON path, the name queries use, and its type. */
     data class Attribute(val identifier: String, val name: String, val type: String)
 
@@ -71,15 +76,21 @@ internal class IndexDefinition private constructor(
             require(fields.isNotEmpty()) { "Index[$indexName] needs at least one field" }
             val names = fields.map { it.name ?: it.field }
             require(names.distinct().size == names.size) { "Index[$indexName] names a field twice: $names" }
-            require(fields.none { it.field.substringBefore('.').substringBefore('[') == SortKeys.DOCUMENT_FIELD }) {
-                "Index[$indexName] reads ${SortKeys.DOCUMENT_FIELD}, kept for sort keys"
+            val derived = setOf(SortKeys.DOCUMENT_FIELD, FoldedTexts.DOCUMENT_FIELD)
+            fields.firstOrNull { it.field.substringBefore('.').substringBefore('[') in derived }?.let { field ->
+                throw IllegalArgumentException("Index[$indexName] reads ${field.field}, kept for $derived")
             }
+            val folded = fields.filter { it.type == RedisFieldType.TEXT }
+                .associateWith { foldedOrRefused(indexName = indexName, field = it) }
             val prefix = "$indexName-"
             // RediSearch's default list leaves English words out of the index, so a name holding « Or » or « If »
             // could not be found by that word.
             val arguments = mutableListOf("ON", "JSON", "PREFIX", "1", prefix, "STOPWORDS", "0", "SCHEMA")
+            val identifierOf = { field: RedisIndexField ->
+                folded[field]?.let(FoldedTexts::path) ?: "$.${field.field}"
+            }
             fields.forEach { field ->
-                arguments += listOf("$.${field.field}", "AS", field.name ?: field.field, field.type.name)
+                arguments += listOf(identifierOf(field), "AS", field.name ?: field.field, field.type.name)
                 arguments += when (field.type) {
                     RedisFieldType.TEXT -> listOf("NOSTEM") +
                         settings.phonetic?.let { listOf("PHONETIC", it.value) }.orEmpty() +
@@ -91,14 +102,24 @@ internal class IndexDefinition private constructor(
             val sorted = fields.filter { it.type == RedisFieldType.TEXT }.mapNotNull { sortedOrWarn(indexName, it) }
             sorted.forEach { arguments += listOf(SortKeys.path(it), "AS", it.key) + SORT_KEY_FLAGS }
             val attributes = fields.map {
-                Attribute(identifier = "$.${it.field}", name = it.name ?: it.field, type = it.type.name)
+                Attribute(identifier = identifierOf(it), name = it.name ?: it.field, type = it.type.name)
             } + sorted.map { Attribute(identifier = SortKeys.path(it), name = it.key, type = SORT_KEY_TYPE) }
             return IndexDefinition(
                 arguments = arguments,
                 prefix = prefix,
                 attributes = attributes,
                 sortKeys = SortKeys(sorted),
+                foldedTexts = FoldedTexts(folded.values.toList()),
             )
+        }
+
+        private fun foldedOrRefused(indexName: String, field: RedisIndexField): FoldedTexts.Folded {
+            val attribute = field.name ?: field.field
+            return requireNotNull(FoldedTexts.folded(attribute = attribute, path = field.field)) {
+                "Index[$indexName]: text $attribute at ${field.field} cannot be folded: a text's path is dotted " +
+                    "names of letters, digits and underscores, each walked whole with [*] or not, and so is its " +
+                    "attribute"
+            }
         }
 
         private fun sortedOrWarn(indexName: String, field: RedisIndexField): SortKeys.Sorted? {
@@ -106,7 +127,8 @@ internal class IndexDefinition private constructor(
             val sorted = SortKeys.sorted(attribute = attribute, path = field.field)
             if (sorted == null) {
                 logger.warn(
-                    "Index[{}]: text {} at {} sorts in the store's byte order: not a plain dotted name",
+                    "Index[{}]: text {} at {} sorts in the store's order of its folded text: its path walks into an " +
+                        "array",
                     indexName,
                     attribute,
                     field.field,

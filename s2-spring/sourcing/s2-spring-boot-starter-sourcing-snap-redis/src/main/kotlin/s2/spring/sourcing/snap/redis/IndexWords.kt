@@ -1,15 +1,11 @@
 package s2.spring.sourcing.snap.redis
 
-import java.text.Normalizer
-
 /**
  * A name read the way the search index reads a term, for names the index does not hold (read from another
  * service): every word of the term opens a word of the name — its start from `minPrefix` letters on, the
- * whole word below — accents and case aside.
+ * whole word below — both folded as the index folds them ([foldText]).
  */
 object IndexWords {
-    private val DIACRITICS = Regex("\\p{M}+")
-
     /** Whether [name] holds [term] as a search with words made prefixes from [minPrefix] letters would find it. */
     fun holds(name: String, term: String, minPrefix: Int = MIN_PREFIX): Boolean {
         val wanted = words(term)
@@ -22,9 +18,7 @@ object IndexWords {
         if (word.length < minPrefix) this == word else startsWith(word)
 
     private fun words(text: String): List<String> =
-        Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replace(DIACRITICS, "")
-            .lowercase()
+        foldText(text)
             .split(WORD_SEPARATOR)
             .filter { it.isNotEmpty() }
 }

@@ -1,9 +1,9 @@
 package s2.spring.sourcing.snap.redis
 
-import io.lettuce.core.ScriptOutputType
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.reactive.RedisReactiveCommands
 import io.lettuce.core.codec.StringCodec
+import io.lettuce.core.output.IntegerOutput
 import io.lettuce.core.output.ValueOutput
 import io.lettuce.core.protocol.CommandArgs
 import kotlin.time.TimeSource
@@ -19,29 +19,31 @@ import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.node.ObjectNode
 
 /**
- * Gives every stored document of a view the sort keys its text holds, without decoding a snapshot or replaying an
- * event: a document saved before the keys existed, or before an attribute was added, would sort as a missing text.
- * A key is written only if the document is still the one it was computed from, so a `save` running meanwhile is
- * never undone.
+ * Gives every stored document of a view the fields it derives from it — sort keys, folded texts — without decoding a
+ * snapshot or replaying an event: a document saved before they existed, or before an attribute was added, would sort
+ * as a missing text and not be found by its text. They are written only if the document is still the one they were
+ * computed from, so a `save` running meanwhile is never undone.
  */
-internal class SortKeyBackfill(
+internal class DerivedFieldBackfill(
     private val connection: StatefulRedisConnection<String, String>,
     private val indexName: String,
     private val keys: SnapshotKeys<*>,
-    private val sortKeys: SortKeys,
+    derived: List<DerivedField>,
     private val objectMapper: ObjectMapper,
 ) {
+    private val derived = derived.filterNot { it.isEmpty }
+
     private val commands: RedisReactiveCommands<String, String>
         get() = connection.commands(RedisReactiveCommands.factory())
 
-    enum class Outcome { CURRENT, KEYED, GONE, UNKEYABLE }
+    enum class Outcome { CURRENT, WRITTEN, GONE, UNWRITABLE }
 
     /**
-     * Keys every stored document that lacks its keys; how many it keyed. A key holding no JSON document is left
-     * alone, as every read of the view leaves it.
+     * Writes the derived fields of every stored document lacking them, or holding stale ones; how many it wrote. A
+     * key holding no JSON document is left alone, as every read of the view leaves it.
      */
     suspend fun run(): Int {
-        if (sortKeys.isEmpty) return 0
+        if (derived.isEmpty()) return 0
         val started = TimeSource.Monotonic.markNow()
         val counts = IntArray(Outcome.entries.size)
         val seen = HashSet<String>()
@@ -57,21 +59,22 @@ internal class SortKeyBackfill(
                 }
             }
             // One batch in flight at once: the connection pipelines its reads and writes.
-            coroutineScope { stale.map { key -> async { key(key) } }.awaitAll() }.forEach { counts[it.ordinal]++ }
+            coroutineScope { stale.map { key -> async { write(key) } }.awaitAll() }.forEach { counts[it.ordinal]++ }
         }
         logger.info(
-            "Index[{}]: sort keys of {} stored documents read in {}: {} written, {} could not be",
+            "Index[{}]: {} of {} stored documents read in {}: {} written, {} could not be",
             indexName,
+            derived.map { it.documentField },
             seen.size,
             started.elapsedNow(),
-            counts[Outcome.KEYED.ordinal],
-            counts[Outcome.UNKEYABLE.ordinal],
+            counts[Outcome.WRITTEN.ordinal],
+            counts[Outcome.UNWRITABLE.ordinal],
         )
-        return counts[Outcome.KEYED.ordinal]
+        return counts[Outcome.WRITTEN.ordinal]
     }
 
-    /** Keys the document under [key] if it is still the one read; retried on a document changed meanwhile. */
-    suspend fun key(key: String): Outcome {
+    /** Writes the derived fields of the document under [key] if it is still the one read; retried if it changed. */
+    suspend fun write(key: String): Outcome {
         var outcome: Outcome? = null
         var attempts = 0
         while (outcome == null && attempts < ATTEMPTS) {
@@ -79,38 +82,50 @@ internal class SortKeyBackfill(
             outcome = attempt(key)
         }
         if (outcome == null) {
-            logger.warn("Index[{}]: stored document [{}] changed {} times while keyed", indexName, key, ATTEMPTS)
+            logger.warn("Index[{}]: stored document [{}] changed {} times while written", indexName, key, ATTEMPTS)
         }
-        return outcome ?: Outcome.UNKEYABLE
+        return outcome ?: Outcome.UNWRITABLE
     }
 
     // Null when the document changed between its read and the write.
     private suspend fun attempt(key: String): Outcome? {
         val read = readRaw(key)
         val document = read?.let { parse(key, it) }
-        val expected = document?.let { sortKeys.keysOf(document = it, id = idOf(key)) }
+        val stale = document?.let { staleOf(key = key, document = it) }
         return when {
             read == null -> Outcome.GONE
-            document == null || expected == null -> Outcome.UNKEYABLE
-            document.get(SortKeys.DOCUMENT_FIELD) == expected -> Outcome.CURRENT
-            writeIfUnchanged(key = key, read = read, sortKeys = expected.toString()) -> Outcome.KEYED
+            stale == null -> Outcome.UNWRITABLE
+            stale.isEmpty() -> Outcome.CURRENT
+            writeIfUnchanged(key = key, read = read, values = stale) -> Outcome.WRITTEN
             else -> null
         }
     }
 
-    /** Writes [sortKeys] into the document under [key] only if it still reads [read]; whether it did. */
-    suspend fun writeIfUnchanged(key: String, read: String, sortKeys: String): Boolean =
-        commands.eval<Long>(WRITE_IF_UNCHANGED, ScriptOutputType.INTEGER, arrayOf(key), read, sortKeys)
-            .awaitFirst() == 1L
-
-    private fun isCurrent(key: String, json: String): Boolean {
-        val document = parseOrNull(json) ?: return false
-        return document.get(SortKeys.DOCUMENT_FIELD) == sortKeys.keysOf(document = document, id = idOf(key))
+    /**
+     * Writes each of [values], a JSON value by document field, into the document under [key] only if it still reads
+     * [read]; whether it did.
+     */
+    suspend fun writeIfUnchanged(key: String, read: String, values: Map<String, String>): Boolean {
+        val args = CommandArgs(StringCodec.UTF8).add(WRITE_IF_UNCHANGED).add(1).addKey(key).addValue(read)
+        values.forEach { (field, value) -> args.addValue("$.$field").addValue(value) }
+        return commands.dispatch<Long>(EVAL, IntegerOutput(StringCodec.UTF8), args).awaitFirst() == 1L
     }
+
+    private fun isCurrent(key: String, json: String): Boolean =
+        parseOrNull(json)?.let { staleOf(key = key, document = it).isEmpty() } == true
+
+    private fun staleOf(key: String, document: ObjectNode): Map<String, String> =
+        derived.associate { it.documentField to it.valueOf(document = document, id = idOf(key)) }
+            .filter { (field, value) -> document.get(field) != value }
+            .mapValues { (_, value) -> value.toString() }
 
     private fun parse(key: String, json: String): ObjectNode? = parseOrNull(json).also { document ->
         if (document == null) {
-            logger.warn("Index[{}]: stored document [{}] is not a JSON object; left without sort keys", indexName, key)
+            logger.warn(
+                "Index[{}]: stored document [{}] is not a JSON object; left without derived fields",
+                indexName,
+                key,
+            )
         }
     }
 
@@ -133,9 +148,13 @@ internal class SortKeyBackfill(
 
         val JSON_GET = SearchCommand.cmd("JSON.GET")
 
+        val EVAL = SearchCommand.cmd("EVAL")
+
         val WRITE_IF_UNCHANGED = """
             if redis.call('JSON.GET', KEYS[1]) == ARGV[1] then
-              redis.call('JSON.SET', KEYS[1], '$.${SortKeys.DOCUMENT_FIELD}', ARGV[2])
+              for i = 2, #ARGV, 2 do
+                redis.call('JSON.SET', KEYS[1], ARGV[i], ARGV[i + 1])
+              end
               return 1
             end
             return 0

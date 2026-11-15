@@ -22,7 +22,7 @@ class IndexDefinitionTest {
         assertThat(definition.fingerprint).isEqualTo(
             "ON JSON PREFIX 1 Probe- STOPWORDS 0 SCHEMA " +
                 "$.id AS id TAG " +
-                "$.__s2_text[\"name\"] AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE " +
+                """$.__s2_text["name"] AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE """ +
                 "$.rank AS rank NUMERIC SORTABLE " +
                 "$.labels[*] AS labels TAG " +
                 "$.__s2_sort[\"name\"] AS __s2_sort_name TEXT NOINDEX SORTABLE UNF",
@@ -135,6 +135,29 @@ class IndexDefinitionTest {
             "$.__s2_text[\"labels\"] AS labels TEXT",
             "$.wood-species AS species\"tag TAG",
         )
+    }
+
+    @Test
+    fun `a text is folded from its path, an array's strings joined, anything else left out`() {
+        val texts = listOf(
+            RedisIndexField("address.city", RedisFieldType.TEXT, name = "city"),
+            RedisIndexField.array("aliases", RedisFieldType.TEXT),
+            RedisIndexField("items[*].labels[*]", RedisFieldType.TEXT, name = "labels"),
+            RedisIndexField("name", RedisFieldType.TEXT),
+            RedisIndexField("rank", RedisFieldType.TEXT),
+            RedisIndexField("notes", RedisFieldType.TEXT),
+        )
+        val folded = IndexDefinition.from("Probe", texts, IndexSettings(null)).foldedTexts
+        val document = JsonMapper.builder().build().readTree(
+            """{"address":{"city":"Saint-Égrève"},"aliases":["Érable",3,"ACER",null],""" +
+                """"items":[{"labels":["Chêne"]},{"labels":"Hêtre"},{"labels":["Frêne","Orme"]}],"rank":12,""" +
+                """"notes":["a"],"__s2_text":{"name":"stale"}}""",
+        ) as ObjectNode
+
+        folded.write(document = document, id = "a")
+
+        assertThat(document.get(FoldedTexts.DOCUMENT_FIELD).toString())
+            .isEqualTo("""{"city":"saint-egreve","aliases":"erable acer","labels":"chene frene orme"}""")
     }
 
     @Test

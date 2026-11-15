@@ -58,8 +58,9 @@ class QueryTextTest {
     }
 
     @Test
-    fun `an accent typed as a combining mark stays inside its word`() {
-        assertThat("Thônes".addWildcard()).isEqualTo("Thônes*")
+    fun `an accent typed as a combining mark is folded inside its word`() {
+        assertThat("Tho\u0302nes".addWildcard()).isEqualTo("thones*")
+        assertThat("e\u0301".addWildcard()).isEqualTo("e")
     }
 
     @Test
@@ -71,6 +72,26 @@ class QueryTextTest {
     fun `no text is no query`() {
         assertThat(null.addWildcard()).isEqualTo("")
         assertThat("  - ( ) ".addWildcard()).isEqualTo("")
+    }
+
+    @Test
+    fun `a query's words are folded, its tags, ranges, attribute names and parameters kept as written`() {
+        assertThat(foldQuery("""Érable @Name:(ÉGRÈ* | "Saint Étienne") -Œuvre"""))
+            .isEqualTo("""erable @Name:(egre* | "saint etienne") -œuvre""")
+        assertThat(foldQuery("""@status:{Égrève|A\}É} Été @rank:[-inf (10] @geo:[2.3 48.8 5 KM] ${'$'}Param"""))
+            .isEqualTo("""@status:{Égrève|A\}É} ete @rank:[-inf (10] @geo:[2.3 48.8 5 KM] ${'$'}Param""")
+        assertThat(foldQuery("""a\{É \@Été""")).isEqualTo("""a\{e \@ete""")
+        assertThat(foldQuery("@Name|Title:Été")).isEqualTo("@Name|Title:ete")
+        assertThat(foldQuery("*")).isEqualTo("*")
+        assertThat(foldQuery("@name:{unclosed É")).isEqualTo("@name:{unclosed É")
+    }
+
+    @Test
+    fun `a text is folded as the index holds it, and IndexWords reads it alike`() {
+        assertThat(foldText("Saint-Égrève ŒUVRE Ørsted İstanbul e\u0301"))
+            .isEqualTo("saint-egreve œuvre ørsted istanbul e")
+        assertThat(foldText("한국 Ä")).isEqualTo("한국 a")
+        assertThat(IndexWords.holds(name = "Œuvre Ørsted", term = "ŒUV ØRST")).isTrue()
     }
 
     @Test
