@@ -19,6 +19,7 @@ internal class IndexDefinition private constructor(
     private val arguments: List<String>,
     private val prefix: String,
     private val attributes: List<Attribute>,
+    val sortKeys: SortKeys,
 ) {
     /** One attribute as `FT.INFO` shows it: its JSON path, the name queries use, and its type. */
     data class Attribute(val identifier: String, val name: String, val type: String)
@@ -57,6 +58,12 @@ internal class IndexDefinition private constructor(
         private const val MARKER_TYPE = "TAG"
         private const val MARKER_DIGEST_LENGTH = 16
         private val HEAD = listOf("identifier", "attribute", "type")
+        private const val SORT_KEY_TYPE = "TEXT"
+        private const val SORTABLE = "SORTABLE"
+
+        // Sorted as written and in no inverted index, so that no query matches a key; RediSearch 2.4 refuses a
+        // sortable TAG on JSON.
+        private val SORT_KEY_FLAGS = listOf(SORT_KEY_TYPE, "NOINDEX", SORTABLE, "UNF")
 
         fun from(indexName: String, fields: List<RedisIndexField>, settings: IndexSettings): IndexDefinition {
             require(fields.isNotEmpty()) { "Index[$indexName] needs at least one field" }
@@ -71,15 +78,23 @@ internal class IndexDefinition private constructor(
                 arguments += when (field.type) {
                     RedisFieldType.TEXT -> listOf("NOSTEM") +
                         settings.phonetic?.let { listOf("PHONETIC", it.value) }.orEmpty() +
-                        "SORTABLE"
-                    RedisFieldType.NUMERIC -> listOf("SORTABLE")
+                        SORTABLE
+                    RedisFieldType.NUMERIC -> listOf(SORTABLE)
                     RedisFieldType.GEO, RedisFieldType.TAG -> emptyList()
                 }
             }
+            val sorted = fields.filter { it.type == RedisFieldType.TEXT }
+                .mapNotNull { SortKeys.sorted(attribute = it.name ?: it.field, path = it.field) }
+            sorted.forEach { arguments += listOf(SortKeys.path(it), "AS", it.key) + SORT_KEY_FLAGS }
             val attributes = fields.map {
                 Attribute(identifier = "$.${it.field}", name = it.name ?: it.field, type = it.type.name)
-            }
-            return IndexDefinition(arguments = arguments, prefix = prefix, attributes = attributes)
+            } + sorted.map { Attribute(identifier = SortKeys.path(it), name = it.key, type = SORT_KEY_TYPE) }
+            return IndexDefinition(
+                arguments = arguments,
+                prefix = prefix,
+                attributes = attributes,
+                sortKeys = SortKeys(sorted),
+            )
         }
 
         // A digest short enough for an attribute name; 64 bits tell apart every definition one index will ever have.

@@ -42,11 +42,9 @@ open class RedisSnapView<MODEL : Any>(
 
     final override val indexName: String = checkNotNull(model.simpleName) { "A snapshot model needs a name: $model" }
 
-    internal val index = RedisIndex(
-        connection = connection,
-        name = indexName,
-        definition = IndexDefinition.from(indexName, fields, settings),
-    )
+    private val definition = IndexDefinition.from(indexName, fields, settings)
+
+    internal val index = RedisIndex(connection = connection, name = indexName, definition = definition)
 
     private val keys = SnapshotKeys(
         connection = connection,
@@ -82,10 +80,13 @@ open class RedisSnapView<MODEL : Any>(
         return snapshots
     }
 
-    /** Stores [entity] under its id, marked with its model's name, and answers it. */
+    /** Stores [entity] under its id, marked with its model's name and the sort key of each text, and answers it. */
     override suspend fun save(entity: MODEL): MODEL {
-        val key = key(idOf(entity))
-        val json = objectMapper.valueToTree<ObjectNode>(entity).apply { put(TYPE, indexName) }.toString()
+        val id = idOf(entity)
+        val key = key(id)
+        val document = objectMapper.valueToTree<ObjectNode>(entity).apply { put(TYPE, indexName) }
+        definition.sortKeys.write(document = document, id = id)
+        val json = document.toString()
         // The String overload is sent as UTF-8, while the JsonValue overload encodes with the JVM default charset.
         val answer = commands.jsonSet(key, JsonPath.of("$"), json).awaitSingle<String>()
         check(answer == "OK") { "JSON.SET of $key answered $answer" }
@@ -121,6 +122,10 @@ open class RedisSnapView<MODEL : Any>(
      * One page of the documents [query] matches, sorted by [sortBy] when given. A null [pagination] asks for every
      * row: refused past [SEARCH_WINDOW] or on a short read, never cut. A page larger than [SEARCH_WINDOW], or a
      * search RediSearch answers with a warning, is refused too.
+     *
+     * A text attribute sorts in collation order, accents then case after the letters, equal texts by id, through the
+     * sort key [save] writes: a snapshot saved before this key existed sorts as a missing value until it is saved
+     * again, so a view upgraded to it is reloaded once ([ReloadView.reload] forced).
      */
     suspend fun search(
         query: String?,
@@ -134,7 +139,7 @@ open class RedisSnapView<MODEL : Any>(
         val page = pagination ?: OffsetPagination(offset = 0, limit = SEARCH_WINDOW)
         val args = SearchArgs.builder<String>().limit(page.offset.toLong(), page.limit.toLong())
         sortBy?.let { attribute ->
-            val order = SortByArgs.builder().attribute(attribute)
+            val order = SortByArgs.builder().attribute(definition.sortKeys.sortAttribute(attribute))
             args.sortBy((if (descending) order.descending() else order).build())
         }
         val reply = commands.ftSearch(indexName, query.orWildcard(), args.build()).awaitSingle()

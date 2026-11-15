@@ -3,6 +3,8 @@ package s2.spring.sourcing.snap.redis
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.node.ObjectNode
 
 class IndexDefinitionTest {
 
@@ -22,9 +24,43 @@ class IndexDefinitionTest {
                 "$.id AS id TAG " +
                 "$.name AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE " +
                 "$.rank AS rank NUMERIC SORTABLE " +
-                "$.labels[*] AS labels TAG",
+                "$.labels[*] AS labels TAG " +
+                "$.__s2_sort[\"name\"] AS __s2_sort_name TEXT NOINDEX SORTABLE UNF",
         )
         assertThat(definition.createArgs("Probe").toCommandString()).startsWith("Probe ON JSON")
+    }
+
+    @Test
+    fun `a text field is sorted by its key, unless its path walks into an array`() {
+        val texts = listOf(
+            RedisIndexField("id", RedisFieldType.TAG),
+            RedisIndexField("address.city", RedisFieldType.TEXT, name = "city"),
+            RedisIndexField.array("aliases", RedisFieldType.TEXT),
+            RedisIndexField("rank", RedisFieldType.NUMERIC),
+        )
+        val sortKeys = IndexDefinition.from("Probe", texts, IndexSettings(null)).sortKeys
+
+        assertThat(sortKeys.sortAttribute("city")).isEqualTo("__s2_sort_city")
+        assertThat(sortKeys.sortAttribute("aliases")).isEqualTo("aliases")
+        assertThat(sortKeys.sortAttribute("rank")).isEqualTo("rank")
+        val document = JsonMapper.builder().build().readTree(
+            """{"id":"a","address":{"city":"Érable"},"aliases":["x"],"rank":1}""",
+        ) as ObjectNode
+        sortKeys.write(document = document, id = "a")
+
+        assertThat(document.get(SortKeys.DOCUMENT_FIELD).propertyNames()).containsExactly("city")
+        assertThat(document.get(SortKeys.DOCUMENT_FIELD).get("city").stringValue()).endsWith(" a")
+    }
+
+    @Test
+    fun `a sort key orders texts as the collator does, then by id`() {
+        val words = listOf("Zèbre", "COFOR", "Érable", "Client", "Charpentier", "cote", "côté", "coté", "côte", "")
+        val collated = listOf("", "Charpentier", "Client", "COFOR", "cote", "coté", "côte", "côté", "Érable", "Zèbre")
+
+        assertThat(words.sortedBy { SortKeys.key(text = it, id = "same") }).containsExactlyElementsOf(collated)
+        assertThat(listOf("b", "a", "ab").sortedBy { SortKeys.key(text = "même", id = it) })
+            .containsExactly("a", "ab", "b")
+        assertThat(SortKeys.key(text = "e\u0301", id = "x")).isEqualTo(SortKeys.key(text = "\u00e9", id = "x"))
     }
 
     @Test
