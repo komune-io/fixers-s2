@@ -42,11 +42,9 @@ open class RedisSnapView<MODEL : Any>(
 
     final override val indexName: String = checkNotNull(model.simpleName) { "A snapshot model needs a name: $model" }
 
-    internal val index = RedisIndex(
-        connection = connection,
-        name = indexName,
-        definition = IndexDefinition.from(indexName, fields, settings),
-    )
+    private val definition = IndexDefinition.from(indexName, fields, settings)
+
+    internal val index = RedisIndex(connection = connection, name = indexName, definition = definition)
 
     private val keys = SnapshotKeys(
         connection = connection,
@@ -55,8 +53,19 @@ open class RedisSnapView<MODEL : Any>(
         objectMapper = objectMapper,
     )
 
+    private val backfill = SortKeyBackfill(
+        connection = connection,
+        indexName = indexName,
+        keys = keys,
+        sortKeys = definition.sortKeys,
+        objectMapper = objectMapper,
+    )
+
     // The connection caches its reactive commands, so one fetched here stays the connection's.
     private val commands: RedisReactiveCommands<String, String> = connection.commands(RedisReactiveCommands.factory())
+
+    /** The attribute a search of the store sorts by to sort by an attribute as [search] does. */
+    protected val sortAttribute: (attribute: String) -> String = definition.sortKeys::sortAttribute
 
     /** The key of the snapshot [id]: `<Model>-<id>`. */
     fun key(id: String) = keys.key(id)
@@ -82,10 +91,13 @@ open class RedisSnapView<MODEL : Any>(
         return snapshots
     }
 
-    /** Stores [entity] under its id, marked with its model's name, and answers it. */
+    /** Stores [entity] under its id, marked with its model's name and the sort key of each text, and answers it. */
     override suspend fun save(entity: MODEL): MODEL {
-        val key = key(idOf(entity))
-        val json = objectMapper.valueToTree<ObjectNode>(entity).apply { put(TYPE, indexName) }.toString()
+        val id = idOf(entity)
+        val key = key(id)
+        val document = objectMapper.valueToTree<ObjectNode>(entity).apply { put(TYPE, indexName) }
+        definition.sortKeys.write(document = document, id = id)
+        val json = document.toString()
         // The String overload is sent as UTF-8, while the JsonValue overload encodes with the JVM default charset.
         val answer = commands.jsonSet(key, JsonPath.of("$"), json).awaitSingle<String>()
         check(answer == "OK") { "JSON.SET of $key answered $answer" }
@@ -121,6 +133,11 @@ open class RedisSnapView<MODEL : Any>(
      * One page of the documents [query] matches, sorted by [sortBy] when given. A null [pagination] asks for every
      * row: refused past [SEARCH_WINDOW] or on a short read, never cut. A page larger than [SEARCH_WINDOW], or a
      * search RediSearch answers with a warning, is refused too.
+     *
+     * A text attribute on a plain dotted path sorts in collation order, accents then case after the letters, over its
+     * first [SortKeys.SORTED_LENGTH] characters, equal texts by id, a missing text last ascending: through the sort
+     * key [save] writes and [initIndex] gives every stored document that lacks it. Any other attribute sorts as the
+     * store sorts it.
      */
     suspend fun search(
         query: String?,
@@ -134,7 +151,7 @@ open class RedisSnapView<MODEL : Any>(
         val page = pagination ?: OffsetPagination(offset = 0, limit = SEARCH_WINDOW)
         val args = SearchArgs.builder<String>().limit(page.offset.toLong(), page.limit.toLong())
         sortBy?.let { attribute ->
-            val order = SortByArgs.builder().attribute(attribute)
+            val order = SortByArgs.builder().attribute(definition.sortKeys.sortAttribute(attribute))
             args.sortBy((if (descending) order.descending() else order).build())
         }
         val reply = commands.ftSearch(indexName, query.orWildcard(), args.build()).awaitSingle()
@@ -154,10 +171,12 @@ open class RedisSnapView<MODEL : Any>(
     /**
      * Makes the index match its fields and settings and waits until it has read the stored documents: see
      * [RedisIndexInitializer.initIndex]. A store that cannot answer, a wait past [RedisIndex.INDEXING_CEILING] or a
-     * stored document the index cannot read fails it.
+     * stored document the index cannot read fails it. Then every stored document lacking the sort keys of its texts
+     * gets them — one written before them, or before an attribute was added — so no reload is needed for sorting.
      */
     override suspend fun initIndex() {
         index.init()
+        val _ = backfill.run()
     }
 
     companion object {

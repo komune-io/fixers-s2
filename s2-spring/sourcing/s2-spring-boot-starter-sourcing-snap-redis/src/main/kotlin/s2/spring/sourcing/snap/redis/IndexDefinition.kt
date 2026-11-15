@@ -6,6 +6,7 @@ import io.lettuce.core.protocol.CommandArgs
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.HexFormat
+import org.slf4j.LoggerFactory
 
 /**
  * An index as `FT.CREATE` makes it: the keys `<index>-…` it reads — the dash keeps out a model whose name starts
@@ -19,6 +20,7 @@ internal class IndexDefinition private constructor(
     private val arguments: List<String>,
     private val prefix: String,
     private val attributes: List<Attribute>,
+    val sortKeys: SortKeys,
 ) {
     /** One attribute as `FT.INFO` shows it: its JSON path, the name queries use, and its type. */
     data class Attribute(val identifier: String, val name: String, val type: String)
@@ -51,17 +53,27 @@ internal class IndexDefinition private constructor(
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(RedisSnapView::class.java)
         private const val DEFAULT_LANGUAGE = "english"
         private const val MARKER_PATH = "$.__s2_index_definition"
         private const val MARKER_PREFIX = "__s2_definition_"
         private const val MARKER_TYPE = "TAG"
         private const val MARKER_DIGEST_LENGTH = 16
         private val HEAD = listOf("identifier", "attribute", "type")
+        private const val SORT_KEY_TYPE = "TEXT"
+        private const val SORTABLE = "SORTABLE"
+
+        // Sorted as written and in no inverted index, so that no query matches a key; RediSearch 2.4 refuses a
+        // sortable TAG on JSON.
+        private val SORT_KEY_FLAGS = listOf(SORT_KEY_TYPE, "NOINDEX", SORTABLE, "UNF")
 
         fun from(indexName: String, fields: List<RedisIndexField>, settings: IndexSettings): IndexDefinition {
             require(fields.isNotEmpty()) { "Index[$indexName] needs at least one field" }
             val names = fields.map { it.name ?: it.field }
             require(names.distinct().size == names.size) { "Index[$indexName] names a field twice: $names" }
+            require(fields.none { it.field.substringBefore('.').substringBefore('[') == SortKeys.DOCUMENT_FIELD }) {
+                "Index[$indexName] reads ${SortKeys.DOCUMENT_FIELD}, kept for sort keys"
+            }
             val prefix = "$indexName-"
             // RediSearch's default list leaves English words out of the index, so a name holding « Or » or « If »
             // could not be found by that word.
@@ -71,15 +83,36 @@ internal class IndexDefinition private constructor(
                 arguments += when (field.type) {
                     RedisFieldType.TEXT -> listOf("NOSTEM") +
                         settings.phonetic?.let { listOf("PHONETIC", it.value) }.orEmpty() +
-                        "SORTABLE"
-                    RedisFieldType.NUMERIC -> listOf("SORTABLE")
+                        SORTABLE
+                    RedisFieldType.NUMERIC -> listOf(SORTABLE)
                     RedisFieldType.GEO, RedisFieldType.TAG -> emptyList()
                 }
             }
+            val sorted = fields.filter { it.type == RedisFieldType.TEXT }.mapNotNull { sortedOrWarn(indexName, it) }
+            sorted.forEach { arguments += listOf(SortKeys.path(it), "AS", it.key) + SORT_KEY_FLAGS }
             val attributes = fields.map {
                 Attribute(identifier = "$.${it.field}", name = it.name ?: it.field, type = it.type.name)
+            } + sorted.map { Attribute(identifier = SortKeys.path(it), name = it.key, type = SORT_KEY_TYPE) }
+            return IndexDefinition(
+                arguments = arguments,
+                prefix = prefix,
+                attributes = attributes,
+                sortKeys = SortKeys(sorted),
+            )
+        }
+
+        private fun sortedOrWarn(indexName: String, field: RedisIndexField): SortKeys.Sorted? {
+            val attribute = field.name ?: field.field
+            val sorted = SortKeys.sorted(attribute = attribute, path = field.field)
+            if (sorted == null) {
+                logger.warn(
+                    "Index[{}]: text {} at {} sorts in the store's byte order: not a plain dotted name",
+                    indexName,
+                    attribute,
+                    field.field,
+                )
             }
-            return IndexDefinition(arguments = arguments, prefix = prefix, attributes = attributes)
+            return sorted
         }
 
         // A digest short enough for an attribute name; 64 bits tell apart every definition one index will ever have.

@@ -3,6 +3,8 @@ package s2.spring.sourcing.snap.redis
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.node.ObjectNode
 
 class IndexDefinitionTest {
 
@@ -22,9 +24,96 @@ class IndexDefinitionTest {
                 "$.id AS id TAG " +
                 "$.name AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE " +
                 "$.rank AS rank NUMERIC SORTABLE " +
-                "$.labels[*] AS labels TAG",
+                "$.labels[*] AS labels TAG " +
+                "$.__s2_sort[\"name\"] AS __s2_sort_name TEXT NOINDEX SORTABLE UNF",
         )
         assertThat(definition.createArgs("Probe").toCommandString()).startsWith("Probe ON JSON")
+    }
+
+    @Test
+    fun `a text field is sorted by its key, unless its path walks into an array`() {
+        val texts = listOf(
+            RedisIndexField("id", RedisFieldType.TAG),
+            RedisIndexField("address.city", RedisFieldType.TEXT, name = "city"),
+            RedisIndexField.array("aliases", RedisFieldType.TEXT),
+            RedisIndexField("rank", RedisFieldType.NUMERIC),
+        )
+        val sortKeys = IndexDefinition.from("Probe", texts, IndexSettings(null)).sortKeys
+
+        assertThat(sortKeys.sortAttribute("city")).isEqualTo("__s2_sort_city")
+        assertThat(sortKeys.sortAttribute("aliases")).isEqualTo("aliases")
+        assertThat(sortKeys.sortAttribute("rank")).isEqualTo("rank")
+        val document = JsonMapper.builder().build().readTree(
+            """{"id":"a","address":{"city":"Érable"},"aliases":["x"],"rank":1}""",
+        ) as ObjectNode
+        sortKeys.write(document = document, id = "a")
+
+        assertThat(document.get(SortKeys.DOCUMENT_FIELD).propertyNames()).containsExactly("city")
+        assertThat(document.get(SortKeys.DOCUMENT_FIELD).get("city").stringValue()).endsWith(" a")
+    }
+
+    @Test
+    fun `a sort key orders texts as the collator does, then by id`() {
+        val words = listOf("Zèbre", "COFOR", "Érable", "Client", "Charpentier", "cote", "côté", "coté", "côte", "")
+        val collated = listOf("", "Charpentier", "Client", "COFOR", "cote", "coté", "côte", "côté", "Érable", "Zèbre")
+
+        assertThat(words.sortedBy { SortKeys.key(text = it, id = "same") }).containsExactlyElementsOf(collated)
+        assertThat(listOf("b", "a", "ab").sortedBy { SortKeys.key(text = "même", id = it) })
+            .containsExactly("a", "ab", "b")
+        assertThat(SortKeys.key(text = "e\u0301", id = "x")).isEqualTo(SortKeys.key(text = "\u00e9", id = "x"))
+    }
+
+    @Test
+    fun `a collation key is pinned, so that a JVM sorting otherwise fails the build`() {
+        val golden = mapOf(
+            "" to "00000000",
+            "a" to "00530000000100000001",
+            "A" to "00530000000100000002",
+            "é" to "005800000001008900000001",
+            "Érable" to "0058006500530054005f0058000000010089000100010001000100010000000200010001000100010001",
+            "日本" to "800065e68000672d0000000100010001000100000001000100010001",
+            "\uD83C\uDF32" to "8000d83ddf3300000001000100010000000100010001",
+        )
+
+        golden.forEach { (text, hex) -> assertThat(SortKeys.collationHex(text)).describedAs("«$text»").isEqualTo(hex) }
+    }
+
+    @Test
+    fun `a missing or non-text value gets the key sorting after every text`() {
+        val sortKeys = IndexDefinition.from("Probe", fields, IndexSettings(null)).sortKeys
+        val document = JsonMapper.builder().build().readTree("""{"id":"a","name":12}""") as ObjectNode
+
+        assertThat(sortKeys.keysOf(document = document, id = "a").get("name").stringValue()).isEqualTo("~ a")
+        assertThat(SortKeys.missing("a")).isGreaterThan(SortKeys.key(text = "\uFFFF".repeat(3), id = "a"))
+    }
+
+    @Test
+    fun `an attribute or a path that is not a plain dotted name keeps the store's sort`() {
+        assertThat(SortKeys.sorted(attribute = "wood-species", path = "woodSpecies")).isNull()
+        assertThat(SortKeys.sorted(attribute = "name\"]", path = "name")).isNull()
+        assertThat(SortKeys.sorted(attribute = "aliases", path = "aliases[*]")).isNull()
+        assertThat(SortKeys.sorted(attribute = "city", path = "address.city")?.pointer).isEqualTo("/address/city")
+    }
+
+    @Test
+    fun `a field under the sort keys' own name is refused, and a quote in an attribute name gives no key`() {
+        val reading = listOf(RedisIndexField("__s2_sort.name", RedisFieldType.TEXT, name = "sorted"))
+        val quoted = listOf(RedisIndexField("city", RedisFieldType.TEXT, name = "city\"label"))
+
+        assertThatThrownBy { val _ = IndexDefinition.from("Probe", reading, IndexSettings(null)) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("__s2_sort")
+        assertThat(IndexDefinition.from("Probe", quoted, IndexSettings(null)).fingerprint).doesNotContain("__s2_sort")
+    }
+
+    @Test
+    fun `a snapshot carrying old sort keys gets its own written over them`() {
+        val sortKeys = IndexDefinition.from("Probe", fields, IndexSettings(null)).sortKeys
+        val document = JsonMapper.builder().build().readTree("""{"id":"a","name":"x","__s2_sort":1}""") as ObjectNode
+
+        sortKeys.write(document = document, id = "a")
+
+        assertThat(document.get("__s2_sort").get("name").stringValue()).isEqualTo(SortKeys.key(text = "x", id = "a"))
     }
 
     @Test
