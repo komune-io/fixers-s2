@@ -57,8 +57,10 @@ class RedisSnapViewMatchTest {
         assertThat(names("cofor")).containsExactly("COFOR")
     }
 
+    // Known gap, pinned so that a change shows, not wanted: the index folds case but not accents, so an unaccented
+    // word misses an accented name unless it sounds the same.
     @Test
-    suspend fun `a typed word finds an accented name only with its accents, or by its sound`() {
+    suspend fun `known gap - a typed word finds an accented name only with its accents, or by its sound`() {
         val _ = store(snap("Érable"), snap("Saint-Égrève"), snap("Thones"))
 
         assertThat(names("érable")).containsExactly("Érable")
@@ -69,8 +71,9 @@ class RedisSnapViewMatchTest {
         assertThat(names("egre".addWildcard())).isEmpty()
     }
 
+    // Known gap of Redis Stack 6.2, pinned per stack: it does not lowercase « É »; only a phonetic matcher hides it.
     @Test
-    suspend fun `without a phonetic matcher, an accented capital is found in lower case from Redis Stack 7_4 on`() {
+    suspend fun `known gap - without a phonetic matcher, an accented capital is found in lower case from 7_4 on`() {
         val plain = RedisStack.view(
             model = MatchProbeSnap::class,
             fields = listOf(
