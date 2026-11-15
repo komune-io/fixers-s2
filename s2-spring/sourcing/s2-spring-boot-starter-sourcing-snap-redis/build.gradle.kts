@@ -22,14 +22,14 @@ dependencies {
     testImplementation(libs.logback.classic)
 }
 
-// The suite runs against every Redis Stack the module supports: the one BoisLocal runs in production, and the
-// current one, whose RediSearch answers differently (RESP3 warnings, FT.INFO fields).
+// The suite runs against every Redis Stack the module supports, whose RediSearch answers differently (sort order,
+// case folding, RESP3 warnings, FT.INFO fields). `test` runs them all: CI runs `test`, not `check`.
 val redisStacks = mapOf(
-    "test" to "redis/redis-stack:6.2.2-v2-edge@sha256:eb0bd59d722b089875c878e88b92bd6de79033242b1e4da8b6e8d789fc284df1",
-    "testRedisStack74" to "redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7",
+    "test" to "redis/redis-stack:7.4.0-v8@sha256:5d5154123426693540ea6c1d9e638eae2bf2024879c839db6fcfdd7717e817c7",
+    "testRedisStack62" to "redis/redis-stack:6.2.2-v2-edge@sha256:eb0bd59d722b089875c878e88b92bd6de79033242b1e4da8b6e8d789fc284df1",
 )
 
-val testRedisStack74 by tasks.registering(Test::class) {
+val testRedisStack62 by tasks.registering(Test::class) {
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
 }
@@ -47,6 +47,7 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-tasks.check {
-    dependsOn(testRedisStack74)
+// A finalizer runs whether `test` passes or fails, so one Redis Stack's failure never hides the other's.
+tasks.test {
+    finalizedBy(testRedisStack62)
 }

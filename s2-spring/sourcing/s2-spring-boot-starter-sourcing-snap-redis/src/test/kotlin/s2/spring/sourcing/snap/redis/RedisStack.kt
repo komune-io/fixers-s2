@@ -25,6 +25,9 @@ object RedisStack {
      */
     val isWarningOnCutExpansion: Boolean = !image.startsWith("redis/redis-stack:6.")
 
+    /** Whether this RediSearch lowercases letters beyond ASCII, from Redis Stack 7.4 on: 6.2 leaves « É » as typed. */
+    val isUnicodeCaseFolded: Boolean = !image.startsWith("redis/redis-stack:6.")
+
     private val container: GenericContainer<*> by lazy {
         GenericContainer(DockerImageName.parse(image)).withExposedPorts(PORT).apply { start() }
     }
