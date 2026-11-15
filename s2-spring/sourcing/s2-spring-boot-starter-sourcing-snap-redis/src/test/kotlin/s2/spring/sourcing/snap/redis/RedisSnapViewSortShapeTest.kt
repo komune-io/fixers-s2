@@ -3,6 +3,7 @@ package s2.spring.sourcing.snap.redis
 import kotlin.reflect.KClass
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -60,18 +61,17 @@ class RedisSnapViewSortShapeTest {
         assertThat(ids("city", descending = true)).containsExactly("n", "z", "e", "c", "l")
     }
 
-    // Known gap of Redis Stack 6.2, pinned per stack: a text array of two values or more leaves the whole document
-    // out of the index, without an error.
     @Test
-    suspend fun `known gap - a text array keeps the store's own sort, and 6_2 indexes only single values`() {
-        val _ = view.save(ShapeProbeSnap(id = "1", aliases = listOf("beta", "Alpha")))
+    suspend fun `a text array of several values is indexed and found on every Redis Stack, sorted on its folded text`() {
+        val _ = view.save(ShapeProbeSnap(id = "1", aliases = listOf("beta", "Érable")))
         val _ = view.save(ShapeProbeSnap(id = "2", aliases = listOf("alpha")))
+        val _ = view.save(ShapeProbeSnap(id = "3", aliases = listOf("Gamma", "delta", "Epsilon")))
 
-        if (RedisStack.isTextArrayIndexed) {
-            assertThat(ids("aliases")).containsExactly("1", "2")
-        } else {
-            assertThat(ids("aliases")).containsExactly("2")
-        }
+        assertThat(view.count()).isEqualTo(3)
+        assertThat(ids("aliases")).containsExactly("2", "1", "3")
+        assertThat(view.search("erable", null, null).items.map { it.id }).containsExactly("1")
+        assertThat(view.search("@aliases:(beta|delta)", null, null).items.map { it.id }).containsExactlyInAnyOrder("1", "3")
+        assertThat(view.search("@aliases:epsilon", null, null).items.map { it.id }).containsExactly("3")
     }
 
     @Test
@@ -84,22 +84,30 @@ class RedisSnapViewSortShapeTest {
     }
 
     @Test
-    suspend fun `an attribute whose name holds a quote starts, sorted as the store sorts it`() {
-        val quoted = RedisStack.view(
+    fun `a text attribute whose name holds a quote is refused, a tag one starts`() {
+        val quotedTag = RedisStack.view(
             model = ShapeProbeSnap::class,
             fields = listOf(
                 RedisIndexField(ShapeProbeSnap::id.name, RedisFieldType.TAG),
-                RedisIndexField(ShapeProbeSnap::status.name, RedisFieldType.TEXT, name = "status\"label"),
+                RedisIndexField(ShapeProbeSnap::status.name, RedisFieldType.TAG, name = "status\"label"),
             ),
             idOf = ShapeProbeSnap::id,
         )
 
-        quoted.initIndex()
-        val _ = quoted.save(ShapeProbeSnap(id = "q", status = "open"))
+        assertThatThrownBy {
+            val _ = RedisStack.view(
+                model = ShapeProbeSnap::class,
+                fields = listOf(RedisIndexField(ShapeProbeSnap::status.name, RedisFieldType.TEXT, name = "status\"label")),
+                idOf = ShapeProbeSnap::id,
+            )
+        }.isInstanceOf(IllegalArgumentException::class.java).hasMessageContaining("status\"label")
+        runBlocking {
+            quotedTag.initIndex()
+            val _ = quotedTag.save(ShapeProbeSnap(id = "q", status = "open"))
 
-        val found = quoted.search(query = null, pagination = null, sortBy = null).items.map { it.id }
-
-        assertThat(found).containsExactly("q")
+            assertThat(quotedTag.search(query = null, pagination = null, sortBy = null).items.map { it.id })
+                .containsExactly("q")
+        }
     }
 
     @Test

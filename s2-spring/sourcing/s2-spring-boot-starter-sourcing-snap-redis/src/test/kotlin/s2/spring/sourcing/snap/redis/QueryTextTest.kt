@@ -38,22 +38,23 @@ class QueryTextTest {
     }
 
     @Test
-    fun `each word becomes a prefix`() {
-        assertThat("Saint Égrève".addWildcard()).isEqualTo("Saint* Égrève*")
+    fun `each word becomes a prefix, its accents and capitals folded as the index folds them`() {
+        assertThat("Saint Égrève".addWildcard()).isEqualTo("saint* egreve*")
+        assertThat("ŒUVRE".addWildcard()).isEqualTo("œuvre*")
     }
 
     @Test
     fun `query syntax in the text is read as a word separator`() {
-        assertThat("Thônes (74280)".addWildcard()).isEqualTo("Thônes* 74280*")
-        assertThat("Saint-Égrève".addWildcard()).isEqualTo("Saint* Égrève*")
-        assertThat("Mont@Saint|Martin".addWildcard()).isEqualTo("Mont* Saint* Martin*")
+        assertThat("Thônes (74280)".addWildcard()).isEqualTo("thones* 74280*")
+        assertThat("Saint-Égrève".addWildcard()).isEqualTo("saint* egreve*")
+        assertThat("Mont@Saint|Martin".addWildcard()).isEqualTo("mont* saint* martin*")
         assertThat("""a:b;c,d.e/f\g"h'i[j]k{l}m~n!o*p%q^r&s=t+u<v>w?x#y${'$'}z""".addWildcard())
             .isEqualTo("a b c d e f g h i j k l m n o p q r s t u v w x y z")
     }
 
     @Test
     fun `a single letter is searched as a word, below the shortest prefix RediSearch expands`() {
-        assertThat("L'Isle-d'Abeau".addWildcard()).isEqualTo("L Isle* d Abeau*")
+        assertThat("L'Isle-d'Abeau".addWildcard()).isEqualTo("l isle* d abeau*")
     }
 
     @Test
@@ -63,7 +64,7 @@ class QueryTextTest {
 
     @Test
     fun `an underscore stays inside its word, as RediSearch indexes it`() {
-        assertThat("Mont_du_Lac".addWildcard()).isEqualTo("Mont_du_Lac*")
+        assertThat("Mont_du_Lac".addWildcard()).isEqualTo("mont_du_lac*")
     }
 
     @Test
@@ -96,7 +97,7 @@ class QueryTextTest {
 
     @Test
     fun `an application may start prefixes later, never earlier than RediSearch expands them`() {
-        assertThat("ab abc Saint".addWildcard(minPrefix = 3)).isEqualTo("ab abc* Saint*")
+        assertThat("ab abc Saint".addWildcard(minPrefix = 3)).isEqualTo("ab abc* saint*")
         assertThatThrownBy { val _ = "ab".addWildcard(minPrefix = 1) }
             .isInstanceOf(IllegalArgumentException::class.java)
         assertThatThrownBy { val _ = IndexSettings(phonetic = null, wildcardMinPrefix = 1) }
