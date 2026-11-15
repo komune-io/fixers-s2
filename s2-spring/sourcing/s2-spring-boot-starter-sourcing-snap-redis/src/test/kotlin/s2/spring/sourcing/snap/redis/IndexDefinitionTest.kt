@@ -22,7 +22,7 @@ class IndexDefinitionTest {
         assertThat(definition.fingerprint).isEqualTo(
             "ON JSON PREFIX 1 Probe- STOPWORDS 0 SCHEMA " +
                 "$.id AS id TAG " +
-                "$.name AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE " +
+                """$.__s2_text["name"] AS name TEXT NOSTEM PHONETIC dm:fr SORTABLE """ +
                 "$.rank AS rank NUMERIC SORTABLE " +
                 "$.labels[*] AS labels TAG " +
                 "$.__s2_sort[\"name\"] AS __s2_sort_name TEXT NOINDEX SORTABLE UNF",
@@ -96,14 +96,68 @@ class IndexDefinitionTest {
     }
 
     @Test
-    fun `a field under the sort keys' own name is refused, and a quote in an attribute name gives no key`() {
-        val reading = listOf(RedisIndexField("__s2_sort.name", RedisFieldType.TEXT, name = "sorted"))
-        val quoted = listOf(RedisIndexField("city", RedisFieldType.TEXT, name = "city\"label"))
+    fun `a field under the sort keys' or the folded texts' own name is refused`() {
+        listOf("__s2_sort.name", "__s2_text", "__s2_text[*]").forEach { path ->
+            val reading = listOf(RedisIndexField(path, RedisFieldType.TAG, name = "derived"))
 
-        assertThatThrownBy { val _ = IndexDefinition.from("Probe", reading, IndexSettings(null)) }
-            .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("__s2_sort")
-        assertThat(IndexDefinition.from("Probe", quoted, IndexSettings(null)).fingerprint).doesNotContain("__s2_sort")
+            assertThatThrownBy { val _ = IndexDefinition.from("Probe", reading, IndexSettings(null)) }
+                .describedAs(path)
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessageContaining(path.substringBefore('.').substringBefore('['))
+        }
+    }
+
+    @Test
+    fun `a text whose path or attribute is not plain dotted names, arrays walked whole, is refused`() {
+        val refused = listOf(
+            RedisIndexField("city", RedisFieldType.TEXT, name = "city\"label"),
+            RedisIndexField("wood-species", RedisFieldType.TEXT, name = "species"),
+            RedisIndexField("items[0].name", RedisFieldType.TEXT, name = "item"),
+            RedisIndexField("..name", RedisFieldType.TEXT, name = "any"),
+            RedisIndexField("items[?(@.a)]", RedisFieldType.TEXT, name = "filtered"),
+        )
+        val kept = listOf(
+            RedisIndexField("address.city", RedisFieldType.TEXT),
+            RedisIndexField.array("aliases", RedisFieldType.TEXT),
+            RedisIndexField("items[*].labels[*]", RedisFieldType.TEXT, name = "labels"),
+            RedisIndexField("wood-species", RedisFieldType.TAG, name = "species\"tag"),
+        )
+
+        refused.forEach { field ->
+            assertThatThrownBy { val _ = IndexDefinition.from("Probe", listOf(field), IndexSettings(null)) }
+                .describedAs(field.toString())
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessageContaining(field.field)
+        }
+        assertThat(IndexDefinition.from("Probe", kept, IndexSettings(null)).fingerprint).contains(
+            "$.__s2_text[\"address.city\"] AS address.city TEXT",
+            "$.__s2_text[\"aliases\"] AS aliases TEXT",
+            "$.__s2_text[\"labels\"] AS labels TEXT",
+            "$.wood-species AS species\"tag TAG",
+        )
+    }
+
+    @Test
+    fun `a text is folded from its path, an array's strings joined, anything else left out`() {
+        val texts = listOf(
+            RedisIndexField("address.city", RedisFieldType.TEXT, name = "city"),
+            RedisIndexField.array("aliases", RedisFieldType.TEXT),
+            RedisIndexField("items[*].labels[*]", RedisFieldType.TEXT, name = "labels"),
+            RedisIndexField("name", RedisFieldType.TEXT),
+            RedisIndexField("rank", RedisFieldType.TEXT),
+            RedisIndexField("notes", RedisFieldType.TEXT),
+        )
+        val folded = IndexDefinition.from("Probe", texts, IndexSettings(null)).foldedTexts
+        val document = JsonMapper.builder().build().readTree(
+            """{"address":{"city":"Saint-Égrève"},"aliases":["Érable",3,"ACER",null],""" +
+                """"items":[{"labels":["Chêne"]},{"labels":"Hêtre"},{"labels":["Frêne","Orme"]}],"rank":12,""" +
+                """"notes":["a"],"__s2_text":{"name":"stale"}}""",
+        ) as ObjectNode
+
+        folded.write(document = document, id = "a")
+
+        assertThat(document.get(FoldedTexts.DOCUMENT_FIELD).toString())
+            .isEqualTo("""{"city":"saint-egreve","aliases":"erable acer","labels":"chene frene orme"}""")
     }
 
     @Test

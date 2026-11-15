@@ -38,38 +38,60 @@ class QueryTextTest {
     }
 
     @Test
-    fun `each word becomes a prefix`() {
-        assertThat("Saint Égrève".addWildcard()).isEqualTo("Saint* Égrève*")
+    fun `each word becomes a prefix, its accents and capitals folded as the index folds them`() {
+        assertThat("Saint Égrève".addWildcard()).isEqualTo("saint* egreve*")
+        assertThat("ŒUVRE".addWildcard()).isEqualTo("œuvre*")
     }
 
     @Test
     fun `query syntax in the text is read as a word separator`() {
-        assertThat("Thônes (74280)".addWildcard()).isEqualTo("Thônes* 74280*")
-        assertThat("Saint-Égrève".addWildcard()).isEqualTo("Saint* Égrève*")
-        assertThat("Mont@Saint|Martin".addWildcard()).isEqualTo("Mont* Saint* Martin*")
+        assertThat("Thônes (74280)".addWildcard()).isEqualTo("thones* 74280*")
+        assertThat("Saint-Égrève".addWildcard()).isEqualTo("saint* egreve*")
+        assertThat("Mont@Saint|Martin".addWildcard()).isEqualTo("mont* saint* martin*")
         assertThat("""a:b;c,d.e/f\g"h'i[j]k{l}m~n!o*p%q^r&s=t+u<v>w?x#y${'$'}z""".addWildcard())
             .isEqualTo("a b c d e f g h i j k l m n o p q r s t u v w x y z")
     }
 
     @Test
     fun `a single letter is searched as a word, below the shortest prefix RediSearch expands`() {
-        assertThat("L'Isle-d'Abeau".addWildcard()).isEqualTo("L Isle* d Abeau*")
+        assertThat("L'Isle-d'Abeau".addWildcard()).isEqualTo("l isle* d abeau*")
     }
 
     @Test
-    fun `an accent typed as a combining mark stays inside its word`() {
-        assertThat("Thônes".addWildcard()).isEqualTo("Thônes*")
+    fun `an accent typed as a combining mark is folded inside its word`() {
+        assertThat("Tho\u0302nes".addWildcard()).isEqualTo("thones*")
+        assertThat("e\u0301".addWildcard()).isEqualTo("e")
     }
 
     @Test
     fun `an underscore stays inside its word, as RediSearch indexes it`() {
-        assertThat("Mont_du_Lac".addWildcard()).isEqualTo("Mont_du_Lac*")
+        assertThat("Mont_du_Lac".addWildcard()).isEqualTo("mont_du_lac*")
     }
 
     @Test
     fun `no text is no query`() {
         assertThat(null.addWildcard()).isEqualTo("")
         assertThat("  - ( ) ".addWildcard()).isEqualTo("")
+    }
+
+    @Test
+    fun `a query's words are folded, its tags, ranges, attribute names and parameters kept as written`() {
+        assertThat(foldQuery("""Érable @Name:(ÉGRÈ* | "Saint Étienne") -Œuvre"""))
+            .isEqualTo("""erable @Name:(egre* | "saint etienne") -œuvre""")
+        assertThat(foldQuery("""@status:{Égrève|A\}É} Été @rank:[-inf (10] @geo:[2.3 48.8 5 KM] ${'$'}Param"""))
+            .isEqualTo("""@status:{Égrève|A\}É} ete @rank:[-inf (10] @geo:[2.3 48.8 5 KM] ${'$'}Param""")
+        assertThat(foldQuery("""a\{É \@Été""")).isEqualTo("""a\{e \@ete""")
+        assertThat(foldQuery("@Name|Title:Été")).isEqualTo("@Name|Title:ete")
+        assertThat(foldQuery("*")).isEqualTo("*")
+        assertThat(foldQuery("@name:{unclosed É")).isEqualTo("@name:{unclosed É")
+    }
+
+    @Test
+    fun `a text is folded as the index holds it, and IndexWords reads it alike`() {
+        assertThat(foldText("Saint-Égrève ŒUVRE Ørsted İstanbul e\u0301"))
+            .isEqualTo("saint-egreve œuvre ørsted istanbul e")
+        assertThat(foldText("한국 Ä")).isEqualTo("한국 a")
+        assertThat(IndexWords.holds(name = "Œuvre Ørsted", term = "ŒUV ØRST")).isTrue()
     }
 
     @Test
@@ -96,7 +118,7 @@ class QueryTextTest {
 
     @Test
     fun `an application may start prefixes later, never earlier than RediSearch expands them`() {
-        assertThat("ab abc Saint".addWildcard(minPrefix = 3)).isEqualTo("ab abc* Saint*")
+        assertThat("ab abc Saint".addWildcard(minPrefix = 3)).isEqualTo("ab abc* saint*")
         assertThatThrownBy { val _ = "ab".addWildcard(minPrefix = 1) }
             .isInstanceOf(IllegalArgumentException::class.java)
         assertThatThrownBy { val _ = IndexSettings(phonetic = null, wildcardMinPrefix = 1) }

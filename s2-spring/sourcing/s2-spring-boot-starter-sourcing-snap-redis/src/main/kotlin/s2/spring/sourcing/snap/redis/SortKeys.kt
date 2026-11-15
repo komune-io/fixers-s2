@@ -11,17 +11,19 @@ import tools.jackson.databind.node.ObjectNode
  * [SORTED_LENGTH] characters, in hex so that its byte order is the collation order whatever the store normalises,
  * then the snapshot's id, so that equal texts take one order on every page. A missing text sorts after every text.
  */
-internal class SortKeys(private val sorted: List<Sorted>) {
+internal class SortKeys(private val sorted: List<Sorted>) : DerivedField {
 
     data class Sorted(val attribute: String, val pointer: String, val key: String)
 
     private val keyOf = sorted.associate { it.attribute to it.key }
 
-    val isEmpty: Boolean get() = sorted.isEmpty()
+    override val documentField: String get() = DOCUMENT_FIELD
+
+    override val isEmpty: Boolean get() = sorted.isEmpty()
 
     fun sortAttribute(attribute: String): String = keyOf[attribute] ?: attribute
 
-    /** The keys of [document] as [write] stores them; a text that is not a string is missing. */
+    /** The keys of [document]; a text that is not a string is missing. */
     fun keysOf(document: ObjectNode, id: String): ObjectNode = document.objectNode().apply {
         sorted.forEach { field ->
             val text = document.at(field.pointer)
@@ -29,11 +31,7 @@ internal class SortKeys(private val sorted: List<Sorted>) {
         }
     }
 
-    /** Replaces the [DOCUMENT_FIELD] [document] holds: a model reading stored documents back carries old keys. */
-    fun write(document: ObjectNode, id: String) {
-        if (isEmpty) return
-        val _ = document.set(DOCUMENT_FIELD, keysOf(document = document, id = id))
-    }
+    override fun valueOf(document: ObjectNode, id: String): ObjectNode = keysOf(document = document, id = id)
 
     companion object {
         const val DOCUMENT_FIELD = "__s2_sort"

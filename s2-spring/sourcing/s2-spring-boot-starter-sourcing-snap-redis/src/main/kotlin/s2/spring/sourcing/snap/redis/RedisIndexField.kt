@@ -18,7 +18,8 @@ data class RedisIndexField(
          * **the whole document** from the index and only counts it in `hash_indexing_failures`
          * — no error, no log, and `createIndex` would not see it anyway since `FT.CREATE`
          * itself succeeds. The path must therefore walk into the array with `[*]`, while the
-         * attribute keeps the plain field name that [tagClause] queries.
+         * attribute keeps the plain field name that [tagClause] queries. A TEXT array is indexed as its members
+         * folded and joined into one text, which every Redis Stack indexes: a phrase may then span two members.
          */
         fun array(field: String, type: RedisFieldType) = RedisIndexField("$field[*]", type, name = field)
     }

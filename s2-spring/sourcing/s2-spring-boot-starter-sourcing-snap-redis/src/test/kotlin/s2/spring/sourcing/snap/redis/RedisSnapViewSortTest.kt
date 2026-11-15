@@ -258,7 +258,7 @@ class RedisSnapViewSortTest {
         val id = storeUnkeyed("Alpha")
         val read = checkNotNull(rawDocument(id))
         val _ = view.save(SortProbeSnap(id = id, name = "Zulu"))
-        val backfill = SortKeyBackfill(
+        val backfill = DerivedFieldBackfill(
             connection = RedisStack.connection,
             indexName = view.indexName,
             keys = SnapshotKeys(
@@ -267,15 +267,19 @@ class RedisSnapViewSortTest {
                 model = SortProbeSnap::class,
                 objectMapper = RedisSnapView.defaultObjectMapper(),
             ),
-            sortKeys = IndexDefinition.from(view.indexName, fields, RedisStack.settings).sortKeys,
+            derived = IndexDefinition.from(view.indexName, fields, RedisStack.settings).derived,
             objectMapper = RedisSnapView.defaultObjectMapper(),
         )
 
-        val isWritten = backfill.writeIfUnchanged(key = view.key(id), read = read, sortKeys = """{"name":"stale"}""")
+        val isWritten = backfill.writeIfUnchanged(
+            key = view.key(id),
+            read = read,
+            values = mapOf(SortKeys.DOCUMENT_FIELD to """{"name":"stale"}"""),
+        )
 
         assertThat(isWritten).isFalse()
         assertThat(sortKeyOf(id)).isEqualTo(SortKeys.key(text = "Zulu", id = id))
-        assertThat(backfill.key(view.key(id))).isEqualTo(SortKeyBackfill.Outcome.CURRENT)
+        assertThat(backfill.write(view.key(id))).isEqualTo(DerivedFieldBackfill.Outcome.CURRENT)
     }
 
     @Test
