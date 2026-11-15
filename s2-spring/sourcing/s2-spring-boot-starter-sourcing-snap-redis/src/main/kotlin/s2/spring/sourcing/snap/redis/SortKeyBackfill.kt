@@ -6,6 +6,10 @@ import io.lettuce.core.api.reactive.RedisReactiveCommands
 import io.lettuce.core.codec.StringCodec
 import io.lettuce.core.output.ValueOutput
 import io.lettuce.core.protocol.CommandArgs
+import kotlin.time.TimeSource
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.slf4j.Logger
@@ -32,19 +36,38 @@ internal class SortKeyBackfill(
 
     enum class Outcome { CURRENT, KEYED, GONE, UNKEYABLE }
 
-    /** Keys every stored document that lacks its keys; how many it keyed. */
+    /**
+     * Keys every stored document that lacks its keys; how many it keyed. A key holding no JSON document is left
+     * alone, as every read of the view leaves it.
+     */
     suspend fun run(): Int {
         if (sortKeys.isEmpty) return 0
-        var keyed = 0
+        val started = TimeSource.Monotonic.markNow()
+        val counts = IntArray(Outcome.entries.size)
         val seen = HashSet<String>()
         keys.batches().collect { batch ->
             val fresh = batch.filter(seen::add)
+            val stale = ArrayList<String>()
             fresh.zip(keys.read(fresh)).forEach { (key, value) ->
-                if (!isCurrent(key, value.rootDocument()) && key(key) == Outcome.KEYED) keyed++
+                val document = value.rootDocument()
+                when {
+                    document == null -> counts[Outcome.GONE.ordinal]++
+                    isCurrent(key, document) -> counts[Outcome.CURRENT.ordinal]++
+                    else -> stale += key
+                }
             }
+            // One batch in flight at once: the connection pipelines its reads and writes.
+            coroutineScope { stale.map { key -> async { key(key) } }.awaitAll() }.forEach { counts[it.ordinal]++ }
         }
-        if (keyed > 0) logger.info("Index[{}]: sort keys written into {} stored documents", indexName, keyed)
-        return keyed
+        logger.info(
+            "Index[{}]: sort keys of {} stored documents read in {}: {} written, {} could not be",
+            indexName,
+            seen.size,
+            started.elapsedNow(),
+            counts[Outcome.KEYED.ordinal],
+            counts[Outcome.UNKEYABLE.ordinal],
+        )
+        return counts[Outcome.KEYED.ordinal]
     }
 
     /** Keys the document under [key] if it is still the one read; retried on a document changed meanwhile. */
@@ -80,8 +103,8 @@ internal class SortKeyBackfill(
         commands.eval<Long>(WRITE_IF_UNCHANGED, ScriptOutputType.INTEGER, arrayOf(key), read, sortKeys)
             .awaitFirst() == 1L
 
-    private fun isCurrent(key: String, json: String?): Boolean {
-        val document = json?.let { parseOrNull(it) } ?: return false
+    private fun isCurrent(key: String, json: String): Boolean {
+        val document = parseOrNull(json) ?: return false
         return document.get(SortKeys.DOCUMENT_FIELD) == sortKeys.keysOf(document = document, id = idOf(key))
     }
 

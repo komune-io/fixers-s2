@@ -107,13 +107,13 @@ class IndexDefinitionTest {
     }
 
     @Test
-    fun `a snapshot holding the sort keys' own field is refused before it is written`() {
+    fun `a snapshot carrying old sort keys gets its own written over them`() {
         val sortKeys = IndexDefinition.from("Probe", fields, IndexSettings(null)).sortKeys
         val document = JsonMapper.builder().build().readTree("""{"id":"a","name":"x","__s2_sort":1}""") as ObjectNode
 
-        assertThatThrownBy { sortKeys.write(document = document, id = "a") }
-            .isInstanceOf(IllegalStateException::class.java)
-            .hasMessageContaining("__s2_sort")
+        sortKeys.write(document = document, id = "a")
+
+        assertThat(document.get("__s2_sort").get("name").stringValue()).isEqualTo(SortKeys.key(text = "x", id = "a"))
     }
 
     @Test

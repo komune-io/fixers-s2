@@ -1,5 +1,6 @@
 package s2.spring.sourcing.snap.redis
 
+import kotlin.reflect.KClass
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -99,5 +100,29 @@ class RedisSnapViewSortShapeTest {
         val found = quoted.search(query = null, pagination = null, sortBy = null).items.map { it.id }
 
         assertThat(found).containsExactly("q")
+    }
+
+    @Test
+    suspend fun `a model reading the stored document back saves it again with fresh keys`() {
+        @Suppress("UNCHECKED_CAST")
+        val documents = RedisStack.view(
+            model = Map::class as KClass<Map<String, Any?>>,
+            fields = listOf(
+                RedisIndexField("id", RedisFieldType.TAG),
+                RedisIndexField("name", RedisFieldType.TEXT),
+            ),
+            idOf = { checkNotNull(it["id"]) as String },
+        )
+        documents.initIndex()
+        val _ = documents.save(mapOf("id" to "m", "name" to "Alpha"))
+        val read = checkNotNull(documents.get("m"))
+        assertThat(read).containsKey(SortKeys.DOCUMENT_FIELD)
+
+        val _ = documents.save(read + ("name" to "Zulu"))
+
+        val saved = checkNotNull(documents.get("m"))
+        val _ = documents.deleteAll()
+        documents.dropIndex()
+        assertThat(saved[SortKeys.DOCUMENT_FIELD]).isEqualTo(mapOf("name" to SortKeys.key(text = "Zulu", id = "m")))
     }
 }

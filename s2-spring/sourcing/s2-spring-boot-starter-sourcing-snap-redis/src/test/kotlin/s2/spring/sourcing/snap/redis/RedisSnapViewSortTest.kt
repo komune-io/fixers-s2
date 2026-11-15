@@ -242,6 +242,18 @@ class RedisSnapViewSortTest {
     }
 
     @Test
+    suspend fun `a key under the view's prefix holding no JSON document is left alone at the start`() {
+        val _ = store("Bravo", "Alpha")
+        val plain = view.key("plain-${UUID.randomUUID()}")
+        assertThat(commands.set(plain, "not a document").awaitSingle()).isEqualTo("OK")
+
+        view.initIndex()
+
+        assertThat(sortedNames()).containsExactly("Alpha", "Bravo")
+        assertThat(commands.type(plain).awaitSingle()).isEqualTo("string")
+    }
+
+    @Test
     suspend fun `a sort key is not written over a snapshot saved since it was read`() {
         val id = storeUnkeyed("Alpha")
         val read = checkNotNull(rawDocument(id))

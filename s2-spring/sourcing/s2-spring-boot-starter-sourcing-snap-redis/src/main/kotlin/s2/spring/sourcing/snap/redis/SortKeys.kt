@@ -29,10 +29,9 @@ internal class SortKeys(private val sorted: List<Sorted>) {
         }
     }
 
-    /** Refuses a document that holds [DOCUMENT_FIELD] of its own: the keys would overwrite it. */
+    /** Replaces the [DOCUMENT_FIELD] [document] holds: a model reading stored documents back carries old keys. */
     fun write(document: ObjectNode, id: String) {
         if (isEmpty) return
-        check(!document.has(DOCUMENT_FIELD)) { "Snapshot [$id] holds a field $DOCUMENT_FIELD, kept for sort keys" }
         val _ = document.set(DOCUMENT_FIELD, keysOf(document = document, id = id))
     }
 
