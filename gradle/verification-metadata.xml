@@ -279,6 +279,11 @@
             <pgp value="16FFFF8AD10219BC78B42B18243FBB4D5814C621"/>
          </artifact>
       </component>
+      <component group="net.jodah" name="typetools" version="0.7.0">
+         <artifact name="typetools-0.7.0.jar">
+            <pgp value="4E1CAA8ABA1D2259F02F57E682E1D008D5C49EA5"/>
+         </artifact>
+      </component>
       <component group="org.antlr" name="antlr4-runtime" version="4.7.2">
          <artifact name="antlr4-runtime-4.7.2.jar">
             <pgp value="D54A395B5CF3F86EB45F6E426B1B008864323B92"/>
