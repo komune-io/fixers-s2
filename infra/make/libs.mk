@@ -12,7 +12,7 @@ lint:
 # Kotlin/JS tasks write their packages there (Unable to delete directory … New files were found).
 build:
 	./gradlew clean
-	VERSION=$(VERSION) ./gradlew build publishToMavenLocal -x test -x jvmTest -x jsTest -x jsBrowserTest
+	VERSION=$(VERSION) ./gradlew build publishToMavenLocal -x test -x jvmTest -x jsTest -x jsBrowserTest || (diff kotlin-js-store/yarn.lock build/js/yarn.lock; cat build/js/package.json; exit 1)
 
 test:
 	./gradlew allTests test
